@@ -75,8 +75,8 @@ export default function QRStudio() {
     socialNetwork: 'tiktok',
     socialHandle: 'yourname',
     encryption: 'WPA',
-    upiId: 'sameer@upi',
-    upiName: 'Sameer Studio',
+    upiId: 'your@upi',
+    upiName: 'Studio',
     upiAmount: '',
     upiNote: 'Creator Support',
     appPlatform: 'android',
@@ -788,7 +788,7 @@ export default function QRStudio() {
                           <label className="block text-xs font-bold text-emerald-300 mb-1.5">Payee Name</label>
                           <input
                             type="text"
-                            placeholder="Sameer Studio"
+                            placeholder="Studio"
                             className={inputClass}
                             value={data.upiName || ''}
                             onChange={(e) => setData({ ...data, upiName: e.target.value })}
@@ -822,7 +822,7 @@ export default function QRStudio() {
                         <label className="block text-xs font-bold text-fuchsia-300 mb-2">Phone Number to Call</label>
                         <input
                           type="tel"
-                          placeholder="+91 98765 43210"
+                          placeholder="+91 0000000000"
                           className={inputClass}
                           value={data.phone || ''}
                           onChange={(e) => setData({ ...data, phone: e.target.value })}

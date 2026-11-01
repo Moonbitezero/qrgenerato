@@ -58,7 +58,7 @@ export default function ContactForm() {
           <input
             type="text"
             required
-            placeholder="Sameer"
+            placeholder="Yourname"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={inputClass}
