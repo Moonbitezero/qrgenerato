@@ -22,7 +22,7 @@ export default function Footer() {
         </div>
 
         <p className="text-xs text-zinc-500">
-          © {new Date().getFullYear()} QR Code Studio. All rights reserved.
+          © {new Date().getFullYear()} QR GENERATO. All rights reserved.
         </p>
       </div>
     </footer>

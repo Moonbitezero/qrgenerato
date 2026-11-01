@@ -6,7 +6,7 @@ import { Scale, CheckCircle2, AlertTriangle } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'Terms and Conditions — Commercial Use & Service Guidelines',
   description:
-    'Read the Terms and Conditions for QR Code Studio. Free commercial and personal use license, print verification guidelines, and acceptable use policies.',
+    'Read the Terms and Conditions for QR GENERATO. Free commercial and personal use license, print verification guidelines, and acceptable use policies.',
   alternates: {
     canonical: '/terms-and-conditions',
   },
@@ -55,7 +55,7 @@ export default function TermsAndConditionsPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-white">2. Commercial &amp; Personal License</h2>
             <p>
-              All QR codes generated using QR Code Studio (including PNG raster images, SVG vector
+              All QR codes generated using QR GENERATO (including PNG raster images, SVG vector
               files, A4 sticker sheets, and batch ZIP archives) are <strong>100% royalty-free</strong>{' '}
               for both personal and commercial use. You may print them on product packaging, business
               cards, apparel, billboards, and digital media without attribution or recurring fees.
@@ -96,7 +96,7 @@ export default function TermsAndConditionsPage() {
             <h2 className="text-lg font-bold text-white">5. Limitation of Liability</h2>
             <p>
               QR GENERATO is provided &ldquo;AS IS&rdquo; without warranties of any kind. In no
-              event shall QR Code Studio or its creators be liable for any printing costs, lost
+              event shall QR GENERATO or its creators be liable for any printing costs, lost
               revenue, or indirect damages arising from an unscannable QR code or a typo entered into a
               payload field.
             </p>

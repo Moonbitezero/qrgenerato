@@ -327,7 +327,7 @@ export default function QRStudio() {
     sCtx.fillStyle = '#18181b';
     sCtx.font = 'bold 24px sans-serif';
     sCtx.textAlign = 'center';
-    sCtx.fillText(`QR Code Studio — Printable Sticker Sheet (${stickerGrid})`, sheet.width / 2, 50);
+    sCtx.fillText(`QR GENERATO — Printable Sticker Sheet (${stickerGrid})`, sheet.width / 2, 50);
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {

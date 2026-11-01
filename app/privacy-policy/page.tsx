@@ -6,7 +6,7 @@ import { ShieldCheck, Lock, EyeOff, ServerOff, Cookie } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'Privacy Policy — 100% Client-Side Data Protection',
   description:
-    'Read the QR Code Studio Privacy Policy. Learn how our 100% browser-based QR code generator protects your URLs, Wi-Fi passwords, UPI IDs, and uploaded images.',
+    'Read the QR GENERATO Privacy Policy. Learn how our 100% browser-based QR code generator protects your URLs, Wi-Fi passwords, UPI IDs, and uploaded images.',
   alternates: {
     canonical: '/privacy-policy',
   },
@@ -71,7 +71,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-white">1. Information We Do Not Collect</h2>
             <p>
-              Unlike traditional cloud-based QR generators, <strong>QR Code Studio</strong> executes
+              Unlike traditional cloud-based QR generators, <strong>QR GENERATO</strong> executes
               all QR matrix generation, color styling, image masking, and optical decoding locally on
               your device. We do <strong>not</strong> transmit, log, or store:
             </p>

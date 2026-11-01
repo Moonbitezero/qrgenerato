@@ -66,7 +66,7 @@ export function generatePayload(type: QRType, data: QRPayloadData): string {
     case 'url':
       return data.url?.trim() || 'https://example.com';
     case 'text':
-      return data.text || 'Hello from QR Code Studio!';
+      return data.text || 'Hello from QR GENERATO!';
     case 'email':
       return `mailto:${data.email || ''}?subject=${encodeURIComponent(data.subject || '')}&body=${encodeURIComponent(data.body || '')}`;
     case 'wifi':

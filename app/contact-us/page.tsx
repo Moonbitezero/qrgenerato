@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Contact Us | QR GENERATO',
     description:
-      'Have a question or feature request for QR Code Studio? Reach out to our team anytime.',
+      'Have a question or feature request for QR GENERATO? Reach out to our team anytime.',
     url: 'https://qrcodestudio.app/contact-us',
   },
 };
@@ -25,7 +25,7 @@ export default function ContactUsPage() {
     '@type': 'ContactPage',
     name: 'Contact QR GENERATO',
     url: 'https://qrcodestudio.app/contact-us',
-    description: 'Contact page for QR Code Studio technical support and feature requests.',
+    description: 'Contact page for QR GENERATO technical support and feature requests.',
   };
 
   return (

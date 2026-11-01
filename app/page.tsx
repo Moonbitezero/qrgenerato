@@ -17,44 +17,44 @@ const SEO_FAQS = [
   {
     question: 'Is there a free QR code generator?',
     answerHtml:
-      '<p>Yes, <strong>QR Code Studio</strong> is a 100% free QR code generator with no sign up, no watermarks, and no expiration. Because all QR matrices are generated directly inside your browser, your static QR codes are free forever and never expire.</p>',
+      '<p>Yes, <strong>QR GENERATO</strong> is a 100% free QR code generator with no sign up, no watermarks, and no expiration. Because all QR matrices are generated directly inside your browser, your static QR codes are free forever and never expire.</p>',
     answerText:
-      'Yes, QR Code Studio is a 100% free QR code generator with no sign up, no watermarks, and no expiration. Because all QR matrices are generated directly inside your browser, your static QR codes are free forever and never expire.',
+      'Yes, QR GENERATO is a 100% free QR code generator with no sign up, no watermarks, and no expiration. Because all QR matrices are generated directly inside your browser, your static QR codes are free forever and never expire.',
   },
   {
     question: 'What is the best QR code generator?',
     answerHtml:
-      '<p><strong>QR Code Studio</strong> is rated as the best QR code generator because it combines 12+ payload types (including UPI payments, Website URLs, Wi-Fi, and vCards) with custom finder eye shapes, multi-stop gradients, image-filled pixel masking, and real-time optical scan verification.</p>',
+      '<p><strong>QR GENERATO</strong> is rated as the best QR code generator because it combines 12+ payload types (including UPI payments, Website URLs, Wi-Fi, and vCards) with custom finder eye shapes, multi-stop gradients, image-filled pixel masking, and real-time optical scan verification.</p>',
     answerText:
-      'QR Code Studio is rated as the best QR code generator because it combines 12+ payload types (including UPI payments, Website URLs, Wi-Fi, and vCards) with custom finder eye shapes, multi-stop gradients, image-filled pixel masking, and real-time optical scan verification.',
+      'QR GENERATO is rated as the best QR code generator because it combines 12+ payload types (including UPI payments, Website URLs, Wi-Fi, and vCards) with custom finder eye shapes, multi-stop gradients, image-filled pixel masking, and real-time optical scan verification.',
   },
   {
     question: 'What is the best free QR code generator?',
     answerHtml:
-      '<p>The best free QR code generator is one that does not lock high-resolution vector downloads behind a paywall or deactivate your links after a trial period. QR Code Studio gives you unlimited high-res PNG, Vector SVG, A4 sticker sheets, and batch CSV exports completely free without requiring an account.</p>',
+      '<p>The best free QR code generator is one that does not lock high-resolution vector downloads behind a paywall or deactivate your links after a trial period. QR GENERATO gives you unlimited high-res PNG, Vector SVG, A4 sticker sheets, and batch CSV exports completely free without requiring an account.</p>',
     answerText:
-      'The best free QR code generator is one that does not lock high-resolution vector downloads behind a paywall or deactivate your links after a trial period. QR Code Studio gives you unlimited high-res PNG, Vector SVG, A4 sticker sheets, and batch CSV exports completely free without requiring an account.',
+      'The best free QR code generator is one that does not lock high-resolution vector downloads behind a paywall or deactivate your links after a trial period. QR GENERATO gives you unlimited high-res PNG, Vector SVG, A4 sticker sheets, and batch CSV exports completely free without requiring an account.',
   },
   {
     question: 'Does Google have a QR code generator?',
     answerHtml:
-      '<p>Yes, Google Chrome includes a basic built-in QR generator in the address bar share menu for web links. However, it only creates basic black-and-white URL codes. If you need custom colors, brand logos, UPI payment QR codes, Wi-Fi sharing, or vector SVG downloads, QR Code Studio is the best free alternative.</p>',
+      '<p>Yes, Google Chrome includes a basic built-in QR generator in the address bar share menu for web links. However, it only creates basic black-and-white URL codes. If you need custom colors, brand logos, UPI payment QR codes, Wi-Fi sharing, or vector SVG downloads, QR GENERATO is the best free alternative.</p>',
     answerText:
-      'Yes, Google Chrome includes a basic built-in QR generator in the address bar share menu for web links. However, it only creates basic black-and-white URL codes. If you need custom colors, brand logos, UPI payment QR codes, Wi-Fi sharing, or vector SVG downloads, QR Code Studio is the best free alternative.',
+      'Yes, Google Chrome includes a basic built-in QR generator in the address bar share menu for web links. However, it only creates basic black-and-white URL codes. If you need custom colors, brand logos, UPI payment QR codes, Wi-Fi sharing, or vector SVG downloads, QR GENERATO is the best free alternative.',
   },
   {
     question: 'What is the best online QR code generator?',
     answerHtml:
-      '<p><strong>QR Code Studio</strong> is the best online QR code generator for privacy and creative control. It runs 100% client-side in your browser—meaning your sensitive Wi-Fi passwords, phone numbers, and UPI IDs are never uploaded to an external server—while offering studio-grade visual customization.</p>',
+      '<p><strong>QR GENERATO</strong> is the best online QR code generator for privacy and creative control. It runs 100% client-side in your browser—meaning your sensitive Wi-Fi passwords, phone numbers, and UPI IDs are never uploaded to an external server—while offering studio-grade visual customization.</p>',
     answerText:
-      'QR Code Studio is the best online QR code generator for privacy and creative control. It runs 100% client-side in your browser—meaning your sensitive Wi-Fi passwords, phone numbers, and UPI IDs are never uploaded to an external server—while offering studio-grade visual customization.',
+      'QR GENERATO is the best online QR code generator for privacy and creative control. It runs 100% client-side in your browser—meaning your sensitive Wi-Fi passwords, phone numbers, and UPI IDs are never uploaded to an external server—while offering studio-grade visual customization.',
   },
   {
     question: 'What is a dynamic QR code generator?',
     answerHtml:
-      '<p>A dynamic QR code generator encodes a short redirect URL into the QR code so you can change the destination link later or track scan analytics. However, dynamic QR codes require paid monthly subscriptions and stop working if you cancel. QR Code Studio creates direct-encoded static QR codes that are 100% free and work forever with zero expiration.</p>',
+      '<p>A dynamic QR code generator encodes a short redirect URL into the QR code so you can change the destination link later or track scan analytics. However, dynamic QR codes require paid monthly subscriptions and stop working if you cancel. QR GENERATO creates direct-encoded static QR codes that are 100% free and work forever with zero expiration.</p>',
     answerText:
-      'A dynamic QR code generator encodes a short redirect URL into the QR code so you can change the destination link later or track scan analytics. However, dynamic QR codes require paid monthly subscriptions and stop working if you cancel. QR Code Studio creates direct-encoded static QR codes that are 100% free and work forever with zero expiration.',
+      'A dynamic QR code generator encodes a short redirect URL into the QR code so you can change the destination link later or track scan analytics. However, dynamic QR codes require paid monthly subscriptions and stop working if you cancel. QR GENERATO creates direct-encoded static QR codes that are 100% free and work forever with zero expiration.',
   },
   {
     question: 'How to use a QR code generator?',
@@ -66,9 +66,9 @@ const SEO_FAQS = [
   {
     question: 'QR code generator kaise kare? (QR कोड कैसे बनाएं?)',
     answerHtml:
-      '<p><strong>QR Code Studio</strong> पर फ्री QR कोड बनाना बहुत आसान है: 1. सबसे पहले ऊपर दिए गए विकल्पों में से अपना प्रकार चुनें (जैसे <strong>UPI Pay</strong>, <strong>Website</strong>, <strong>Wi-Fi</strong>, या <strong>Phone</strong>) और अपनी जानकारी भरें। 2. अपनी पसंद का कलर ग्रेडिएंट, बॉर्डर फ्रेम, या बीच में लगाने के लिए अपना फोटो/लोगो (Logo) चुनें। 3. अब <strong>Download PNG</strong> या <strong>SVG</strong> बटन पर क्लिक करके अपना हाई-क्वालिटी QR कोड तुरंत मुफ्त में डाउनलोड करें।</p>',
+      '<p><strong>QR GENERATO</strong> पर फ्री QR कोड बनाना बहुत आसान है: 1. सबसे पहले ऊपर दिए गए विकल्पों में से अपना प्रकार चुनें (जैसे <strong>UPI Pay</strong>, <strong>Website</strong>, <strong>Wi-Fi</strong>, या <strong>Phone</strong>) और अपनी जानकारी भरें। 2. अपनी पसंद का कलर ग्रेडिएंट, बॉर्डर फ्रेम, या बीच में लगाने के लिए अपना फोटो/लोगो (Logo) चुनें। 3. अब <strong>Download PNG</strong> या <strong>SVG</strong> बटन पर क्लिक करके अपना हाई-क्वालिटी QR कोड तुरंत मुफ्त में डाउनलोड करें।</p>',
     answerText:
-      'QR Code Studio पर फ्री QR कोड बनाना बहुत आसान है: 1. सबसे पहले ऊपर दिए गए विकल्पों में से अपना प्रकार चुनें (जैसे UPI Pay, Website, Wi-Fi, या Phone) और अपनी जानकारी भरें। 2. अपनी पसंद का कलर ग्रेडिएंट, बॉर्डर फ्रेम, या बीच में लगाने के लिए अपना फोटो/लोगो (Logo) चुनें। 3. अब Download PNG या SVG बटन पर क्लिक करके अपना हाई-क्वालिटी QR कोड तुरंत मुफ्त में डाउनलोड करें।',
+      'QR GENERATO पर फ्री QR कोड बनाना बहुत आसान है: 1. सबसे पहले ऊपर दिए गए विकल्पों में से अपना प्रकार चुनें (जैसे UPI Pay, Website, Wi-Fi, या Phone) और अपनी जानकारी भरें। 2. अपनी पसंद का कलर ग्रेडिएंट, बॉर्डर फ्रेम, या बीच में लगाने के लिए अपना फोटो/लोगो (Logo) चुनें। 3. अब Download PNG या SVG बटन पर क्लिक करके अपना हाई-क्वालिटी QR कोड तुरंत मुफ्त में डाउनलोड करें।',
   },
 ];
 
@@ -90,7 +90,7 @@ export default function Home() {
   const webAppSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'QR Code Studio — Free QR Code Generator Online',
+    name: 'QR GENERATO — Free QR Code Generator Online',
     applicationCategory: 'DesignApplication',
     operatingSystem: 'All',
     offers: {
@@ -127,7 +127,7 @@ export default function Home() {
           ON-PAGE SEO CONTENT & FAQ SECTION (650+ Words + 8 Schema FAQs)
          ===================================================================== */}
       <section
-        aria-label="About QR Code Studio Free Online QR Code Generator"
+        aria-label="About QR GENERATO Free Online QR Code Generator"
         className="max-w-[1400px] mx-auto px-4 sm:px-8 mt-12 sm:mt-20 space-y-10"
       >
         {/* Card 1: 600+ Word SEO Guide */}
@@ -142,7 +142,7 @@ export default function Home() {
               The Best Free QR Code Generator Online — No Sign Up &amp; No Expiration
             </h2>
             <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
-              Welcome to <strong>QR Code Studio</strong>, the most advanced{' '}
+              Welcome to <strong>QR GENERATO</strong>, the most advanced{' '}
               <strong>qr code generator</strong> built for creators, businesses, developers, and
               everyday users. When searching for a reliable <strong>free qr code generator</strong>,
               most platforms lock high-resolution downloads behind expensive subscriptions or replace
@@ -156,7 +156,7 @@ export default function Home() {
               Whether you need a fast <strong>link to qr code generator</strong> for a marketing
               campaign, an <strong>email qr code generator online</strong> for customer support, or
               a specialized <strong>upi qr code generator</strong> for instant digital payments in
-              India, QR Code Studio encodes your data directly into the mathematical QR matrix.
+              India, QR GENERATO encodes your data directly into the mathematical QR matrix.
               Because there are no middleman tracking servers, every code you create is a permanent{' '}
               <strong>qr code generator free no expiration</strong> asset that works forever.
             </p>
@@ -205,7 +205,7 @@ export default function Home() {
                 Optical Verification &amp; Print-Ready Exports
               </h3>
               <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                Why is QR Code Studio rated as the <strong>best free qr code generator</strong>?
+                Why is QR GENERATO rated as the <strong>best free qr code generator</strong>?
                 Every time you customize colors or upload an image, our built-in optical decoder
                 test-scans your canvas in real time to guarantee 100% readability. Download crisp
                 raster PNGs, scalable vector SVGs, batch CSV archives, or A4 sticker sheets from{' '}
@@ -222,7 +222,7 @@ export default function Home() {
             <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
               When users search for a <strong>qr code generator google</strong> or{' '}
               <strong>qr code generator online</strong>, they need speed, privacy, and zero watermarks.
-              Because QR Code Studio executes 100% client-side using HTML5 Canvas and vector path
+              Because QR GENERATO executes 100% client-side using HTML5 Canvas and vector path
               algorithms, your sensitive Wi-Fi passwords, vCard phone numbers, and UPI IDs never
               leave your device. You get the creative power of the{' '}
               <strong>best qr code generator</strong> combined with complete data privacy.

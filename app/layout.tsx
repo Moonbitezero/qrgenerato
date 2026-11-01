@@ -28,7 +28,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://qrcodestudio.app'),
   title: {
-    default: 'Free QR Code Generator Online — No Sign Up, With Logo & UPI | QR Code Studio',
+    default: 'Free QR Code Generator Online — No Sign Up, With Logo & UPI | QR GENERATO',
     template: '%s | QR GENERATO',
   },
   description:

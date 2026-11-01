@@ -14,14 +14,14 @@ import {
 export const metadata: Metadata = {
   title: 'About Us — Our Mission for Free, Private & Permanent QR Codes',
   description:
-    'Learn how QR Code Studio built the best free online QR code generator with logo, UPI support, image-filled pixel masking, and 100% client-side privacy.',
+    'Learn how QR GENERATO built the best free online QR code generator with logo, UPI support, image-filled pixel masking, and 100% client-side privacy.',
   alternates: {
     canonical: '/about',
   },
   openGraph: {
-    title: 'About QR Code Studio — Free Online QR Code Generator',
+    title: 'About QR GENERATO — Free Online QR Code Generator',
     description:
-      'Discover the engineering and privacy-first mission behind QR Code Studio, the 100% browser-based QR code generator with zero expiration.',
+      'Discover the engineering and privacy-first mission behind QR GENERATO, the 100% browser-based QR code generator with zero expiration.',
     url: 'https://qrcodestudio.app/about',
   },
 };
@@ -30,10 +30,10 @@ export default function AboutPage() {
   const aboutSchema = {
     '@context': 'https://schema.org',
     '@type': 'AboutPage',
-    name: 'About QR Code Studio',
+    name: 'About QR GENERATO',
     url: 'https://qrcodestudio.app/about',
     description:
-      'QR Code Studio is a client-side web application for generating customizable, scannable QR codes with logos, gradients, UPI payment payloads, and pixel-masked artwork.',
+      'QR GENERATO is a client-side web application for generating customizable, scannable QR codes with logos, gradients, UPI payment payloads, and pixel-masked artwork.',
   };
 
   return (
@@ -63,7 +63,7 @@ export default function AboutPage() {
         </h1>
 
         <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
-          We built <strong>QR Code Studio</strong> because we were tired of deceptive &ldquo;free&rdquo;
+          We built <strong>QR GENERATO</strong> because we were tired of deceptive &ldquo;free&rdquo;
           QR code generators that hold your links hostage. Too many websites let you design a QR code,
           print it on thousands of business cards or restaurant menus, and then deactivate the code
           two weeks later unless you pay a monthly fee.
@@ -98,7 +98,7 @@ export default function AboutPage() {
           <h2 className="text-lg font-bold text-white">Zero-Knowledge Browser Architecture</h2>
           <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
             Your Wi-Fi passwords, private vCard contact details, email templates, and uploaded artwork
-            never leave your device. Everything is computed locally in memory, making QR Code Studio
+            never leave your device. Everything is computed locally in memory, making QR GENERATO
             safe for enterprise and personal use.
           </p>
         </div>
