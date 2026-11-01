@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     canonical: '/terms-and-conditions',
   },
   openGraph: {
-    title: 'Terms and Conditions | QR Code Studio',
+    title: 'Terms and Conditions | QR GENERATO',
     description:
       'Review our free commercial use rights, scannability testing guidelines, and acceptable use policy.',
     url: 'https://qrcodestudio.app/terms-and-conditions',
@@ -46,7 +46,7 @@ export default function TermsAndConditionsPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-white">1. Acceptance of Terms</h2>
             <p>
-              By accessing and using <strong>QR Code Studio</strong>, you agree to comply with and be
+              By accessing and using <strong>QR GENERATO</strong>, you agree to comply with and be
               bound by these Terms and Conditions. If you do not agree with any part of these terms,
               please discontinue use of our web application.
             </p>
@@ -65,7 +65,7 @@ export default function TermsAndConditionsPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-white">3. User Responsibility &amp; Acceptable Use</h2>
             <p>
-              Because QR Code Studio encodes your input directly into the QR matrix without human
+              Because QR GENERATO encodes your input directly into the QR matrix without human
               moderation, you are solely responsible for the content you encode. You agree{' '}
               <strong>not</strong> to use this tool to generate QR codes that point to:
             </p>
@@ -95,7 +95,7 @@ export default function TermsAndConditionsPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-white">5. Limitation of Liability</h2>
             <p>
-              QR Code Studio is provided &ldquo;AS IS&rdquo; without warranties of any kind. In no
+              QR GENERATO is provided &ldquo;AS IS&rdquo; without warranties of any kind. In no
               event shall QR Code Studio or its creators be liable for any printing costs, lost
               revenue, or indirect damages arising from an unscannable QR code or a typo entered into a
               payload field.

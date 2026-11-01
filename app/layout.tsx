@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://qrcodestudio.app'),
   title: {
     default: 'Free QR Code Generator Online — No Sign Up, With Logo & UPI | QR Code Studio',
-    template: '%s | QR Code Studio',
+    template: '%s | QR GENERATO,
   },
   description:
     'The best free QR code generator online with no sign up and no expiration. Create custom QR codes with logo, UPI QR codes, link to QR, email, and image-filled artwork in PNG & SVG.',

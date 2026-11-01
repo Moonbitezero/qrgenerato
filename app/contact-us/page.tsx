@@ -7,12 +7,12 @@ import { Mail, MessageSquare, Clock, HelpCircle } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'Contact Us — Support, Feedback & Feature Requests',
   description:
-    'Get in touch with the QR Code Studio team. Report scanning feedback, request new QR payload types, or inquire about custom integrations.',
+    'Get in touch with the QR GENERATO team. Report scanning feedback, request new QR payload types, or inquire about custom integrations.',
   alternates: {
     canonical: '/contact-us',
   },
   openGraph: {
-    title: 'Contact Us | QR Code Studio',
+    title: 'Contact Us | QR GENERATO',
     description:
       'Have a question or feature request for QR Code Studio? Reach out to our team anytime.',
     url: 'https://qrcodestudio.app/contact-us',
@@ -23,7 +23,7 @@ export default function ContactUsPage() {
   const contactSchema = {
     '@context': 'https://schema.org',
     '@type': 'ContactPage',
-    name: 'Contact QR Code Studio',
+    name: 'Contact QR GENERATO',
     url: 'https://qrcodestudio.app/contact-us',
     description: 'Contact page for QR Code Studio technical support and feature requests.',
   };
@@ -49,7 +49,7 @@ export default function ContactUsPage() {
               <MessageSquare size={13} /> We&apos;d Love to Hear From You
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Contact QR Code Studio
+              Contact QR GENERATO
             </h1>
             <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
               Have a question about our Image-Filled QR engine, need help with a batch CSV export, or

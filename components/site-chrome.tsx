@@ -140,7 +140,7 @@ export function SiteFooter() {
                 <QrCode size={17} />
               </div>
               <span className="text-base font-extrabold text-white tracking-tight">
-                QR Code Studio
+                QR GENERATO
               </span>
             </Link>
             <p className="text-xs text-zinc-400 leading-relaxed">

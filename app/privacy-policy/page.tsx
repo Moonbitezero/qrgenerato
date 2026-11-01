@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     canonical: '/privacy-policy',
   },
   openGraph: {
-    title: 'Privacy Policy | QR Code Studio',
+    title: 'Privacy Policy | QR GENERATO',
     description:
       'We never upload or store your QR payloads or images. Read our full client-side privacy commitment.',
     url: 'https://qrcodestudio.app/privacy-policy',

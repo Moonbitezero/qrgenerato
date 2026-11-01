@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center text-white font-bold">
             <QrCode size={16} />
           </div>
-          <span className="text-sm font-bold text-white">QR Code Studio PRO</span>
+          <span className="text-sm font-bold text-white">QR GENERATO</span>
         </div>
 
         <div className="flex flex-wrap justify-center gap-6 text-xs font-semibold text-zinc-400">
