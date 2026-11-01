@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://qrcodestudio.app',
-    siteName: 'QR Code Studio',
+    siteName: 'QR GENERATO',
     title: 'Free QR Code Generator Online (With Logo, UPI & No Expiration)',
     description:
       'Generate permanent, 100% scannable QR codes online for free. Supports UPI payments, website links, custom logos, multi-stop gradients, and image-filled pixel masks.',
