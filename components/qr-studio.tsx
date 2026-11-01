@@ -70,7 +70,7 @@ export default function QRStudio() {
   const [type, setType] = useState<QRType>('phone');
   const [data, setData] = useState<QRPayloadData>({
     url: 'https://example.com',
-    phone: '+91 00000 00000',
+    phone: '',
     socialNetwork: 'tiktok',
     socialHandle: 'yourname',
     encryption: 'WPA',
