@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     template: '%s | QR GENERATO,
   },
   description:
-    'The best free QR code generator online with no sign up and no expiration. Create custom QR codes with logo, UPI QR codes, link to QR, email, and image-filled artwork in PNG & SVG.',
+  "The best free QR code generator online with no sign up and no expiration. Create custom...",
   keywords: [
     'qr code generator',
     'free qr code generator',
