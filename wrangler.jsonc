@@ -1,0 +1,7 @@
+{
+  "name": "qr-code-studio",
+  "compatibility_date": "2026-10-31",
+  "assets": {
+    "directory": "./out"
+  }
+}
