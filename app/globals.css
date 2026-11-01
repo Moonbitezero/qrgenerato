@@ -49,3 +49,24 @@ input[type="range"]::-webkit-slider-thumb {
   border: 2px solid #ffffff;
   box-shadow: 0 0 10px rgba(168, 85, 247, 0.7);
 }
+/* Mobile GPU Performance Optimization */
+@media (max-width: 768px) {
+  /* Tone down heavy glassmorphism blurs that cause scroll stutter on phones */
+  .backdrop-blur,
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: rgba(15, 10, 28, 0.95) !important;
+  }
+
+  /* Prevent giant ambient glow blobs from lagging mobile repaint */
+  .blur-3xl,
+  .blur-2xl {
+    filter: blur(24px) !important;
+    transform: translateZ(0);
+    will-change: transform;
+  }
+}

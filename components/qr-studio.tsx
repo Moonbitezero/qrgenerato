@@ -1,7 +1,6 @@
 // components/qr-studio.tsx
 'use client';
-
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import {
   Link as LinkIcon, Type, Mail, Wifi, Phone, MessageSquare, Share2, Contact,
   Download, Copy, Palette, Image as ImageIcon, Sparkles,
@@ -85,6 +84,9 @@ export default function QRStudio() {
     longitude: '77.2090',
   });
 
+  // Defer input data so typing on mobile stays 60fps smooth
+  const deferredData = useDeferredValue(data);
+
   const [designTab, setDesignTab] = useState<'colors' | 'eyes' | 'frames' | 'artwork'>('eyes');
 
   // Colors & Gradients
@@ -141,7 +143,7 @@ export default function QRStudio() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const payload = useMemo(() => generatePayload(type, data), [type, data]);
+  const payload = useMemo(() => generatePayload(type, deferredData), [type, data]);
 
   // Load Shareable Studio Preset from URL query params
   useEffect(() => {
