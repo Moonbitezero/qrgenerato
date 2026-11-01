@@ -1,4 +1,4 @@
-# QR Code Studio
+# QR GENERATO
 
 A client-side QR code creator built with Next.js App Router, React, TypeScript and `qrcode`.
 
