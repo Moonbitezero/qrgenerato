@@ -59,7 +59,7 @@ export default function ContactUsPage() {
             <div className="space-y-3 pt-3 border-t border-white/[0.08] text-xs">
               <div className="flex items-center gap-3 text-zinc-300">
                 <Mail size={16} className="text-violet-400 shrink-0" />
-                <span>dancemoon248@gmail.com</span>
+                <span>support@qrgenerato.com</span>
               </div>
               <div className="flex items-center gap-3 text-zinc-300">
                 <Clock size={16} className="text-emerald-400 shrink-0" />
