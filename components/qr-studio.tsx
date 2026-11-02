@@ -1,25 +1,27 @@
 // components/qr-studio.tsx
 'use client';
-import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
+
+import React, { useState, useEffect, useRef, useDeferredValue } from 'react';
 import {
   Link as LinkIcon, Type, Mail, Wifi, Phone, MessageSquare, Share2, Contact,
   Download, Copy, Palette, Image as ImageIcon, Sparkles,
   Check, Trash2, Eye, Frame, IndianRupee, Calendar, MapPin,
-  Smartphone, Printer, FileSpreadsheet, Camera, QrCode, Share, CheckCircle2,
-  AlertTriangle, ClipboardCopy, Upload, Play, Square, Wand2, Maximize2, X
+  Smartphone, FileSpreadsheet, Camera, QrCode, CheckCircle2,
+  AlertTriangle, Upload, Play, Square, ArrowLeftRight,
+  Briefcase, Star, Utensils, Ticket, ThumbsUp, CreditCard, Bitcoin,
+  FileText, Video, Music, Lock, Video as VideoIcon, Send
 } from 'lucide-react';
-import jsQR from 'jsqr';
-import JSZip from 'jszip';
 import {
   drawQRToCanvas,
   generateQRSvg,
   QROptions,
   DotStyle,
   FinderShape,
+  FinderCenterShape,
   GradientType,
   FrameStyle,
 } from '@/lib/qr-renderer';
-import { generatePayload, QRType, QRPayloadData } from '@/lib/qr-payload';
+import { generatePayload, QRType, QRCategory, QRPayloadData } from '@/lib/qr-payload';
 import clsx from 'clsx';
 
 const PRESET_ARTWORKS = [
@@ -64,1505 +66,1884 @@ const PRESET_ARTWORKS = [
   url: `data:image/svg+xml;utf8,${encodeURIComponent(art.svg)}`,
 }));
 
+const QR_TYPE_GROUPS: {
+  id: QRCategory;
+  label: string;
+  items: { id: QRType; label: string; icon: React.ComponentType<{ className?: string }> }[];
+}[] = [
+  {
+    id: 'links',
+    label: 'Links & Basic',
+    items: [
+      { id: 'url', label: 'URL / Web', icon: LinkIcon },
+      { id: 'text', label: 'Plain Text', icon: Type },
+      { id: 'pincode', label: 'PIN Code', icon: Lock },
+    ],
+  },
+  {
+    id: 'contact',
+    label: 'Contact & Social',
+    items: [
+      { id: 'vcard', label: 'vCard', icon: Contact },
+      { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+      { id: 'telegram', label: 'Telegram', icon: Send },
+      { id: 'messenger', label: 'Messenger', icon: MessageSquare },
+      { id: 'facetime', label: 'FaceTime', icon: VideoIcon },
+      { id: 'zoom', label: 'Zoom', icon: Video },
+      { id: 'phone', label: 'Call', icon: Phone },
+      { id: 'sms', label: 'SMS', icon: MessageSquare },
+      { id: 'email', label: 'Email', icon: Mail },
+      { id: 'social', label: 'Social Media', icon: Share2 },
+    ],
+  },
+  {
+    id: 'business',
+    label: 'Business & Media',
+    items: [
+      { id: 'business', label: 'Business Profile', icon: Briefcase },
+      { id: 'googleReview', label: 'Google Review', icon: Star },
+      { id: 'menu', label: 'Restaurant Menu', icon: Utensils },
+      { id: 'app', label: 'App Download', icon: Smartphone },
+      { id: 'event', label: 'Event', icon: Calendar },
+      { id: 'coupon', label: 'Coupon', icon: Ticket },
+      { id: 'feedback', label: 'Feedback', icon: ThumbsUp },
+    ],
+  },
+  {
+    id: 'payments',
+    label: 'Payments & Donations',
+    items: [
+      { id: 'upi', label: 'UPI (India)', icon: IndianRupee },
+      { id: 'paypal', label: 'PayPal', icon: CreditCard },
+      { id: 'crypto', label: 'Crypto', icon: Bitcoin },
+      { id: 'pix', label: 'Brazilian PIX', icon: QrCode },
+    ],
+  },
+  {
+    id: 'files',
+    label: 'Files & Access',
+    items: [
+      { id: 'wifi', label: 'WiFi', icon: Wifi },
+      { id: 'location', label: 'Location', icon: MapPin },
+      { id: 'pdf', label: 'PDF Document', icon: FileText },
+      { id: 'images', label: 'Image Gallery', icon: ImageIcon },
+      { id: 'video', label: 'Video Link', icon: Video },
+      { id: 'mp3', label: 'MP3 Audio', icon: Music },
+    ],
+  },
+];
+
+const BODY_SHAPES: { id: DotStyle; label: string }[] = [
+  { id: 'square', label: 'Square' },
+  { id: 'dots', label: 'Dots' },
+  { id: 'rounded', label: 'Rounded' },
+  { id: 'extra-rounded', label: 'Extra Round' },
+  { id: 'classy', label: 'Classy' },
+  { id: 'diamond', label: 'Diamond' },
+  { id: 'star', label: 'Star' },
+  { id: 'heart', label: 'Heart' },
+  { id: 'cross', label: 'Cross / Plus' },
+  { id: 'vertical-bars', label: 'V-Bars' },
+  { id: 'horizontal-bars', label: 'H-Bars' },
+];
+
+const EYE_BORDER_SHAPES: { id: FinderShape; label: string }[] = [
+  { id: 'square', label: 'Square' },
+  { id: 'circle', label: 'Circle' },
+  { id: 'rounded', label: 'Rounded' },
+  { id: 'leaf-tl', label: 'Leaf TL' },
+  { id: 'leaf-tr', label: 'Leaf TR' },
+  { id: 'leaf-bl', label: 'Leaf BL' },
+  { id: 'leaf-br', label: 'Leaf BR' },
+  { id: 'cut', label: 'Cut Corner' },
+  { id: 'dotted', label: 'Dotted' },
+];
+
+const EYE_CENTER_SHAPES: { id: FinderCenterShape; label: string }[] = [
+  { id: 'square', label: 'Square' },
+  { id: 'circle', label: 'Circle' },
+  { id: 'rounded', label: 'Rounded' },
+  { id: 'diamond', label: 'Diamond' },
+  { id: 'star', label: 'Star' },
+  { id: 'cross', label: 'Cross' },
+  { id: 'leaf', label: 'Leaf' },
+  { id: 'sun', label: 'Sunburst' },
+];
+
+const FRAME_STYLES: { id: FrameStyle; label: string }[] = [
+  { id: 'none', label: 'No Frame' },
+  { id: 'simple', label: 'Simple Box' },
+  { id: 'banner-bottom', label: 'Bottom Banner' },
+  { id: 'banner-top', label: 'Top Banner' },
+  { id: 'speech-top', label: 'Speech Bubble' },
+  { id: 'clipboard', label: 'Clipboard' },
+  { id: 'receipt', label: 'Receipt' },
+  { id: 'gift', label: 'Gift Box' },
+  { id: 'phone', label: 'Smartphone' },
+  { id: 'bag', label: 'Shopping Bag' },
+  { id: 'coffee', label: 'Coffee Cup' },
+  { id: 'beer', label: 'Beer Mug' },
+  { id: 'chef', label: 'Chef Menu' },
+  { id: 'cloche', label: 'Waiter Tray' },
+  { id: 'scooter', label: 'Delivery' },
+  { id: 'envelope', label: 'Envelope' },
+];
+
+const QUICK_PRESETS = [
+  {
+    name: 'Classic Clean',
+    fg: '#000000',
+    bg: '#FFFFFF',
+    dot: 'square' as DotStyle,
+    border: 'square' as FinderShape,
+    center: 'square' as FinderCenterShape,
+    frame: 'none' as FrameStyle,
+  },
+  {
+    name: 'UPI Bharat',
+    fg: '#0f172a',
+    bg: '#FFFFFF',
+    dot: 'rounded' as DotStyle,
+    border: 'rounded' as FinderShape,
+    center: 'circle' as FinderCenterShape,
+    frame: 'banner-bottom' as FrameStyle,
+  },
+  {
+    name: 'Cafe Menu',
+    fg: '#431407',
+    bg: '#fffbeb',
+    dot: 'dots' as DotStyle,
+    border: 'leaf-tl' as FinderShape,
+    center: 'leaf' as FinderCenterShape,
+    frame: 'coffee' as FrameStyle,
+  },
+  {
+    name: 'Cyber Indigo',
+    fg: '#4f46e5',
+    bg: '#FFFFFF',
+    dot: 'diamond' as DotStyle,
+    border: 'cut' as FinderShape,
+    center: 'star' as FinderCenterShape,
+    frame: 'phone' as FrameStyle,
+  },
+];
+
 export default function QRStudio() {
   const [studioMode, setStudioMode] = useState<'create' | 'scanner' | 'batch'>('create');
+  const [activeCategory, setActiveCategory] = useState<QRCategory>('links');
+  const [type, setType] = useState<QRType>('url');
 
-  const [type, setType] = useState<QRType>('phone');
   const [data, setData] = useState<QRPayloadData>({
-    url: 'https://example.com',
+    url: 'https://qrgenerato.com',
+    text: 'Welcome to QR Generato',
+    pinCode: '123456',
     phone: '',
-    socialNetwork: 'tiktok',
-    socialHandle: 'yourname',
+    message: 'Hello!',
+    username: 'yourusername',
+    email: 'support@qrgenerato.com',
+    subject: 'Support Inquiry',
+    body: 'Hello team,',
+    ssid: 'MyHomeWiFi',
+    password: '',
     encryption: 'WPA',
-    upiId: 'your@upi',
-    upiName: 'Studio',
+    firstName: '',
+    lastName: '',
+    organization: 'QR Generato',
+    title: '',
+    website: 'https://qrgenerato.com',
+    upiId: 'merchant@upi',
+    upiName: 'QR Generato',
     upiAmount: '',
-    upiNote: 'Creator Support',
-    appPlatform: 'android',
-    appId: 'com.instagram.android',
+    upiNote: 'Payment',
+    paypalUser: 'yourusername',
+    paypalAmount: '10',
+    paypalCurrency: 'USD',
+    cryptoType: 'bitcoin',
+    cryptoAddress: '',
+    cryptoAmount: '',
+    pixKey: '',
     latitude: '28.6139',
     longitude: '77.2090',
+    locationQuery: '',
+    eventTitle: 'Product Launch',
+    eventLocation: 'New Delhi, India',
+    eventStart: '2026-12-01T10:00',
+    eventEnd: '2026-12-01T12:00',
+    appPlatform: 'android',
+    appId: 'com.instagram.android',
+    socialNetwork: 'instagram',
+    socialHandle: 'qrgenerato',
+    googlePlaceId: '',
+    menuUrl: 'https://qrgenerato.com/menu.pdf',
+    couponCode: 'SAVE20',
+    couponDiscount: '20% OFF',
+    fileUrl: 'https://qrgenerato.com/sample.pdf',
   });
 
-  // Defer input data so typing on mobile stays 60fps smooth
-  const deferredData = useDeferredValue(data);
-
-  const [designTab, setDesignTab] = useState<'colors' | 'eyes' | 'frames' | 'artwork'>('eyes');
-
-  // Colors & Gradients
-  const [fgColor, setFgColor] = useState('#7c3aed');
-  const [fgColor2, setFgColor2] = useState('#ec4899');
-  const [gradientType, setGradientType] = useState<GradientType>('linear');
-  const [bgColor, setBgColor] = useState('#ffffff');
-  const [dotStyle, setDotStyle] = useState<DotStyle>('dots');
-  const [margin, setMargin] = useState(2);
-
-  // Custom Finder Eyes
+  // Design States
+  const [designTab, setDesignTab] = useState<'shapes' | 'colors' | 'frames' | 'logo' | 'artwork'>('shapes');
+  const [dotStyle, setDotStyle] = useState<DotStyle>('square');
   const [finderShape, setFinderShape] = useState<FinderShape>('square');
-  const [customEyeColors, setCustomEyeColors] = useState(true);
-  const [finderOuterColor, setFinderOuterColor] = useState('#1e1b4b');
-  const [finderInnerColor, setFinderInnerColor] = useState('#e11d48');
+  const [finderCenterShape, setFinderCenterShape] = useState<FinderCenterShape>('square');
 
-  // Decorative Frames
-  const [frameStyle, setFrameStyle] = useState<FrameStyle>('badge');
-  const [frameText, setFrameText] = useState('SCAN TO CALL');
-  const [frameColor, setFrameColor] = useState('#7c3aed');
+  const [fgColor, setFgColor] = useState('#000000');
+  const [bgColor, setBgColor] = useState('#FFFFFF');
+  const [transparentBg, setTransparentBg] = useState(false);
+  const [gradientType, setGradientType] = useState<GradientType>('none');
+  const [gradientColor2, setGradientColor2] = useState('#4f46e5');
 
-  // Artwork & Image-Filled Mode
-  const [imageMode, setImageMode] = useState<'none' | 'fill' | 'center'>('none');
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
-  const [brightness, setBrightness] = useState(95);
-  const [contrast, setContrast] = useState(125);
-  const [scale, setScale] = useState(1);
-  const [logoSize, setLogoSize] = useState(22);
+  const [customEyeColors, setCustomEyeColors] = useState(false);
+  const [eyeBorderColor, setEyeBorderColor] = useState('#000000');
+  const [eyeCenterColor, setEyeCenterColor] = useState('#4f46e5');
 
-  // Live Scannability & Mobile Preview Snapshot
-  const [scanStatus, setScanStatus] = useState<'verified' | 'warning' | 'testing'>('verified');
-  const [previewDataUrl, setPreviewDataUrl] = useState<string>('');
-  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+  const [frameStyle, setFrameStyle] = useState<FrameStyle>('none');
+  const [frameText, setFrameText] = useState('Scan me!');
+  const [frameColor, setFrameColor] = useState('#000000');
+  const [frameTextColor, setFrameTextColor] = useState('#FFFFFF');
 
-  // Clipboard & Share Feedback
-  const [copiedPayload, setCopiedPayload] = useState(false);
-  const [copiedImage, setCopiedImage] = useState(false);
-  const [sharedPreset, setSharedPreset] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoSize, setLogoSize] = useState(0.2);
+  const [removeLogoBg, setRemoveLogoBg] = useState(true);
+  const [errorCorrectionLevel, setErrorCorrectionLevel] = useState<'L' | 'M' | 'Q' | 'H'>('H');
 
-  // Print Sheet & Batch CSV State
-  const [stickerGrid, setStickerGrid] = useState<'2x2' | '3x4' | '4x5'>('3x4');
-  const [batchInput, setBatchInput] = useState(
-    'reward-01,https://example.com/claim/1\nreward-02,https://example.com/claim/2\nreward-03,https://example.com/claim/3'
-  );
-  const [isExportingBatch, setIsExportingBatch] = useState(false);
+  const [artworkUrl, setArtworkUrl] = useState('');
+  const [artworkOpacity, setArtworkOpacity] = useState(0.28);
 
-  // QR Scanner Tab State
-  const [scannerResult, setScannerResult] = useState<string | null>(null);
-  const [scannerError, setScannerError] = useState<string | null>(null);
-  const [cameraActive, setCameraActive] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // Live Preview & Export States
+  const [svgPreview, setSvgPreview] = useState<string>('');
+  const [copied, setCopied] = useState(false);
+
+  // Scanner States
+  const [scanResult, setScanResult] = useState('');
+  const [scanError, setScanError] = useState('');
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const scanLoopRef = useRef<number | null>(null);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Batch States
+  const [batchInput, setBatchInput] = useState('https://qrgenerato.com\nhttps://example.com\nupi://pay?pa=shop@upi');
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
 
-  const payload = useMemo(() => generatePayload(type, deferredData), [type, data]);
+  // Defer input updates so mobile typing stays 60fps
+  const deferredData = useDeferredValue(data);
+  const deferredFgColor = useDeferredValue(fgColor);
+  const deferredBgColor = useDeferredValue(bgColor);
 
-  // Load Shareable Studio Preset from URL query params
+  const payload = generatePayload(type, deferredData);
+
+  const qrOptions: QROptions = {
+    text: payload,
+    size: 400,
+    margin: 2,
+    fgColor: deferredFgColor,
+    bgColor: deferredBgColor,
+    transparentBg,
+    gradientType,
+    gradientColor2,
+    dotStyle,
+    finderShape,
+    finderCenterShape,
+    eyeBorderColor: customEyeColors ? eyeBorderColor : undefined,
+    eyeCenterColor: customEyeColors ? eyeCenterColor : undefined,
+    logoUrl: logoUrl || undefined,
+    logoSize,
+    removeLogoBg,
+    frameStyle,
+    frameText,
+    frameColor,
+    frameTextColor,
+    errorCorrectionLevel,
+    artworkUrl: artworkUrl || undefined,
+    artworkOpacity,
+  };
+
+  // Generate lightweight SVG string for instant zero-lag preview
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const presetStr = params.get('preset');
-    if (presetStr) {
-      try {
-        const parsed = JSON.parse(atob(presetStr));
-        if (parsed.fgColor) setFgColor(parsed.fgColor);
-        if (parsed.fgColor2) setFgColor2(parsed.fgColor2);
-        if (parsed.gradientType) setGradientType(parsed.gradientType);
-        if (parsed.bgColor) setBgColor(parsed.bgColor);
-        if (parsed.dotStyle) setDotStyle(parsed.dotStyle);
-        if (parsed.finderShape) setFinderShape(parsed.finderShape);
-        if (parsed.frameStyle) setFrameStyle(parsed.frameStyle);
-        if (parsed.frameText) setFrameText(parsed.frameText);
-        if (parsed.frameColor) setFrameColor(parsed.frameColor);
-      } catch {
-        // ignore invalid preset
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (imageSrc) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = imageSrc;
-      img.onload = () => setImageElement(img);
-    } else {
-      setImageElement(null);
-    }
-  }, [imageSrc]);
-
-  const qrOptions: QROptions = useMemo(
-    () => ({
-      payload,
-      errorCorrectionLevel: 'H',
-      fgColor,
-      fgColor2,
-      gradientType,
-      bgColor,
-      margin,
-      dotStyle,
-      finderShape,
-      finderOuterColor: customEyeColors ? finderOuterColor : undefined,
-      finderInnerColor: customEyeColors ? finderInnerColor : undefined,
-      frameStyle,
-      frameText,
-      frameColor,
-      imageMode,
-      imageElement,
-      imageSrc,
-      brightness,
-      contrast,
-      scale,
-      logoSize,
-    }),
-    [
-      payload, fgColor, fgColor2, gradientType, bgColor, margin, dotStyle,
-      finderShape, customEyeColors, finderOuterColor, finderInnerColor,
-      frameStyle, frameText, frameColor, imageMode, imageElement, imageSrc,
-      brightness, contrast, scale, logoSize,
-    ]
-  );
-
-  // Redraw Canvas, Update Mobile Thumbnail & Verify Pure QR ImageData
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    drawQRToCanvas(canvasRef.current, qrOptions).then((pureQrImageData) => {
-      if (canvasRef.current) {
-        setPreviewDataUrl(canvasRef.current.toDataURL('image/png'));
-      }
-      if (!pureQrImageData) return;
-      const code = jsQR(pureQrImageData.data, pureQrImageData.width, pureQrImageData.height, {
-        inversionAttempts: 'attemptBoth',
-      });
-      if (code && code.data) {
-        setScanStatus('verified');
-      } else {
-        setScanStatus('warning');
-      }
+    let active = true;
+    generateQRSvg(qrOptions).then((svg) => {
+      if (active) setSvgPreview(svg);
     });
-  }, [qrOptions]);
-
-  useEffect(() => {
-    if (studioMode !== 'scanner') {
-      stopWebcamScanner();
-    }
-    return () => stopWebcamScanner();
-  }, [studioMode]);
-
-  const autoFixContrast = () => {
-    setBgColor('#ffffff');
-    setFgColor('#6d28d9');
-    setFgColor2('#db2777');
-    setFinderOuterColor('#1e1b4b');
-    setFinderInnerColor('#e11d48');
-    if (imageMode === 'fill') {
-      setContrast(145);
-      setBrightness(85);
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImageSrc(reader.result as string);
-      if (imageMode === 'none') setImageMode('fill');
+    return () => {
+      active = false;
     };
-    reader.readAsDataURL(file);
+  }, [
+    payload,
+    deferredFgColor,
+    deferredBgColor,
+    transparentBg,
+    gradientType,
+    gradientColor2,
+    dotStyle,
+    finderShape,
+    finderCenterShape,
+    customEyeColors,
+    eyeBorderColor,
+    eyeCenterColor,
+    logoUrl,
+    logoSize,
+    removeLogoBg,
+    frameStyle,
+    frameText,
+    frameColor,
+    frameTextColor,
+    errorCorrectionLevel,
+    artworkUrl,
+    artworkOpacity,
+  ]);
+
+  const updateField = (key: keyof QRPayloadData, value: string | boolean) => {
+    setData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const selectPresetArtwork = (art: typeof PRESET_ARTWORKS[0]) => {
-    setImageSrc(art.url);
-    setImageMode('fill');
-    setFgColor(art.fg);
-    setFinderOuterColor(art.fg);
-    setGradientType('solid');
+  const handleInvertColors = () => {
+    const prevFg = fgColor;
+    const prevBg = bgColor;
+    setFgColor(prevBg);
+    setBgColor(prevFg);
+    if (customEyeColors) {
+      setEyeBorderColor(eyeCenterColor);
+      setEyeCenterColor(eyeBorderColor);
+    }
   };
 
-  const copyImageToClipboard = async () => {
-    if (!canvasRef.current) return;
+  // Export High-Res PNG on demand
+  const handleDownloadPng = async () => {
+    const canvas = document.createElement('canvas');
+    await drawQRToCanvas(canvas, { ...qrOptions, size: 1200 });
+    const link = document.createElement('a');
+    link.download = `qrgenerato-${type}-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  // Export Vector SVG
+  const handleDownloadSvg = async () => {
+    const svg = await generateQRSvg({ ...qrOptions, size: 1000 });
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `qrgenerato-${type}-${Date.now()}.svg`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Copy QR Image to Clipboard
+  const handleCopyImage = async () => {
     try {
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvasRef.current!.toBlob(resolve, 'image/png')
-      );
-      if (!blob) return;
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      setCopiedImage(true);
-      setTimeout(() => setCopiedImage(false), 2000);
-    } catch {
-      alert('Browser blocked clipboard image write. Please use Download PNG.');
-    }
-  };
-
-  const shareStudioPreset = () => {
-    const config = {
-      fgColor,
-      fgColor2,
-      gradientType,
-      bgColor,
-      dotStyle,
-      finderShape,
-      frameStyle,
-      frameText,
-      frameColor,
-    };
-    const encoded = btoa(JSON.stringify(config));
-    const url = `${window.location.origin}${window.location.pathname}?preset=${encoded}`;
-    navigator.clipboard.writeText(url);
-    window.history.replaceState({}, '', `?preset=${encoded}`);
-    setSharedPreset(true);
-    setTimeout(() => setSharedPreset(false), 2500);
-  };
-
-  const handleExportPrintSheet = () => {
-    if (!canvasRef.current) return;
-    const sheet = document.createElement('canvas');
-    sheet.width = 1240;
-    sheet.height = 1754;
-    const sCtx = sheet.getContext('2d')!;
-
-    sCtx.fillStyle = '#ffffff';
-    sCtx.fillRect(0, 0, sheet.width, sheet.height);
-
-    const gridMap = {
-      '2x2': { cols: 2, rows: 2 },
-      '3x4': { cols: 3, rows: 4 },
-      '4x5': { cols: 4, rows: 5 },
-    };
-    const { cols, rows } = gridMap[stickerGrid];
-
-    const padX = 70;
-    const padY = 90;
-    const cellW = (sheet.width - padX * 2) / cols;
-    const cellH = (sheet.height - padY * 2) / rows;
-    const qrDrawSize = Math.min(cellW, cellH) * 0.84;
-
-    sCtx.fillStyle = '#18181b';
-    sCtx.font = 'bold 24px sans-serif';
-    sCtx.textAlign = 'center';
-    sCtx.fillText(`QR GENERATO — Printable Sticker Sheet (${stickerGrid})`, sheet.width / 2, 50);
-
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const cx = padX + c * cellW + (cellW - qrDrawSize) / 2;
-        const cy = padY + r * cellH + (cellH - qrDrawSize) / 2;
-
-        sCtx.save();
-        sCtx.strokeStyle = '#d4d4d8';
-        sCtx.lineWidth = 2;
-        sCtx.setLineDash([8, 6]);
-        sCtx.strokeRect(cx - 10, cy - 10, qrDrawSize + 20, qrDrawSize + 20);
-        sCtx.restore();
-
-        sCtx.drawImage(canvasRef.current, cx, cy, qrDrawSize, qrDrawSize);
-      }
-    }
-
-    const a = document.createElement('a');
-    a.href = sheet.toDataURL('image/png');
-    a.download = `qr-sticker-sheet-${stickerGrid}-${Date.now()}.png`;
-    a.click();
-  };
-
-  const handleBatchExportZip = async () => {
-    const lines = batchInput
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean);
-    if (lines.length === 0) return;
-
-    setIsExportingBatch(true);
-    try {
-      const zip = new JSZip();
-      const tempCanvas = document.createElement('canvas');
-
-      for (let i = 0; i < lines.length; i++) {
-        const parts = lines[i].split(',');
-        const hasLabel = parts.length > 1;
-        const filename = hasLabel
-          ? parts[0].trim().replace(/[^a-zA-Z0-9-_]/g, '_')
-          : `qr-${i + 1}`;
-        const rowPayload = hasLabel ? parts.slice(1).join(',').trim() : parts[0].trim();
-
-        await drawQRToCanvas(tempCanvas, {
-          ...qrOptions,
-          payload: rowPayload,
-        });
-
-        const dataUrl = tempCanvas.toDataURL('image/png');
-        const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
-        zip.file(`${filename}.png`, base64Data, { base64: true });
-      }
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `qr-batch-${lines.length}-codes.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } finally {
-      setIsExportingBatch(false);
-    }
-  };
-
-  const handleCsvFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setBatchInput(String(reader.result || ''));
-    reader.readAsText(file);
-  };
-
-  const handleScanUploadedFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setScannerError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const temp = document.createElement('canvas');
-        temp.width = img.width;
-        temp.height = img.height;
-        const ctx = temp.getContext('2d')!;
-        ctx.drawImage(img, 0, 0);
-        const imgData = ctx.getImageData(0, 0, temp.width, temp.height);
-        const code = jsQR(imgData.data, imgData.width, imgData.height, {
-          inversionAttempts: 'attemptBoth',
-        });
-        if (code && code.data) {
-          setScannerResult(code.data);
-        } else {
-          setScannerResult(null);
-          setScannerError('Could not detect a valid QR code in that image.');
-        }
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const startWebcamScanner = async () => {
-    setScannerError(null);
-    setScannerResult(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+      const canvas = document.createElement('canvas');
+      await drawQRToCanvas(canvas, { ...qrOptions, size: 800 });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute('playsinline', 'true');
-        await videoRef.current.play();
-        setCameraActive(true);
-        requestAnimationFrame(tickWebcamScan);
-      }
     } catch {
-      setScannerError('Camera permission denied or no webcam available.');
+      navigator.clipboard.writeText(payload);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const stopWebcamScanner = () => {
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setLogoUrl(String(reader.result));
+    reader.readAsDataURL(file);
+  };
+
+  // Custom Background / Artwork Image Upload
+  const handleArtworkUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setArtworkUrl(String(reader.result));
+      setArtworkOpacity(0.85);
+    };
+    reader.readAsDataURL(file);
+  };
+  // --- UPGRADED MULTI-SCALE + NATIVE AI QR SCANNER ---
+  const handleScanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanError('');
+    setScanResult('');
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = async () => {
+      try {
+        // 1. Hardware-accelerated native BarcodeDetector first
+        if ('BarcodeDetector' in window) {
+          try {
+            // @ts-expect-error BarcodeDetector is supported in modern Chromium/Android browsers
+            const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+            const barcodes = await detector.detect(img);
+            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+              setScanResult(barcodes[0].rawValue);
+              URL.revokeObjectURL(objectUrl);
+              return;
+            }
+          } catch {
+            // Fall through to multi-scale jsQR
+          }
+        }
+
+        // 2. Lazy-load jsQR only when scanning
+        const { default: jsQR } = await import('jsqr');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) throw new Error('Canvas unavailable');
+
+        const testConfigs = [
+          { maxDim: 800, pad: 40, contrast: false },
+          { maxDim: 500, pad: 50, contrast: false },
+          { maxDim: 1200, pad: 20, contrast: false },
+          { maxDim: 600, pad: 50, contrast: true },
+        ];
+
+        for (const { maxDim, pad, contrast } of testConfigs) {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const drawW = Math.max(1, Math.round(img.width * scale));
+          const drawH = Math.max(1, Math.round(img.height * scale));
+
+          canvas.width = drawW + pad * 2;
+          canvas.height = drawH + pad * 2;
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.filter = contrast ? 'grayscale(100%) contrast(250%)' : 'none';
+          ctx.drawImage(img, pad, pad, drawW, drawH);
+
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'attemptBoth',
+          });
+
+          if (code && code.data) {
+            setScanResult(code.data);
+            URL.revokeObjectURL(objectUrl);
+            return;
+          }
+        }
+
+        setScanError('Could not detect a valid QR code in that image.');
+      } catch {
+        setScanError('Could not detect a valid QR code in that image.');
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+        e.target.value = '';
+      }
+    };
+
+    img.onerror = () => {
+      setScanError('Failed to load image file.');
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    img.src = objectUrl;
+  };
+
+  const stopCamera = () => {
     if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
-    if (videoRef.current && videoRef.current.srcObject) {
+    if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach((t) => t.stop());
       videoRef.current.srcObject = null;
     }
-    setCameraActive(false);
+    setIsCameraActive(false);
   };
 
-  const tickWebcamScan = () => {
-    const video = videoRef.current;
-    if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
-      const temp = document.createElement('canvas');
-      temp.width = video.videoWidth;
-      temp.height = video.videoHeight;
-      const ctx = temp.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, temp.width, temp.height);
-        const imgData = ctx.getImageData(0, 0, temp.width, temp.height);
-        const code = jsQR(imgData.data, imgData.width, imgData.height, {
-          inversionAttempts: 'dontInvert',
-        });
-        if (code && code.data) {
-          setScannerResult(code.data);
-          stopWebcamScanner();
+  const startCamera = async () => {
+    setScanError('');
+    setScanResult('');
+    try {
+      const { default: jsQR } = await import('jsqr');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+      });
+      if (!videoRef.current) return;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setIsCameraActive(true);
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+      const tick = () => {
+        if (!videoRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA || !ctx) {
+          scanLoopRef.current = requestAnimationFrame(tick);
           return;
         }
-      }
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'attemptBoth',
+        });
+        if (code && code.data) {
+          setScanResult(code.data);
+          stopCamera();
+          return;
+        }
+        scanLoopRef.current = requestAnimationFrame(tick);
+      };
+      scanLoopRef.current = requestAnimationFrame(tick);
+    } catch {
+      setScanError('Camera permission denied or no camera found.');
     }
-    scanLoopRef.current = requestAnimationFrame(tickWebcamScan);
   };
 
-  const handleDownload = (format: 'png' | 'svg') => {
-    if (format === 'png' && canvasRef.current) {
-      const a = document.createElement('a');
-      a.href = canvasRef.current.toDataURL('image/png');
-      a.download = `qr-studio-${type}-${Date.now()}.png`;
-      a.click();
-    } else if (format === 'svg') {
-      const svg = generateQRSvg(qrOptions);
-      const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
+
+  // --- LAZY-LOADED BATCH ZIP GENERATOR ---
+  const handleBatchDownload = async () => {
+    const lines = batchInput
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .slice(0, 50);
+    if (!lines.length) return;
+
+    setIsBatchGenerating(true);
+    try {
+      const { default: JSZip } = await import('jszip');
+      const zip = new JSZip();
+
+      for (let i = 0; i < lines.length; i++) {
+        const svg = await generateQRSvg({ ...qrOptions, text: lines[i], size: 800 });
+        zip.file(`qr-${i + 1}.svg`, svg);
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `qr-studio-${type}-${Date.now()}.svg`;
+      a.download = `qrgenerato-batch-${lines.length}.zip`;
       a.click();
       URL.revokeObjectURL(url);
+    } finally {
+      setIsBatchGenerating(false);
     }
   };
 
-  const topTabs = [
-    { id: 'upi', label: 'UPI Pay', icon: <IndianRupee size={16} />, badgeBg: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', activeRing: 'border-emerald-500/60 from-emerald-500/20 to-teal-600/10' },
-    { id: 'url', label: 'Website', icon: <LinkIcon size={16} />, badgeBg: 'bg-sky-500/15 text-sky-400 border-sky-500/30', activeRing: 'border-sky-500/60 from-sky-500/20 to-blue-600/10' },
-    { id: 'social', label: 'Social', icon: <Share2 size={16} />, badgeBg: 'bg-pink-500/15 text-pink-400 border-pink-500/30', activeRing: 'border-pink-500/60 from-pink-500/20 to-rose-600/10' },
-    { id: 'wifi', label: 'Wi-Fi', icon: <Wifi size={16} />, badgeBg: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', activeRing: 'border-cyan-500/60 from-cyan-500/20 to-blue-600/10' },
-    { id: 'event', label: 'Event', icon: <Calendar size={16} />, badgeBg: 'bg-amber-500/15 text-amber-400 border-amber-500/30', activeRing: 'border-amber-500/60 from-amber-500/20 to-orange-600/10' },
-    { id: 'geo', label: 'Location', icon: <MapPin size={16} />, badgeBg: 'bg-rose-500/15 text-rose-400 border-rose-500/30', activeRing: 'border-rose-500/60 from-rose-500/20 to-red-600/10' },
-    { id: 'appstore', label: 'App Store', icon: <Smartphone size={16} />, badgeBg: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30', activeRing: 'border-indigo-500/60 from-indigo-500/20 to-violet-600/10' },
-    { id: 'vcard', label: 'Contact', icon: <Contact size={16} />, badgeBg: 'bg-teal-500/15 text-teal-400 border-teal-500/30', activeRing: 'border-teal-500/60 from-teal-500/20 to-emerald-600/10' },
-    { id: 'text', label: 'Text', icon: <Type size={16} />, badgeBg: 'bg-violet-500/15 text-violet-400 border-violet-500/30', activeRing: 'border-violet-500/60 from-violet-500/20 to-purple-600/10' },
-    { id: 'email', label: 'Email', icon: <Mail size={16} />, badgeBg: 'bg-orange-500/15 text-orange-400 border-orange-500/30', activeRing: 'border-orange-500/60 from-orange-500/20 to-amber-600/10' },
-    { id: 'phone', label: 'Phone', icon: <Phone size={16} />, badgeBg: 'bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30', activeRing: 'border-fuchsia-500/60 from-fuchsia-500/25 to-purple-600/10' },
-    { id: 'sms', label: 'SMS', icon: <MessageSquare size={16} />, badgeBg: 'bg-lime-500/15 text-lime-400 border-lime-500/30', activeRing: 'border-lime-500/60 from-lime-500/20 to-green-600/10' },
-  ] as const;
-
-  const quickThemes = [
-    { name: 'Royal Cyber', fg1: '#7c3aed', fg2: '#ec4899', outer: '#1e1b4b', inner: '#e11d48', frame: '#7c3aed', dot: 'dots' as DotStyle, eye: 'leaf' as FinderShape },
-    { name: 'Emerald Matrix', fg1: '#059669', fg2: '#10b981', outer: '#064e3b', inner: '#10b981', frame: '#059669', dot: 'rounded' as DotStyle, eye: 'square' as FinderShape },
-    { name: 'Oceanic Pro', fg1: '#2563eb', fg2: '#06b6d4', outer: '#1e3a8a', inner: '#0284c7', frame: '#2563eb', dot: 'dots' as DotStyle, eye: 'circle' as FinderShape },
-    { name: 'Sunset Blaze', fg1: '#e11d48', fg2: '#f97316', outer: '#881337', inner: '#f97316', frame: '#e11d48', dot: 'rounded' as DotStyle, eye: 'leaf' as FinderShape },
-    { name: 'Gold Luxe', fg1: '#b45309', fg2: '#d97706', outer: '#451a03', inner: '#d97706', frame: '#78350f', dot: 'square' as DotStyle, eye: 'square' as FinderShape },
-  ];
-
-  // Uses text-base (16px) on mobile to prevent iOS/Android input zoom, and 14px on desktop
   const inputClass =
-    'w-full bg-[#0d0d14] border border-white/[0.1] hover:border-violet-500/40 rounded-xl sm:rounded-2xl px-3.5 sm:px-4 py-3 sm:py-3.5 text-base sm:text-[14px] font-medium text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-fuchsia-500 transition-all placeholder:text-zinc-500 shadow-inner';
+    'w-full rounded-lg bg-zinc-950 border border-zinc-800 px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:border-indigo-500 focus:outline-none';
+  const labelClass = 'block text-xs font-medium text-zinc-400 mb-1.5';
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-3 sm:px-8 py-4 sm:py-6">
-      
-      {/* TOP NAVIGATION DOCK (Swipeable on Mobile, Flex on Desktop) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-4 mb-5 sm:mb-7 bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.1] p-2 sm:p-2.5 rounded-2xl shadow-2xl">
-        <div className="flex overflow-x-auto no-scrollbar gap-1.5 sm:gap-2 snap-x">
-          {[
-            { id: 'create', label: 'Designer Studio', fullLabel: 'QR Designer Studio', icon: <QrCode size={15} />, activeGrad: 'from-violet-600 via-fuchsia-600 to-indigo-600 shadow-fuchsia-600/25' },
-            { id: 'batch', label: 'Print & CSV', fullLabel: 'Print Sheet & Batch CSV', icon: <Printer size={15} />, activeGrad: 'from-emerald-600 to-teal-600 shadow-emerald-600/25' },
-            { id: 'scanner', label: 'QR Scanner', fullLabel: 'Optical QR Scanner', icon: <Camera size={15} />, activeGrad: 'from-amber-500 to-orange-600 shadow-amber-600/25' },
-          ].map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setStudioMode(m.id as any)}
-              className={clsx(
-                'snap-start shrink-0 flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl text-xs sm:text-[13px] font-bold tracking-tight transition-all cursor-pointer flex-1 sm:flex-initial',
-                studioMode === m.id
-                  ? `bg-gradient-to-r ${m.activeGrad} text-white shadow-lg ring-1 ring-white/25`
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.06]'
-              )}
-            >
-              {m.icon}
-              <span className="sm:hidden">{m.label}</span>
-              <span className="hidden sm:inline">{m.fullLabel}</span>
-            </button>
-          ))}
+    <div className="w-full max-w-7xl mx-auto px-4 py-6 text-zinc-100">
+      {/* Top Studio Mode Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-zinc-800">
+        <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+          <button
+            onClick={() => {
+              stopCamera();
+              setStudioMode('create');
+            }}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              studioMode === 'create' ? 'bg-white text-black' : 'text-zinc-400 hover:text-zinc-100'
+            )}
+          >
+            <QrCode className="w-4 h-4" /> Create QR
+          </button>
+          <button
+            onClick={() => setStudioMode('scanner')}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              studioMode === 'scanner' ? 'bg-white text-black' : 'text-zinc-400 hover:text-zinc-100'
+            )}
+          >
+            <Camera className="w-4 h-4" /> QR Scanner
+          </button>
+          <button
+            onClick={() => {
+              stopCamera();
+              setStudioMode('batch');
+            }}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              studioMode === 'batch' ? 'bg-white text-black' : 'text-zinc-400 hover:text-zinc-100'
+            )}
+          >
+            <FileSpreadsheet className="w-4 h-4" /> Batch Studio
+          </button>
         </div>
 
-        <button
-          onClick={shareStudioPreset}
-          className="flex items-center justify-center gap-2 px-3.5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 hover:from-violet-500/25 hover:to-fuchsia-500/25 border border-fuchsia-500/30 text-xs sm:text-[13px] font-bold text-fuchsia-200 transition-all cursor-pointer"
-        >
-          {sharedPreset ? <Check size={14} className="text-emerald-400" /> : <Share size={14} className="text-fuchsia-400" />}
-          <span>{sharedPreset ? 'Preset Link Copied!' : 'Share Theme Preset Link'}</span>
-        </button>
+        {/* 1-Click Quick Style Presets */}
+        {studioMode === 'create' && (
+          <div className="flex items-center gap-2 overflow-x-auto py-1">
+            <span className="text-xs text-zinc-500 font-medium whitespace-nowrap">Quick Style:</span>
+            {QUICK_PRESETS.map((p) => (
+              <button
+                key={p.name}
+                onClick={() => {
+                  setFgColor(p.fg);
+                  setBgColor(p.bg);
+                  setDotStyle(p.dot);
+                  setFinderShape(p.border);
+                  setFinderCenterShape(p.center);
+                  setFrameStyle(p.frame);
+                }}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 whitespace-nowrap"
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* MODE 3: OPTICAL QR SCANNER */}
-      {studioMode === 'scanner' && (
-        <div className="bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.1] rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl max-w-3xl mx-auto space-y-5 sm:space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Optical QR Code Inspector</h2>
-              <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
-                Upload an image or use your phone camera to extract the raw payload
-              </p>
-            </div>
-            <label className="px-4 py-3 sm:py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-95 text-xs font-bold text-white cursor-pointer flex items-center justify-center gap-2 shadow-lg shrink-0">
-              <Upload size={15} /> Upload QR Image
-              <input type="file" accept="image/*" className="hidden" onChange={handleScanUploadedFile} />
-            </label>
-          </div>
-
-          <div className="bg-[#0b0b12] border border-white/[0.08] rounded-2xl p-5 sm:p-8 flex flex-col items-center justify-center min-h-[240px] sm:min-h-[280px]">
-            <video
-              ref={videoRef}
-              className={clsx('w-full max-w-md rounded-xl border border-white/10 mb-4', !cameraActive && 'hidden')}
-            />
-            {!cameraActive ? (
-              <button
-                onClick={startWebcamScanner}
-                className="flex items-center gap-2.5 px-5 py-3.5 rounded-2xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 text-xs sm:text-sm font-semibold text-white transition-all cursor-pointer"
-              >
-                <Play size={16} className="text-amber-400" /> Start Camera Scanner
-              </button>
-            ) : (
-              <button
-                onClick={stopWebcamScanner}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500/20 text-red-300 border border-red-500/30 text-xs font-semibold"
-              >
-                <Square size={14} /> Stop Camera
-              </button>
-            )}
-          </div>
-
-          {scannerError && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-xs sm:text-sm text-red-300">
-              {scannerError}
-            </div>
-          )}
-
-          {scannerResult && (
-            <div className="p-4 sm:p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                Decoded QR Payload
-              </div>
-              <div className="font-mono text-xs sm:text-sm text-white break-all bg-black/50 p-3.5 sm:p-4 rounded-xl border border-white/10">
-                {scannerResult}
-              </div>
-              <div className="flex flex-wrap gap-2.5">
-                <button
-                  onClick={() => navigator.clipboard.writeText(scannerResult)}
-                  className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white"
-                >
-                  Copy Text
-                </button>
-                <button
-                  onClick={() => {
-                    setType('text');
-                    setData({ ...data, text: scannerResult });
-                    setStudioMode('create');
-                  }}
-                  className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-xs font-semibold text-white"
-                >
-                  Load into Studio
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MODE 1 & 2: DESIGNER STUDIO & BATCH/PRINT */}
-      {studioMode !== 'scanner' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 items-start">
-          
-          {/* LEFT COLUMN (7 cols on Desktop, Full Width on Mobile) */}
-          <div className="lg:col-span-7 space-y-5 sm:space-y-7 min-w-0">
-            {studioMode === 'batch' ? (
-              <>
-                <div className="bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.1] rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-white">A4 Printable Sticker Sheet</h2>
-                      <p className="text-xs text-zinc-400 mt-0.5">
-                        Generate a high-resolution sheet with dashed cut-lines
-                      </p>
-                    </div>
-                    <Printer className="text-emerald-400 shrink-0" size={22} />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5">
-                    {[
-                      { id: '2x2', title: '2 × 2 Large', sub: '4 Jumbo Stickers / Page' },
-                      { id: '3x4', title: '3 × 4 Medium', sub: '12 Standard Stickers' },
-                      { id: '4x5', title: '4 × 5 Compact', sub: '20 Product Labels' },
-                    ].map((g) => (
-                      <button
-                        key={g.id}
-                        onClick={() => setStickerGrid(g.id as any)}
-                        className={clsx(
-                          'p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer',
-                          stickerGrid === g.id
-                            ? 'bg-emerald-500/20 border-emerald-500 text-white shadow-lg'
-                            : 'bg-[#0b0b12] border-white/[0.07] text-zinc-400 hover:text-white'
-                        )}
-                      >
-                        <div className="text-sm font-bold text-white">{g.title}</div>
-                        <div className="text-xs text-zinc-400 mt-0.5">{g.sub}</div>
-                      </button>
-                    ))}
-                  </div>
-
+      {/* MODE 1: CREATE QR STUDIO */}
+      {studioMode === 'create' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* LEFT 7 COLUMNS: DATA & CUSTOMIZATION */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Step 1: Category & QR Type Selector */}
+            <div className="bg-[#111115] border border-zinc-800/80 rounded-2xl p-5">
+              <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 border-b border-zinc-800/80">
+                {QR_TYPE_GROUPS.map((group) => (
                   <button
-                    onClick={handleExportPrintSheet}
-                    className="w-full py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Printer size={17} /> Download Printable A4 Sticker Sheet
-                  </button>
-                </div>
-
-                <div className="bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.1] rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl space-y-4 sm:space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-white">Batch CSV Generator (.ZIP)</h2>
-                      <p className="text-xs text-zinc-400 mt-0.5">
-                        Enter <code className="text-emerald-300">filename,payload</code> per line or upload a CSV
-                      </p>
-                    </div>
-                    <label className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-white cursor-pointer flex items-center justify-center gap-2 shrink-0">
-                      <FileSpreadsheet size={15} className="text-emerald-400" /> Upload .CSV
-                      <input type="file" accept=".csv,.txt" className="hidden" onChange={handleCsvFileUpload} />
-                    </label>
-                  </div>
-
-                  <textarea
-                    value={batchInput}
-                    onChange={(e) => setBatchInput(e.target.value)}
-                    rows={5}
-                    className={clsx(inputClass, 'font-mono text-xs leading-relaxed')}
-                  />
-
-                  <button
-                    onClick={handleBatchExportZip}
-                    disabled={isExportingBatch}
-                    className="w-full py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-95 disabled:opacity-50 text-white font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Download size={17} />
-                    {isExportingBatch ? 'Building ZIP Archive...' : 'Generate & Download Batch .ZIP'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* CARD 1: Colorful 12-Type Payload Selector */}
-                <div className="relative overflow-hidden bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.1] rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl">
-                  <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400" />
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-5 sm:mb-6">
-                    <div className="flex items-center gap-3">
-                      <span className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white text-xs font-extrabold flex items-center justify-center shadow-lg shadow-violet-500/25">
-                        01
-                      </span>
-                      <div>
-                        <h2 className="text-[15px] sm:text-[16px] font-extrabold tracking-tight text-white">
-                          Content & Payload Type
-                        </h2>
-                        <p className="text-[11px] sm:text-xs text-zinc-400">Swipe or tap a category to configure your QR action</p>
-                      </div>
-                    </div>
-                    <span className="self-start sm:self-auto px-3 py-1 rounded-xl bg-violet-500/10 border border-violet-500/30 text-[11px] text-violet-200 font-mono truncate max-w-full sm:max-w-[220px]">
-                      {payload}
-                    </span>
-                  </div>
-
-                  {/* Mobile: Horizontal Swipeable Ribbon | Tablet/Desktop: 6-Col Grid */}
-                  <div className="flex sm:grid sm:grid-cols-6 overflow-x-auto no-scrollbar snap-x gap-2 sm:gap-2.5 pb-5 sm:pb-6 border-b border-white/[0.08] -mx-1 px-1">
-                    {topTabs.map((tab) => {
-                      const isActive = type === tab.id;
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => setType(tab.id as QRType)}
-                          className={clsx(
-                            'snap-start shrink-0 w-[78px] sm:w-auto group flex flex-col items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 rounded-2xl transition-all border cursor-pointer',
-                            isActive
-                              ? `bg-gradient-to-b ${tab.activeRing} text-white shadow-lg sm:scale-[1.02]`
-                              : 'bg-[#0b0b12]/90 border-white/[0.06] text-zinc-300 hover:border-white/20 hover:bg-white/[0.04]'
-                          )}
-                        >
-                          <div
-                            className={clsx(
-                              'w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center border transition-transform group-hover:scale-110',
-                              tab.badgeBg
-                            )}
-                          >
-                            {tab.icon}
-                          </div>
-                          <span className="text-[11px] sm:text-[12px] font-bold tracking-tight whitespace-nowrap">{tab.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Type-Specific Forms */}
-                  <div className="pt-5 sm:pt-6">
-                    {type === 'upi' && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-emerald-300 mb-1.5">UPI ID (VPA)</label>
-                          <input
-                            type="text"
-                            placeholder="username@okaxis"
-                            className={inputClass}
-                            value={data.upiId || ''}
-                            onChange={(e) => setData({ ...data, upiId: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-emerald-300 mb-1.5">Payee Name</label>
-                          <input
-                            type="text"
-                            placeholder="Studio"
-                            className={inputClass}
-                            value={data.upiName || ''}
-                            onChange={(e) => setData({ ...data, upiName: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Amount in ₹ (Optional)</label>
-                          <input
-                            type="number"
-                            placeholder="499"
-                            className={inputClass}
-                            value={data.upiAmount || ''}
-                            onChange={(e) => setData({ ...data, upiAmount: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Payment Note</label>
-                          <input
-                            type="text"
-                            placeholder="Creator Support"
-                            className={inputClass}
-                            value={data.upiNote || ''}
-                            onChange={(e) => setData({ ...data, upiNote: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {type === 'phone' && (
-                      <div>
-                        <label className="block text-xs font-bold text-fuchsia-300 mb-2">Phone Number to Call</label>
-                        <input
-                          type="tel"
-                          placeholder="+91 0000000000"
-                          className={inputClass}
-                          value={data.phone || ''}
-                          onChange={(e) => setData({ ...data, phone: e.target.value })}
-                        />
-                      </div>
-                    )}
-
-                    {type === 'url' && (
-                      <div>
-                        <label className="block text-xs font-bold text-sky-300 mb-2">Destination Website URL</label>
-                        <input
-                          type="url"
-                          placeholder="https://example.com"
-                          className={inputClass}
-                          value={data.url || ''}
-                          onChange={(e) => setData({ ...data, url: e.target.value })}
-                        />
-                      </div>
-                    )}
-
-                    {type === 'social' && (
-                      <div className="space-y-4">
-                        <div className="flex overflow-x-auto no-scrollbar sm:flex-wrap gap-2 pb-1">
-                          {[
-                            { id: 'tiktok', color: '#a855f7' },
-                            { id: 'instagram', color: '#ec4899' },
-                            { id: 'youtube', color: '#ef4444' },
-                            { id: 'facebook', color: '#3b82f6' },
-                            { id: 'linkedin', color: '#0ea5e9' },
-                            { id: 'whatsapp', color: '#10b981' },
-                          ].map((net) => (
-                            <button
-                              key={net.id}
-                              onClick={() => setData({ ...data, socialNetwork: net.id })}
-                              className={clsx(
-                                'shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold capitalize border flex items-center gap-2 transition-all cursor-pointer',
-                                data.socialNetwork === net.id
-                                  ? 'bg-white text-black border-white shadow-md'
-                                  : 'bg-[#0b0b12] text-zinc-300 border-white/10 hover:border-white/25'
-                              )}
-                            >
-                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: net.color }} />
-                              {net.id}
-                            </button>
-                          ))}
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-pink-300 mb-2">
-                            {data.socialNetwork?.toUpperCase()} Username / Handle
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="@yourname"
-                            className={inputClass}
-                            value={data.socialHandle || ''}
-                            onChange={(e) => setData({ ...data, socialHandle: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {type === 'event' && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-                        <input
-                          type="text"
-                          placeholder="Event Title"
-                          className={clsx(inputClass, 'sm:col-span-2')}
-                          value={data.eventTitle || ''}
-                          onChange={(e) => setData({ ...data, eventTitle: e.target.value })}
-                        />
-                        <div>
-                          <label className="block text-xs font-bold text-amber-300 mb-1.5">Starts At</label>
-                          <input type="datetime-local" className={inputClass} value={data.eventStart || ''} onChange={(e) => setData({ ...data, eventStart: e.target.value })} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-amber-300 mb-1.5">Ends At</label>
-                          <input type="datetime-local" className={inputClass} value={data.eventEnd || ''} onChange={(e) => setData({ ...data, eventEnd: e.target.value })} />
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Venue or Meeting Link"
-                          className={clsx(inputClass, 'sm:col-span-2')}
-                          value={data.eventLocation || ''}
-                          onChange={(e) => setData({ ...data, eventLocation: e.target.value })}
-                        />
-                      </div>
-                    )}
-
-                    {type === 'geo' && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-rose-300 mb-1.5">Latitude</label>
-                          <input type="text" placeholder="28.6139" className={inputClass} value={data.latitude || ''} onChange={(e) => setData({ ...data, latitude: e.target.value })} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-rose-300 mb-1.5">Longitude</label>
-                          <input type="text" placeholder="77.2090" className={inputClass} value={data.longitude || ''} onChange={(e) => setData({ ...data, longitude: e.target.value })} />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Or Google Maps Place Search</label>
-                          <input type="text" placeholder="Cyber Hub, Gurugram" className={inputClass} value={data.geoQuery || ''} onChange={(e) => setData({ ...data, geoQuery: e.target.value })} />
-                        </div>
-                      </div>
-                    )}
-
-                    {type === 'appstore' && (
-                      <div className="space-y-4">
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            { id: 'android', label: 'Google Play' },
-                            { id: 'ios', label: 'Apple App Store' },
-                            { id: 'custom', label: 'Direct APK / URL' },
-                          ].map((p) => (
-                            <button
-                              key={p.id}
-                              onClick={() => setData({ ...data, appPlatform: p.id as any })}
-                              className={clsx(
-                                'flex-1 sm:flex-initial px-3.5 py-2 rounded-xl text-xs font-bold border transition-all',
-                                data.appPlatform === p.id
-                                  ? 'bg-indigo-600 text-white border-indigo-400'
-                                  : 'bg-[#0b0b12] text-zinc-400 border-white/10'
-                              )}
-                            >
-                              {p.label}
-                            </button>
-                          ))}
-                        </div>
-                        {data.appPlatform !== 'custom' ? (
-                          <input
-                            type="text"
-                            placeholder={data.appPlatform === 'ios' ? 'App Store ID (e.g. 389801252)' : 'Package ID (e.g. com.instagram.android)'}
-                            className={inputClass}
-                            value={data.appId || ''}
-                            onChange={(e) => setData({ ...data, appId: e.target.value })}
-                          />
-                        ) : (
-                          <input
-                            type="url"
-                            placeholder="https://your-app.com/download"
-                            className={inputClass}
-                            value={data.appCustomUrl || ''}
-                            onChange={(e) => setData({ ...data, appCustomUrl: e.target.value })}
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {type === 'text' && (
-                      <textarea placeholder="Enter text to encode..." className={clsx(inputClass, 'resize-none h-24')} value={data.text || ''} onChange={(e) => setData({ ...data, text: e.target.value })} />
-                    )}
-
-                    {type === 'email' && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                        <input type="email" placeholder="Recipient Email" className={inputClass} value={data.email || ''} onChange={(e) => setData({ ...data, email: e.target.value })} />
-                        <input type="text" placeholder="Subject" className={inputClass} value={data.subject || ''} onChange={(e) => setData({ ...data, subject: e.target.value })} />
-                        <textarea placeholder="Message..." className={clsx(inputClass, 'sm:col-span-2 resize-none h-20')} value={data.body || ''} onChange={(e) => setData({ ...data, body: e.target.value })} />
-                      </div>
-                    )}
-
-                    {type === 'sms' && (
-                      <div className="grid grid-cols-1 gap-3.5">
-                        <input type="tel" placeholder="Recipient Phone" className={inputClass} value={data.phone || ''} onChange={(e) => setData({ ...data, phone: e.target.value })} />
-                        <textarea placeholder="SMS Message..." className={clsx(inputClass, 'resize-none h-20')} value={data.sms || ''} onChange={(e) => setData({ ...data, sms: e.target.value })} />
-                      </div>
-                    )}
-
-                    {type === 'wifi' && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                        <input type="text" placeholder="Network Name (SSID)" className={inputClass} value={data.ssid || ''} onChange={(e) => setData({ ...data, ssid: e.target.value })} />
-                        <input type="password" placeholder="Password" className={inputClass} value={data.password || ''} onChange={(e) => setData({ ...data, password: e.target.value })} />
-                        <select className={inputClass} value={data.encryption || 'WPA'} onChange={(e) => setData({ ...data, encryption: e.target.value as any })}>
-                          <option value="WPA">WPA / WPA2</option>
-                          <option value="WEP">WEP</option>
-                          <option value="nopass">Open Network</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {type === 'vcard' && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                        <input type="text" placeholder="First Name" className={inputClass} value={data.firstName || ''} onChange={(e) => setData({ ...data, firstName: e.target.value })} />
-                        <input type="text" placeholder="Last Name" className={inputClass} value={data.lastName || ''} onChange={(e) => setData({ ...data, lastName: e.target.value })} />
-                        <input type="tel" placeholder="Phone Number" className={inputClass} value={data.phone || ''} onChange={(e) => setData({ ...data, phone: e.target.value })} />
-                        <input type="email" placeholder="Email Address" className={inputClass} value={data.email || ''} onChange={(e) => setData({ ...data, email: e.target.value })} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* CARD 2: Visual Design & Artwork Studio */}
-                <div className="relative overflow-hidden bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.1] rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl space-y-5 sm:space-y-6">
-                  <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-pink-500 via-amber-400 to-emerald-400" />
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white text-xs font-extrabold flex items-center justify-center shadow-lg shadow-pink-500/25">
-                        02
-                      </span>
-                      <div>
-                        <h2 className="text-[15px] sm:text-[16px] font-extrabold tracking-tight text-white">
-                          Matrix Styling & Artwork Engine
-                        </h2>
-                        <p className="text-[11px] sm:text-xs text-zinc-400">Customize finder eyes, gradients, frames, and pixel masks</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Responsive 2x2 on Mobile, 4-Col on Tablet/Desktop */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 bg-[#0b0b12] p-1.5 rounded-2xl border border-white/[0.08]">
-                    {[
-                      { id: 'colors', label: 'Gradients', icon: <Palette size={15} />, active: 'from-pink-600 to-rose-600' },
-                      { id: 'eyes', label: 'Custom Eyes', icon: <Eye size={15} />, active: 'from-violet-600 to-indigo-600' },
-                      { id: 'frames', label: 'CTA Frames', icon: <Frame size={15} />, active: 'from-amber-500 to-orange-600' },
-                      { id: 'artwork', label: 'Art Gallery', icon: <Sparkles size={15} />, active: 'from-emerald-600 to-teal-600' },
-                    ].map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => setDesignTab(t.id as any)}
-                        className={clsx(
-                          'flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-2.5 sm:px-3 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer',
-                          designTab === t.id
-                            ? `bg-gradient-to-r ${t.active} text-white shadow-lg`
-                            : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
-                        )}
-                      >
-                        {t.icon}
-                        <span className="truncate">{t.label}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* TAB: CUSTOM EYES */}
-                  {designTab === 'eyes' && (
-                    <div className="space-y-5 sm:space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5">
-                        {[
-                          { id: 'square', label: 'Square Eye', sub: 'Precision geometric block' },
-                          { id: 'circle', label: 'Circle Eye', sub: 'Smooth concentric ring' },
-                          { id: 'leaf', label: 'Leaf Eye', sub: 'Organic curved corner' },
-                        ].map((shape) => {
-                          const active = finderShape === shape.id;
-                          return (
-                            <button
-                              key={shape.id}
-                              onClick={() => setFinderShape(shape.id as FinderShape)}
-                              className={clsx(
-                                'p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3.5',
-                                active
-                                  ? 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 border-violet-400 text-white shadow-lg shadow-violet-500/15'
-                                  : 'bg-[#0b0b12] border-white/[0.08] text-zinc-400 hover:text-white hover:border-white/20'
-                              )}
-                            >
-                              <div className="w-11 h-11 rounded-xl bg-white p-1.5 shrink-0 flex items-center justify-center shadow-md">
-                                <div
-                                  className="w-full h-full border-[3px] flex items-center justify-center"
-                                  style={{
-                                    borderColor: customEyeColors ? finderOuterColor : fgColor,
-                                    borderRadius: shape.id === 'circle' ? '999px' : shape.id === 'leaf' ? '10px 3px 10px 3px' : '4px',
-                                  }}
-                                >
-                                  <div
-                                    className="w-3.5 h-3.5"
-                                    style={{
-                                      backgroundColor: customEyeColors ? finderInnerColor : fgColor2,
-                                      borderRadius: shape.id === 'circle' ? '999px' : shape.id === 'leaf' ? '5px 1px 5px 1px' : '2px',
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-[14px] font-bold text-white">{shape.label}</div>
-                                <div className="text-[11px] text-zinc-400 mt-0.5">{shape.sub}</div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <div className="pt-4 border-t border-white/[0.08] space-y-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-bold text-white">Custom Finder Eye Colors</div>
-                            <div className="text-xs text-zinc-400">Style the 7×7 outer ring and 3×3 center eyeball independently</div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setCustomEyeColors(!customEyeColors)}
-                            className={clsx(
-                              'w-12 h-6 shrink-0 rounded-full transition-colors p-1 cursor-pointer',
-                              customEyeColors ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500' : 'bg-zinc-700'
-                            )}
-                          >
-                            <div
-                              className={clsx(
-                                'w-4 h-4 rounded-full bg-white transition-transform',
-                                customEyeColors ? 'translate-x-6' : 'translate-x-0'
-                              )}
-                            />
-                          </button>
-                        </div>
-
-                        {customEyeColors && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                            <label className="bg-[#0b0b12] border border-white/[0.1] hover:border-violet-400/50 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer transition-all">
-                              <div>
-                                <span className="block text-xs font-semibold text-violet-300">Outer 7×7 Ring</span>
-                                <span className="text-sm font-mono font-bold text-white uppercase">{finderOuterColor}</span>
-                              </div>
-                              <div
-                                className="w-10 h-10 rounded-xl border-2 border-white/30 shadow-lg"
-                                style={{ backgroundColor: finderOuterColor }}
-                              />
-                              <input type="color" value={finderOuterColor} onChange={(e) => setFinderOuterColor(e.target.value)} className="sr-only" />
-                            </label>
-
-                            <label className="bg-[#0b0b12] border border-white/[0.1] hover:border-pink-400/50 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer transition-all">
-                              <div>
-                                <span className="block text-xs font-semibold text-pink-300">Inner 3×3 Eyeball</span>
-                                <span className="text-sm font-mono font-bold text-white uppercase">{finderInnerColor}</span>
-                              </div>
-                              <div
-                                className="w-10 h-10 rounded-xl border-2 border-white/30 shadow-lg"
-                                style={{ backgroundColor: finderInnerColor }}
-                              />
-                              <input type="color" value={finderInnerColor} onChange={(e) => setFinderInnerColor(e.target.value)} className="sr-only" />
-                            </label>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: GRADIENTS & DOTS */}
-                  {designTab === 'colors' && (
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-pink-300 mb-2">Color Fill Mode</label>
-                          <div className="bg-[#0b0b12] border border-white/[0.08] rounded-xl p-1 flex">
-                            {(['solid', 'linear', 'radial'] as const).map((g) => (
-                              <button
-                                key={g}
-                                onClick={() => setGradientType(g)}
-                                className={clsx(
-                                  'flex-1 py-2 text-xs font-bold capitalize rounded-lg transition-all cursor-pointer',
-                                  gradientType === g ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white' : 'text-zinc-400 hover:text-white'
-                                )}
-                              >
-                                {g}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-violet-300 mb-2">Data Dot Shape</label>
-                          <div className="bg-[#0b0b12] border border-white/[0.08] rounded-xl p-1 flex">
-                            {(['dots', 'rounded', 'square'] as const).map((s) => (
-                              <button
-                                key={s}
-                                onClick={() => setDotStyle(s)}
-                                className={clsx(
-                                  'flex-1 py-2 text-xs font-bold capitalize rounded-lg transition-all cursor-pointer',
-                                  dotStyle === s ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
-                                )}
-                              >
-                                {s}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <label className="bg-[#0b0b12] border border-white/[0.1] rounded-2xl p-3.5 flex items-center justify-between cursor-pointer">
-                          <div>
-                            <span className="block text-xs font-semibold text-violet-300">Primary Stop</span>
-                            <span className="text-sm font-mono font-bold text-white uppercase">{fgColor}</span>
-                          </div>
-                          <div className="w-9 h-9 rounded-xl border-2 border-white/25" style={{ backgroundColor: fgColor }} />
-                          <input type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className="sr-only" />
-                        </label>
-
-                        {gradientType !== 'solid' && (
-                          <label className="bg-[#0b0b12] border border-white/[0.1] rounded-2xl p-3.5 flex items-center justify-between cursor-pointer">
-                            <div>
-                              <span className="block text-xs font-semibold text-pink-300">Secondary Stop</span>
-                              <span className="text-sm font-mono font-bold text-white uppercase">{fgColor2}</span>
-                            </div>
-                            <div className="w-9 h-9 rounded-xl border-2 border-white/25" style={{ backgroundColor: fgColor2 }} />
-                            <input type="color" value={fgColor2} onChange={(e) => setFgColor2(e.target.value)} className="sr-only" />
-                          </label>
-                        )}
-
-                        <label className="bg-[#0b0b12] border border-white/[0.1] rounded-2xl p-3.5 flex items-center justify-between cursor-pointer">
-                          <div>
-                            <span className="block text-xs font-semibold text-cyan-300">Background</span>
-                            <span className="text-sm font-mono font-bold text-white uppercase">{bgColor}</span>
-                          </div>
-                          <div className="w-9 h-9 rounded-xl border-2 border-white/25" style={{ backgroundColor: bgColor }} />
-                          <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} className="sr-only" />
-                        </label>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: CTA FRAMES */}
-                  {designTab === 'frames' && (
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-                        {[
-                          { id: 'none', label: 'No Frame' },
-                          { id: 'badge', label: 'Pill Badge' },
-                          { id: 'banner', label: 'Full Banner' },
-                          { id: 'outline', label: 'Card Outline' },
-                        ].map((f) => (
-                          <button
-                            key={f.id}
-                            onClick={() => setFrameStyle(f.id as FrameStyle)}
-                            className={clsx(
-                              'py-3 px-3 rounded-2xl text-xs font-bold border transition-all cursor-pointer',
-                              frameStyle === f.id
-                                ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg'
-                                : 'bg-[#0b0b12] border-white/[0.08] text-zinc-400 hover:text-white'
-                            )}
-                          >
-                            {f.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {frameStyle !== 'none' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                          <div className="sm:col-span-2">
-                            <label className="block text-xs font-bold text-amber-300 mb-1.5">Call-to-Action Text</label>
-                            <input
-                              type="text"
-                              maxLength={22}
-                              value={frameText}
-                              onChange={(e) => setFrameText(e.target.value)}
-                              className={inputClass}
-                              placeholder="SCAN TO PAY"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-amber-300 mb-1.5">Frame Color</label>
-                            <label className="bg-[#0b0b12] border border-white/[0.1] rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer">
-                              <span className="text-sm font-mono font-bold text-white uppercase">{frameColor}</span>
-                              <div className="w-7 h-7 rounded-lg border border-white/25" style={{ backgroundColor: frameColor }} />
-                              <input type="color" value={frameColor} onChange={(e) => setFrameColor(e.target.value)} className="sr-only" />
-                            </label>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* TAB: ART GALLERY */}
-                  {designTab === 'artwork' && (
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                        {PRESET_ARTWORKS.map((art) => (
-                          <button
-                            key={art.id}
-                            onClick={() => selectPresetArtwork(art)}
-                            className={clsx(
-                              'flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl border text-left transition-all cursor-pointer',
-                              imageSrc === art.url
-                                ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-lg'
-                                : 'bg-[#0b0b12] border-white/[0.08] hover:border-white/25 text-zinc-300'
-                            )}
-                          >
-                            <img src={art.url} alt={art.name} className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover shrink-0" />
-                            <div className="overflow-hidden">
-                              <div className="text-xs font-bold text-white truncate">{art.name}</div>
-                              <div className="text-[10px] sm:text-[11px] text-emerald-300">Pixel Mask</div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
-                        <label className="px-4 py-3 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-xs font-bold text-white cursor-pointer flex items-center justify-center gap-2 shadow-lg">
-                          <ImageIcon size={15} /> Upload Custom Photo / Logo
-                          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                        </label>
-
-                        {imageSrc && (
-                          <div className="flex items-center justify-between sm:justify-end gap-2">
-                            <div className="flex bg-[#0b0b12] p-1 rounded-xl border border-white/10 flex-1 sm:flex-initial">
-                              <button
-                                onClick={() => setImageMode('fill')}
-                                className={clsx('flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold', imageMode === 'fill' ? 'bg-emerald-600 text-white' : 'text-zinc-400')}
-                              >
-                                Image-Filled
-                              </button>
-                              <button
-                                onClick={() => setImageMode('center')}
-                                className={clsx('flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold', imageMode === 'center' ? 'bg-emerald-600 text-white' : 'text-zinc-400')}
-                              >
-                                Center Logo
-                              </button>
-                            </div>
-                            <button
-                              onClick={() => { setImageSrc(null); setImageMode('none'); }}
-                              className="p-2.5 text-red-400 hover:bg-red-500/10 rounded-xl"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* RIGHT COLUMN: STICKY PREVIEW STAGE (5 cols) */}
-          <div id="qr-preview-stage" className="lg:col-span-5 lg:sticky lg:top-24">
-            <div className="relative overflow-hidden bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.1] rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl space-y-5 sm:space-y-6">
-              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-cyan-400 via-violet-500 to-fuchsia-500" />
-
-              {/* Header + Live Optical Scannability Badge */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-[15px] sm:text-[16px] font-extrabold text-white tracking-tight">Live Scannable Matrix</h3>
-                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">Auto-verified with optical decoder</p>
-                </div>
-                {scanStatus === 'verified' ? (
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" /> Scannable Verified
-                  </span>
-                ) : (
-                  <button
-                    onClick={autoFixContrast}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-all cursor-pointer"
-                  >
-                    <AlertTriangle size={14} className="shrink-0" /> Auto-Fix Contrast
-                  </button>
-                )}
-              </div>
-
-              {/* QR Canvas Stage with Dynamic Ambient Backlight */}
-              <div className="relative bg-[#090910] p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/[0.08] flex items-center justify-center shadow-inner overflow-hidden">
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-25 blur-3xl transition-all duration-500"
-                  style={{
-                    background: `radial-gradient(circle at 50% 50%, ${fgColor}, ${fgColor2}, transparent 75%)`,
-                  }}
-                />
-                <canvas ref={canvasRef} className="relative z-10 w-full max-w-[270px] sm:max-w-[310px] h-auto rounded-2xl shadow-2xl block" />
-              </div>
-
-              {/* Instant One-Click Theme Bar */}
-              <div>
-                <div className="flex items-center justify-between text-xs text-zinc-300 mb-2.5">
-                  <span className="font-bold flex items-center gap-1.5">
-                    <Wand2 size={14} className="text-fuchsia-400" /> Instant Color Themes
-                  </span>
-                  <span className="text-[11px] text-emerald-400 font-semibold">100% Scannable</span>
-                </div>
-                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-                  {quickThemes.map((t) => (
-                    <button
-                      key={t.name}
-                      onClick={() => {
-                        setFgColor(t.fg1);
-                        setFgColor2(t.fg2);
-                        setGradientType('linear');
-                        setBgColor('#ffffff');
-                        setFinderOuterColor(t.outer);
-                        setFinderInnerColor(t.inner);
-                        setFrameColor(t.frame);
-                        setDotStyle(t.dot);
-                        setFinderShape(t.eye);
-                      }}
-                      className="group p-1.5 sm:p-2 rounded-xl bg-[#0b0b12] border border-white/[0.08] hover:border-fuchsia-500/60 flex flex-col items-center gap-1.5 transition-all cursor-pointer"
-                      title={t.name}
-                    >
-                      <div
-                        className="w-full h-4 sm:h-5 rounded-md shadow-sm"
-                        style={{ background: `linear-gradient(135deg, ${t.fg1}, ${t.fg2})` }}
-                      />
-                      <span className="text-[10px] font-bold text-zinc-300 group-hover:text-white truncate w-full text-center">
-                        {t.name.split(' ')[0]}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Colorful Export Buttons */}
-              <div className="space-y-2.5 pt-1">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-                  <button
-                    onClick={() => handleDownload('png')}
-                    className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 hover:opacity-95 text-white font-bold py-3.5 px-4 rounded-2xl transition-all shadow-lg shadow-fuchsia-600/25 flex items-center justify-center gap-2 text-[13px] cursor-pointer"
-                  >
-                    <Download size={16} /> Download PNG
-                  </button>
-
-                  <button
-                    onClick={copyImageToClipboard}
-                    className="bg-gradient-to-r from-cyan-500/15 to-blue-500/15 hover:from-cyan-500/25 hover:to-blue-500/25 border border-cyan-500/30 text-cyan-200 font-bold py-3.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-[13px] cursor-pointer"
-                  >
-                    {copiedImage ? <Check size={16} className="text-emerald-400" /> : <ClipboardCopy size={16} className="text-cyan-400" />}
-                    <span>{copiedImage ? 'Image Copied!' : 'Copy QR Image'}</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                  <button
-                    onClick={() => handleDownload('svg')}
-                    className="py-3 bg-[#0b0b12] hover:bg-violet-500/10 border border-white/[0.08] hover:border-violet-500/40 text-zinc-200 hover:text-white rounded-xl font-bold text-xs transition-all cursor-pointer"
-                  >
-                    Export Vector SVG
-                  </button>
-                  <button
+                    key={group.id}
                     onClick={() => {
-                      navigator.clipboard.writeText(payload);
-                      setCopiedPayload(true);
-                      setTimeout(() => setCopiedPayload(false), 2000);
+                      setActiveCategory(group.id);
+                      setType(group.items[0].id);
                     }}
-                    className="py-3 bg-[#0b0b12] hover:bg-fuchsia-500/10 border border-white/[0.08] hover:border-fuchsia-500/40 text-zinc-200 hover:text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    className={clsx(
+                      'px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors',
+                      activeCategory === group.id
+                        ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/40'
+                        : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200'
+                    )}
                   >
-                    {copiedPayload ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-fuchsia-400" />}
-                    <span>{copiedPayload ? 'Copied!' : 'Copy Payload'}</span>
+                    {group.label}
                   </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {QR_TYPE_GROUPS.find((g) => g.id === activeCategory)?.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = type === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setType(item.id)}
+                      className={clsx(
+                        'flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border text-center transition-colors',
+                        active
+                          ? 'bg-white text-black border-white font-semibold'
+                          : 'bg-zinc-900/90 border-zinc-800/90 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                      )}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="text-[11px] leading-tight">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Step 2: Dynamic Payload Form */}
+            <div className="bg-[#111115] border border-zinc-800/80 rounded-2xl p-5 space-y-4">
+              <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">
+                Enter {type.toUpperCase()} Details
+              </h2>
+
+              {type === 'url' && (
+                <div>
+                  <label className={labelClass}>Website URL</label>
+                  <input
+                    type="url"
+                    value={data.url || ''}
+                    onChange={(e) => updateField('url', e.target.value)}
+                    placeholder="https://example.com"
+                    className={inputClass}
+                  />
                 </div>
-              </div>
+              )}
 
-            </div>
-          </div>
+              {type === 'text' && (
+                <div>
+                  <label className={labelClass}>Plain Text</label>
+                  <textarea
+                    rows={3}
+                    value={data.text || ''}
+                    onChange={(e) => updateField('text', e.target.value)}
+                    placeholder="Write any text or note..."
+                    className={inputClass}
+                  />
+                </div>
+              )}
 
-        </div>
-      )}
+              {type === 'pincode' && (
+                <div>
+                  <label className={labelClass}>Access PIN / Code</label>
+                  <input
+                    type="text"
+                    value={data.pinCode || ''}
+                    onChange={(e) => updateField('pinCode', e.target.value)}
+                    placeholder="123456"
+                    className={inputClass}
+                  />
+                </div>
+              )}
 
-      {/* STICKY MOBILE LIVE-PREVIEW BAR (Visible on Mobile/Tablet < 1024px) */}
-      {studioMode !== 'scanner' && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0d0d16]/95 backdrop-blur-2xl border-t border-white/[0.12] px-3.5 py-2.5 flex items-center justify-between gap-3 shadow-[0_-10px_30px_rgba(0,0,0,0.6)]">
-          <button
-            onClick={() => setMobilePreviewOpen(true)}
-            className="flex items-center gap-3 min-w-0 text-left"
-          >
-            {previewDataUrl && (
-              <img
-                src={previewDataUrl}
-                alt="Mini QR Preview"
-                className="w-11 h-11 rounded-xl bg-white p-0.5 border border-white/20 shrink-0 object-contain"
-              />
-            )}
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-extrabold text-white">Live QR</span>
-                {scanStatus === 'verified' ? (
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                ) : (
-                  <span className="w-2 h-2 rounded-full bg-amber-400" />
-                )}
-              </div>
-              <div className="text-[11px] text-fuchsia-300 flex items-center gap-1 font-semibold">
-                <Maximize2 size={11} /> Tap to enlarge
-              </div>
-            </div>
-          </button>
+              {(type === 'phone' || type === 'facetime') && (
+                <div>
+                  <label className={labelClass}>Phone Number</label>
+                  <input
+                    type="tel"
+                    value={data.phone || ''}
+                    onChange={(e) => updateField('phone', e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className={inputClass}
+                  />
+                </div>
+              )}
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setMobilePreviewOpen(true)}
-              className="px-3 py-2.5 rounded-xl bg-white/[0.08] border border-white/10 text-xs font-bold text-white"
-            >
-              Preview
-            </button>
-            <button
-              onClick={() => handleDownload('png')}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-xs font-bold text-white shadow-lg flex items-center gap-1.5"
-            >
-              <Download size={14} /> Save PNG
-            </button>
-          </div>
-        </div>
-      )}
+              {(type === 'sms' || type === 'whatsapp') && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Phone Number (with country code)</label>
+                    <input
+                      type="tel"
+                      value={data.phone || ''}
+                      onChange={(e) => updateField('phone', e.target.value)}
+                      placeholder="+919876543210"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Pre-filled Message</label>
+                    <input
+                      type="text"
+                      value={data.message || ''}
+                      onChange={(e) => updateField('message', e.target.value)}
+                      placeholder="Hi, I scanned your QR code!"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
 
-      {/* MOBILE FULL-SCREEN QR PREVIEW DRAWER */}
-      {mobilePreviewOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex flex-col justify-end p-3 animate-in fade-in duration-200">
-          <div className="bg-[#12121c] border border-white/15 rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-extrabold text-white">Live QR Preview</h3>
-                <p className="text-xs text-zinc-400">
-                  {scanStatus === 'verified' ? 'Verified Scannable' : 'Low Contrast — Tap Auto-Fix'}
-                </p>
-              </div>
-              <button
-                onClick={() => setMobilePreviewOpen(false)}
-                className="p-2 rounded-xl bg-white/10 text-white"
-              >
-                <X size={18} />
-              </button>
-            </div>
+              {(type === 'telegram' || type === 'messenger') && (
+                <div>
+                  <label className={labelClass}>Username</label>
+                  <input
+                    type="text"
+                    value={data.username || ''}
+                    onChange={(e) => updateField('username', e.target.value)}
+                    placeholder="yourusername"
+                    className={inputClass}
+                  />
+                </div>
+              )}
 
-            <div className="bg-[#090910] p-4 rounded-2xl border border-white/10 flex items-center justify-center">
-              {previewDataUrl && (
-                <img
-                  src={previewDataUrl}
-                  alt="Full QR Preview"
-                  className="w-full max-w-[260px] h-auto rounded-xl shadow-2xl"
-                />
+              {type === 'zoom' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Zoom Meeting ID or Full Link</label>
+                    <input
+                      type="text"
+                      value={data.zoomId || ''}
+                      onChange={(e) => updateField('zoomId', e.target.value)}
+                      placeholder="123 456 7890"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Passcode (Optional)</label>
+                    <input
+                      type="text"
+                      value={data.zoomPass || ''}
+                      onChange={(e) => updateField('zoomPass', e.target.value)}
+                      placeholder="123456"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'email' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Recipient Email</label>
+                      <input
+                        type="email"
+                        value={data.email || ''}
+                        onChange={(e) => updateField('email', e.target.value)}
+                        placeholder="support@qrgenerato.com"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Subject</label>
+                      <input
+                        type="text"
+                        value={data.subject || ''}
+                        onChange={(e) => updateField('subject', e.target.value)}
+                        placeholder="Hello"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Message Body</label>
+                    <textarea
+                      rows={2}
+                      value={data.body || ''}
+                      onChange={(e) => updateField('body', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'social' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Platform</label>
+                    <select
+                      value={data.socialNetwork || 'instagram'}
+                      onChange={(e) => updateField('socialNetwork', e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="instagram">Instagram</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="x">X (Twitter)</option>
+                      <option value="linkedin">LinkedIn</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="tiktok">TikTok</option>
+                      <option value="spotify">Spotify</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Username / Handle</label>
+                    <input
+                      type="text"
+                      value={data.socialHandle || ''}
+                      onChange={(e) => updateField('socialHandle', e.target.value)}
+                      placeholder="@username"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(type === 'vcard' || type === 'business') && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>First Name</label>
+                    <input
+                      type="text"
+                      value={data.firstName || ''}
+                      onChange={(e) => updateField('firstName', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Last Name</label>
+                    <input
+                      type="text"
+                      value={data.lastName || ''}
+                      onChange={(e) => updateField('lastName', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Company / Business Name</label>
+                    <input
+                      type="text"
+                      value={data.organization || ''}
+                      onChange={(e) => updateField('organization', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Job Title / Category</label>
+                    <input
+                      type="text"
+                      value={data.title || ''}
+                      onChange={(e) => updateField('title', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Phone</label>
+                    <input
+                      type="tel"
+                      value={data.phone || ''}
+                      onChange={(e) => updateField('phone', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Email</label>
+                    <input
+                      type="email"
+                      value={data.email || ''}
+                      onChange={(e) => updateField('email', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className={labelClass}>Website</label>
+                    <input
+                      type="url"
+                      value={data.website || ''}
+                      onChange={(e) => updateField('website', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'upi' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>UPI ID (VPA)</label>
+                    <input
+                      type="text"
+                      value={data.upiId || ''}
+                      onChange={(e) => updateField('upiId', e.target.value)}
+                      placeholder="merchant@okaxis"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Payee Name</label>
+                    <input
+                      type="text"
+                      value={data.upiName || ''}
+                      onChange={(e) => updateField('upiName', e.target.value)}
+                      placeholder="Store Name"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Amount in INR (Optional)</label>
+                    <input
+                      type="number"
+                      value={data.upiAmount || ''}
+                      onChange={(e) => updateField('upiAmount', e.target.value)}
+                      placeholder="500"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Note / Remarks</label>
+                    <input
+                      type="text"
+                      value={data.upiNote || ''}
+                      onChange={(e) => updateField('upiNote', e.target.value)}
+                      placeholder="Order Payment"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'paypal' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className={labelClass}>PayPal.Me Username</label>
+                    <input
+                      type="text"
+                      value={data.paypalUser || ''}
+                      onChange={(e) => updateField('paypalUser', e.target.value)}
+                      placeholder="username"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Amount</label>
+                    <input
+                      type="number"
+                      value={data.paypalAmount || ''}
+                      onChange={(e) => updateField('paypalAmount', e.target.value)}
+                      placeholder="10"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Currency</label>
+                    <input
+                      type="text"
+                      value={data.paypalCurrency || 'USD'}
+                      onChange={(e) => updateField('paypalCurrency', e.target.value)}
+                      placeholder="USD"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'crypto' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className={labelClass}>Coin</label>
+                    <select
+                      value={data.cryptoType || 'bitcoin'}
+                      onChange={(e) => updateField('cryptoType', e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="bitcoin">Bitcoin (BTC)</option>
+                      <option value="ethereum">Ethereum (ETH)</option>
+                      <option value="solana">Solana (SOL)</option>
+                      <option value="usdt">Tether (USDT)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Wallet Address</label>
+                    <input
+                      type="text"
+                      value={data.cryptoAddress || ''}
+                      onChange={(e) => updateField('cryptoAddress', e.target.value)}
+                      placeholder="bc1q..."
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Amount (Optional)</label>
+                    <input
+                      type="text"
+                      value={data.cryptoAmount || ''}
+                      onChange={(e) => updateField('cryptoAmount', e.target.value)}
+                      placeholder="0.01"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'pix' && (
+                <div>
+                  <label className={labelClass}>PIX Key or Copy-Paste Code</label>
+                  <input
+                    type="text"
+                    value={data.pixKey || ''}
+                    onChange={(e) => updateField('pixKey', e.target.value)}
+                    placeholder="CPF, Email, Phone, or PIX Payload"
+                    className={inputClass}
+                  />
+                </div>
+              )}
+
+              {type === 'wifi' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className={labelClass}>Network Name (SSID)</label>
+                    <input
+                      type="text"
+                      value={data.ssid || ''}
+                      onChange={(e) => updateField('ssid', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Password</label>
+                    <input
+                      type="text"
+                      value={data.password || ''}
+                      onChange={(e) => updateField('password', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Security</label>
+                    <select
+                      value={data.encryption || 'WPA'}
+                      onChange={(e) => updateField('encryption', e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="WPA">WPA / WPA2 / WPA3</option>
+                      <option value="WEP">WEP</option>
+                      <option value="nopass">No Password</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {type === 'location' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-3">
+                    <label className={labelClass}>Place Search Query (or use Lat/Long below)</label>
+                    <input
+                      type="text"
+                      value={data.locationQuery || ''}
+                      onChange={(e) => updateField('locationQuery', e.target.value)}
+                      placeholder="Connaught Place, New Delhi"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Latitude</label>
+                    <input
+                      type="text"
+                      value={data.latitude || ''}
+                      onChange={(e) => updateField('latitude', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Longitude</label>
+                    <input
+                      type="text"
+                      value={data.longitude || ''}
+                      onChange={(e) => updateField('longitude', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'event' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>Event Title</label>
+                    <input
+                      type="text"
+                      value={data.eventTitle || ''}
+                      onChange={(e) => updateField('eventTitle', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Location</label>
+                    <input
+                      type="text"
+                      value={data.eventLocation || ''}
+                      onChange={(e) => updateField('eventLocation', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Start Time</label>
+                    <input
+                      type="datetime-local"
+                      value={data.eventStart || ''}
+                      onChange={(e) => updateField('eventStart', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>End Time</label>
+                    <input
+                      type="datetime-local"
+                      value={data.eventEnd || ''}
+                      onChange={(e) => updateField('eventEnd', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'app' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>Platform</label>
+                    <select
+                      value={data.appPlatform || 'android'}
+                      onChange={(e) => updateField('appPlatform', e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="android">Google Play (Android)</option>
+                      <option value="ios">Apple App Store (iOS)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Package ID or Store Link</label>
+                    <input
+                      type="text"
+                      value={data.appId || ''}
+                      onChange={(e) => updateField('appId', e.target.value)}
+                      placeholder="com.instagram.android"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'coupon' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>Coupon Code</label>
+                    <input
+                      type="text"
+                      value={data.couponCode || ''}
+                      onChange={(e) => updateField('couponCode', e.target.value)}
+                      placeholder="SAVE20"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Discount Offer</label>
+                    <input
+                      type="text"
+                      value={data.couponDiscount || ''}
+                      onChange={(e) => updateField('couponDiscount', e.target.value)}
+                      placeholder="20% OFF"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {['googleReview', 'menu', 'pdf', 'images', 'video', 'mp3', 'feedback'].includes(type) && (
+                <div>
+                  <label className={labelClass}>Direct Link (Google Drive, PDF, Menu, or Review URL)</label>
+                  <input
+                    type="url"
+                    value={data.fileUrl || ''}
+                    onChange={(e) => updateField('fileUrl', e.target.value)}
+                    placeholder="https://..."
+                    className={inputClass}
+                  />
+                </div>
               )}
             </div>
 
-            {scanStatus !== 'verified' && (
-              <button
-                onClick={autoFixContrast}
-                className="w-full py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center justify-center gap-2"
-              >
-                <AlertTriangle size={14} /> Auto-Fix Contrast Now
-              </button>
-            )}
+            {/* Step 3: Studio Customization Tabs */}
+            <div className="bg-[#111115] border border-zinc-800/80 rounded-2xl p-5 space-y-5">
+              <div className="flex items-center gap-2 overflow-x-auto pb-3 border-b border-zinc-800">
+                {[
+                  { id: 'shapes', label: 'Shape & Eyes', icon: Eye },
+                  { id: 'frames', label: 'Frames', icon: Frame },
+                  { id: 'colors', label: 'Colors', icon: Palette },
+                  { id: 'logo', label: 'Logo', icon: ImageIcon },
+                  { id: 'artwork', label: 'Art Presets', icon: Sparkles },
+                ].map((t) => {
+                  const Icon = t.icon;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setDesignTab(t.id as typeof designTab)}
+                      className={clsx(
+                        'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors',
+                        designTab === t.id
+                          ? 'bg-white text-black'
+                          : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
+                      )}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+              {/* TAB: SHAPES & INDEPENDENT EYES */}
+              {designTab === 'shapes' && (
+                <div className="space-y-5">
+                  <div>
+                    <label className={labelClass}>Body Dot Style</label>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {BODY_SHAPES.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setDotStyle(s.id)}
+                          className={clsx(
+                            'py-2 px-2.5 rounded-lg border text-xs font-medium transition-colors',
+                            dotStyle === s.id
+                              ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                          )}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Eye Frame (Border Style)</label>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {EYE_BORDER_SHAPES.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setFinderShape(s.id)}
+                          className={clsx(
+                            'py-2 px-2.5 rounded-lg border text-xs font-medium transition-colors',
+                            finderShape === s.id
+                              ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                          )}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Eye Ball (Center Style)</label>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                      {EYE_CENTER_SHAPES.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setFinderCenterShape(s.id)}
+                          className={clsx(
+                            'py-2 px-2 rounded-lg border text-xs font-medium transition-colors',
+                            finderCenterShape === s.id
+                              ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                          )}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Independent Eye Color Toggle */}
+                  <div className="pt-2 border-t border-zinc-800/80 flex flex-wrap items-center justify-between gap-4">
+                    <label className="flex items-center gap-2 text-xs font-medium text-zinc-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={customEyeColors}
+                        onChange={(e) => setCustomEyeColors(e.target.checked)}
+                        className="rounded border-zinc-700 bg-zinc-900 text-indigo-500"
+                      />
+                      Custom Eye Colors
+                    </label>
+
+                    {customEyeColors && (
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-zinc-400">Border:</span>
+                          <input
+                            type="color"
+                            value={eyeBorderColor}
+                            onChange={(e) => setEyeBorderColor(e.target.value)}
+                            className="w-7 h-7 rounded cursor-pointer bg-transparent border-0"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-zinc-400">Center:</span>
+                          <input
+                            type="color"
+                            value={eyeCenterColor}
+                            onChange={(e) => setEyeCenterColor(e.target.value)}
+                            className="w-7 h-7 rounded cursor-pointer bg-transparent border-0"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: ILLUSTRATED FRAMES */}
+              {designTab === 'frames' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {FRAME_STYLES.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setFrameStyle(f.id)}
+                        className={clsx(
+                          'py-2.5 px-3 rounded-lg border text-xs font-medium transition-colors',
+                          frameStyle === f.id
+                            ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                        )}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {frameStyle !== 'none' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-zinc-800">
+                      <div>
+                        <label className={labelClass}>Frame Text</label>
+                        <input
+                          type="text"
+                          value={frameText}
+                          onChange={(e) => setFrameText(e.target.value)}
+                          placeholder="Scan me!"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Frame Color</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={frameColor}
+                            onChange={(e) => setFrameColor(e.target.value)}
+                            className="w-9 h-9 rounded bg-transparent cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={frameColor}
+                            onChange={(e) => setFrameColor(e.target.value)}
+                            className={inputClass}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className={labelClass}>Text Color</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={frameTextColor}
+                            onChange={(e) => setFrameTextColor(e.target.value)}
+                            className="w-9 h-9 rounded bg-transparent cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={frameTextColor}
+                            onChange={(e) => setFrameTextColor(e.target.value)}
+                            className={inputClass}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB: COLORS & INVERT */}
+              {designTab === 'colors' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-zinc-400">QR Foreground & Background</span>
+                    <button
+                      onClick={handleInvertColors}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5" /> Invert
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Foreground Color</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={fgColor}
+                          onChange={(e) => setFgColor(e.target.value)}
+                          className="w-10 h-10 rounded cursor-pointer bg-transparent"
+                        />
+                        <input
+                          type="text"
+                          value={fgColor}
+                          onChange={(e) => setFgColor(e.target.value)}
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Background Color</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={bgColor}
+                          disabled={transparentBg}
+                          onChange={(e) => setBgColor(e.target.value)}
+                          className="w-10 h-10 rounded cursor-pointer bg-transparent"
+                        />
+                        <input
+                          type="text"
+                          value={bgColor}
+                          disabled={transparentBg}
+                          onChange={(e) => setBgColor(e.target.value)}
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-6 pt-2">
+                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={transparentBg}
+                        onChange={(e) => setTransparentBg(e.target.checked)}
+                        className="rounded border-zinc-700 bg-zinc-900"
+                      />
+                      Transparent Background
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-zinc-400">Gradient:</span>
+                      {(['none', 'linear', 'radial'] as GradientType[]).map((g) => (
+                        <button
+                          key={g}
+                          onClick={() => setGradientType(g)}
+                          className={clsx(
+                            'px-2.5 py-1 rounded text-xs capitalize border',
+                            gradientType === g
+                              ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+                          )}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                      {gradientType !== 'none' && (
+                        <input
+                          type="color"
+                          value={gradientColor2}
+                          onChange={(e) => setGradientColor2(e.target.value)}
+                          className="w-7 h-7 rounded cursor-pointer bg-transparent"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            {/* TAB: LOGO & ERROR CORRECTION */}
+              {designTab === 'logo' && (
+                <div className="space-y-5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black hover:bg-zinc-200 text-xs font-semibold cursor-pointer transition-colors">
+                      <Upload className="w-4 h-4" /> Upload Custom Logo
+                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                    </label>
+
+                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800">
+                      <input
+                        type="checkbox"
+                        checked={removeLogoBg}
+                        onChange={(e) => setRemoveLogoBg(e.target.checked)}
+                        className="rounded border-zinc-700 bg-zinc-950"
+                      />
+                      Logo Badge Border & Clear Dots
+                    </label>
+
+                    {logoUrl && (
+                      <button
+                        onClick={() => setLogoUrl('')}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remove Logo
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Built-in Instant Brand Badges */}
+                  <div>
+                    <label className={labelClass}>Or Pick an Instant Center Badge</label>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {[
+                        {
+                          name: 'UPI Pay',
+                          svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0f172a"/><text x="50" y="62" text-anchor="middle" fill="#10b981" font-family="sans-serif" font-weight="900" font-size="34">₹ UPI</text></svg>`,
+                        },
+                        {
+                          name: 'WhatsApp',
+                          svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#25D366"/><path d="M50 22c-15.5 0-28 12.5-28 28 0 5.3 1.5 10.3 4.1 14.5L22 78l14-4c4 2.3 8.8 3.6 14 3.6 15.5 0 28-12.5 28-28S65.5 22 50 22zm16.3 39.6c-.7 2-4 3.8-5.6 4-.9.1-2.1.2-6.6-1.6-8.1-3.2-13.3-11.5-13.7-12-.4-.5-3.3-4.4-3.3-8.4s2.1-6 2.8-6.8c.7-.8 1.6-1 2.1-1h1.5c.5 0 1.2-.2 1.8 1.4.7 1.6 2.3 5.6 2.5 6 .2.4.3.9.1 1.4-.3.5-.4.9-.8 1.3-.4.5-.9 1-1.2 1.4-.4.4-.8.9-.3 1.7.5.8 2.1 3.5 4.5 5.6 3.1 2.8 5.7 3.6 6.5 4 .8.4 1.3.3 1.8-.2.5-.5 2.1-2.4 2.6-3.2.5-.8 1.1-.7 1.8-.4.7.3 4.7 2.2 5.5 2.6.8.4 1.3.6 1.5.9.2.4.2 2-.5 3.9z" fill="#fff"/></svg>`,
+                        },
+                        {
+                          name: 'Instagram',
+                          svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="ig" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#f09433"/><stop offset="50%" stop-color="#dc2743"/><stop offset="100%" stop-color="#bc1888"/></linearGradient></defs><rect width="100" height="100" rx="22" fill="url(#ig)"/><rect x="23" y="23" width="54" height="54" rx="14" fill="none" stroke="#fff" stroke-width="6"/><circle cx="50" cy="50" r="12" fill="none" stroke="#fff" stroke-width="6"/><circle cx="65" cy="35" r="3.5" fill="#fff"/></svg>`,
+                        },
+                        {
+                          name: 'YouTube',
+                          svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#FF0000"/><polygon points="42,34 42,66 68,50" fill="#FFFFFF"/></svg>`,
+                        },
+                        {
+                          name: 'WiFi',
+                          svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0284c7"/><path d="M22 42 C38 26, 62 26, 78 42 M32 54 C42 44, 58 44, 68 54" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><circle cx="50" cy="68" r="6" fill="#fff"/></svg>`,
+                        },
+                        {
+                          name: 'Scan Star',
+                          svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#4f46e5"/><polygon points="50,18 59,39 82,39 63,53 70,76 50,62 30,76 37,53 18,39 41,39" fill="#ffffff"/></svg>`,
+                        },
+                      ].map((badge) => {
+                        const uri = `data:image/svg+xml;utf8,${encodeURIComponent(badge.svg)}`;
+                        return (
+                          <button
+                            key={badge.name}
+                            onClick={() => setLogoUrl(uri)}
+                            className={clsx(
+                              'flex flex-col items-center gap-1.5 p-2 rounded-xl border text-xs font-medium transition-colors',
+                              logoUrl === uri
+                                ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                                : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700'
+                            )}
+                          >
+                            <img src={uri} alt={badge.name} className="w-8 h-8 rounded-lg" />
+                            <span className="text-[11px]">{badge.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-zinc-800/80">
+                    <div>
+                      <label className={labelClass}>Logo Size ({Math.round(logoSize * 100)}%)</label>
+                      <input
+                        type="range"
+                        min="0.14"
+                        max="0.28"
+                        step="0.02"
+                        value={logoSize}
+                        onChange={(e) => setLogoSize(parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Error Correction Level</label>
+                      <div className="flex gap-2">
+                        {(['L', 'M', 'Q', 'H'] as const).map((lvl) => (
+                          <button
+                            key={lvl}
+                            onClick={() => setErrorCorrectionLevel(lvl)}
+                            className={clsx(
+                              'flex-1 py-1.5 rounded border text-xs font-semibold',
+                              errorCorrectionLevel === lvl
+                                ? 'bg-white text-black border-white'
+                                : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+                            )}
+                          >
+                            {lvl}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: ARTWORK PRESETS & CUSTOM IMAGE UPLOAD */}
+              {designTab === 'artwork' && (
+                <div className="space-y-4">
+                  {/* Custom Image Upload Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black hover:bg-zinc-200 text-xs font-semibold cursor-pointer transition-colors">
+                        <Upload className="w-4 h-4" /> Upload Custom Art / Photo
+                        <input type="file" accept="image/*" onChange={handleArtworkUpload} className="hidden" />
+                      </label>
+                      {artworkUrl && (
+                        <button
+                          onClick={() => setArtworkUrl('')}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Clear Art
+                        </button>
+                      )}
+                    </div>
+
+                    {artworkUrl && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-400">Art Intensity:</span>
+                        <input
+                          type="range"
+                          min="0.35"
+                          max="0.95"
+                          step="0.05"
+                          value={artworkOpacity}
+                          onChange={(e) => setArtworkOpacity(parseFloat(e.target.value))}
+                          className="w-28"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Visual Thumbnail Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <button
+                      onClick={() => setArtworkUrl('')}
+                      className={clsx(
+                        'flex flex-col items-center justify-center gap-2 p-3 rounded-xl border text-xs font-medium',
+                        !artworkUrl
+                          ? 'bg-white text-black border-white font-semibold'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                      )}
+                    >
+                      <div className="w-12 h-12 rounded-lg border border-dashed border-zinc-600 flex items-center justify-center text-[10px]">
+                        Clean
+                      </div>
+                      <span>None (Clean)</span>
+                    </button>
+
+                  {PRESET_ARTWORKS.map((art) => (
+                      <button
+                        key={art.id}
+                        onClick={() => {
+                          setArtworkUrl(art.url);
+                          setArtworkOpacity(0.85);
+                          setFgColor(art.fg);
+                        }}
+                        className={clsx(
+                          'flex flex-col items-center gap-2 p-2.5 rounded-xl border text-xs font-medium transition-colors',
+                          artworkUrl === art.url
+                            ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700'
+                        )}
+                      >
+                        <img
+                          src={art.url}
+                          alt={art.name}
+                          className="w-12 h-12 rounded-lg object-cover border border-zinc-700"
+                        />
+                        <span className="truncate w-full text-center">{art.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT 5 COLUMNS: STICKY INSTANT SVG PREVIEW & EXPORT */}
+          <div className="lg:col-span-5 lg:sticky lg:top-6">
+            <div className="bg-[#111115] border border-zinc-800/80 rounded-2xl p-6 flex flex-col items-center">
+              <div className="w-full flex items-center justify-between mb-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Live QR Preview</span>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  Scannable • Vector
+                </span>
+              </div>
+
+              {/* Colorful QR Code Preview Container */}
+              <div
+                className="w-full max-w-[300px] aspect-square rounded-2xl p-4 flex items-center justify-center bg-zinc-950 border border-zinc-800/80 overflow-hidden [&>svg]:w-full [&>svg]:h-full [&>svg]:max-h-[270px]"
+                dangerouslySetInnerHTML={{ __html: svgPreview }}
+              />
+
+              {/* Action Buttons */}
+              <div className="w-full grid grid-cols-2 gap-3 mt-6">
+                <button
+                  onClick={handleDownloadPng}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white text-black font-semibold text-sm hover:bg-zinc-200 transition-colors"
+                >
+                  <Download className="w-4 h-4" /> Download PNG
+                </button>
+                <button
+                  onClick={handleDownloadSvg}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 font-semibold text-sm hover:bg-zinc-800 transition-colors"
+                >
+                  <Download className="w-4 h-4" /> Vector SVG
+                </button>
+              </div>
+
               <button
-                onClick={() => handleDownload('png')}
-                className="py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold text-xs flex items-center justify-center gap-1.5"
+                onClick={handleCopyImage}
+                className="w-full mt-2.5 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-900/70 border border-zinc-800/80 text-zinc-300 text-xs font-medium hover:bg-zinc-800 transition-colors"
               >
-                <Download size={15} /> Download PNG
-              </button>
-              <button
-                onClick={() => handleDownload('svg')}
-                className="py-3 rounded-xl bg-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5"
-              >
-                Export SVG
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {copied ? 'Copied to Clipboard!' : 'Copy QR Image'}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* MODE 2: BUILT-IN QR SCANNER */}
+      {studioMode === 'scanner' && (
+        <div className="max-w-2xl mx-auto bg-[#111115] border border-zinc-800/80 rounded-2xl p-6 space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-zinc-100">QR Code Scanner</h2>
+              <p className="text-xs text-zinc-400">Upload any screenshot/QR image or scan using your camera.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {!isCameraActive ? (
+                <button
+                  onClick={startCamera}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-black text-xs font-semibold"
+                >
+                  <Play className="w-3.5 h-3.5" /> Start Camera
+                </button>
+              ) : (
+                <button
+                  onClick={stopCamera}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-xs font-semibold"
+                >
+                  <Square className="w-3.5 h-3.5" /> Stop Camera
+                </button>
+              )}
+              <label className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-xs font-semibold cursor-pointer">
+                <Upload className="w-3.5 h-3.5" /> Upload Image
+                <input type="file" accept="image/*" onChange={handleScanUpload} className="hidden" />
+              </label>
+            </div>
+          </div>
+
+          {isCameraActive && (
+            <div className="rounded-xl overflow-hidden bg-black border border-zinc-800">
+              <video ref={videoRef} className="w-full max-h-[340px] object-cover" playsInline muted />
+            </div>
+          )}
+
+          {scanError && (
+            <div className="flex items-center gap-2.5 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{scanError}</span>
+            </div>
+          )}
+
+          {scanResult && (
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
+              <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
+                <CheckCircle2 className="w-4 h-4" /> Decoded QR Content
+              </div>
+              <p className="text-sm text-zinc-100 break-all font-mono bg-zinc-950 p-3 rounded-lg border border-zinc-800">
+                {scanResult}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigator.clipboard.writeText(scanResult)}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs font-medium"
+                >
+                  Copy Result
+                </button>
+                {scanResult.startsWith('http') && (
+                  <a
+                    href={scanResult}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold"
+                  >
+                    Open URL
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODE 3: BATCH STUDIO */}
+      {studioMode === 'batch' && (
+        <div className="max-w-2xl mx-auto bg-[#111115] border border-zinc-800/80 rounded-2xl p-6 space-y-4">
+          <h2 className="text-base font-semibold text-zinc-100">Batch QR Generator (Up to 50)</h2>
+          <p className="text-xs text-zinc-400">
+            Enter one URL, text, or UPI link per line. Each QR code will use your current style settings and export inside a ZIP archive.
+          </p>
+          <textarea
+            rows={7}
+            value={batchInput}
+            onChange={(e) => setBatchInput(e.target.value)}
+            className={inputClass}
+            placeholder="https://qrgenerato.com&#10;https://example.com"
+          />
+          <button
+            onClick={handleBatchDownload}
+            disabled={isBatchGenerating}
+            className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-zinc-200 disabled:opacity-50"
+          >
+            {isBatchGenerating ? 'Generating ZIP Archive...' : 'Download All as ZIP (.svg)'}
+          </button>
         </div>
       )}
     </div>

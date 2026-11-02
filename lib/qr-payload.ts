@@ -1,136 +1,287 @@
 // lib/qr-payload.ts
+
+export type QRCategory = 'contact' | 'business' | 'payments' | 'files' | 'links';
+
 export type QRType =
+  // Contact & Social
   | 'url'
   | 'text'
-  | 'email'
-  | 'wifi'
+  | 'vcard'
+  | 'whatsapp'
+  | 'telegram'
+  | 'messenger'
+  | 'facetime'
+  | 'zoom'
   | 'phone'
   | 'sms'
-  | 'vcard'
+  | 'email'
   | 'social'
-  | 'upi'
+  // Business & Media
+  | 'business'
+  | 'googleReview'
+  | 'menu'
+  | 'app'
   | 'event'
-  | 'geo'
-  | 'appstore';
+  | 'coupon'
+  | 'feedback'
+  // Payments & Donations
+  | 'upi'
+  | 'paypal'
+  | 'crypto'
+  | 'pix'
+  // Files & Access
+  | 'wifi'
+  | 'location'
+  | 'pdf'
+  | 'images'
+  | 'video'
+  | 'mp3'
+  | 'pincode';
 
 export interface QRPayloadData {
+  // Links & Basic
   url?: string;
   text?: string;
+  pinCode?: string;
+
+  // Phone / SMS / WhatsApp / Telegram / Messenger / FaceTime
+  phone?: string;
+  message?: string;
+  username?: string;
+
+  // Email
   email?: string;
   subject?: string;
   body?: string;
+
+  // Zoom
+  zoomId?: string;
+  zoomPass?: string;
+
+  // WiFi
   ssid?: string;
   password?: string;
   encryption?: 'WPA' | 'WEP' | 'nopass';
-  phone?: string;
-  sms?: string;
+  hidden?: boolean;
+
+  // vCard & Business Profile
   firstName?: string;
   lastName?: string;
   organization?: string;
-  socialNetwork?: string;
-  socialHandle?: string;
-  // UPI Payment
+  title?: string;
+  street?: string;
+  city?: string;
+  zip?: string;
+  country?: string;
+  website?: string;
+
+  // Payments (UPI, PayPal, Crypto, PIX)
   upiId?: string;
   upiName?: string;
   upiAmount?: string;
   upiNote?: string;
-  // Calendar Event
+  paypalUser?: string;
+  paypalAmount?: string;
+   paypalCurrency?: string;
+  cryptoType?: 'bitcoin' | 'ethereum' | 'solana' | 'usdt';
+  cryptoAddress?: string;
+  cryptoAmount?: string;
+  pixKey?: string;
+  pixName?: string;
+  pixCity?: string;
+  pixAmount?: string;
+
+  // Location
+  latitude?: string;
+  longitude?: string;
+  locationQuery?: string;
+
+  // Event
   eventTitle?: string;
   eventLocation?: string;
   eventStart?: string;
   eventEnd?: string;
   eventDescription?: string;
-  // Geo-Location
-  latitude?: string;
-  longitude?: string;
-  geoQuery?: string;
-  // App Store / Play Store
-  appPlatform?: 'ios' | 'android' | 'custom';
+
+  // App Download & Social
+  appPlatform?: 'android' | 'ios' | 'both';
   appId?: string;
-  appCustomUrl?: string;
+  iosUrl?: string;
+  socialNetwork?: 'instagram' | 'tiktok' | 'youtube' | 'x' | 'linkedin' | 'facebook' | 'spotify';
+  socialHandle?: string;
+
+  // Business / Review / Menu / Coupon / Files
+  googlePlaceId?: string;
+  menuUrl?: string;
+  couponCode?: string;
+  couponDiscount?: string;
+  fileUrl?: string;
 }
 
-function formatICalDate(dateStr?: string): string {
-  if (!dateStr) {
-    return new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-  }
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) {
-    return new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-  }
-  return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-}
-
-export function generatePayload(type: QRType, data: QRPayloadData): string {
+export function generatePayload(type: QRType, d: QRPayloadData): string {
   switch (type) {
     case 'url':
-      return data.url?.trim() || 'https://example.com';
+      return d.url?.trim() || 'https://qrgenerato.com';
+
     case 'text':
-      return data.text || 'Hello from QR GENERATO!';
-    case 'email':
-      return `mailto:${data.email || ''}?subject=${encodeURIComponent(data.subject || '')}&body=${encodeURIComponent(data.body || '')}`;
-    case 'wifi':
-      return `WIFI:T:${data.encryption || 'WPA'};S:${data.ssid || ''};P:${data.password || ''};;`;
+      return d.text || 'Hello from QR Generato';
+
+    case 'pincode':
+      return d.pinCode || '000000';
+
     case 'phone':
-      return `tel:${data.phone || ''}`;
+      return `tel:${(d.phone || '').replace(/\s+/g, '')}`;
+
+    case 'facetime':
+      return `facetime:${(d.phone || d.email || '').replace(/\s+/g, '')}`;
+
     case 'sms':
-      return `smsto:${data.phone || ''}:${data.sms || ''}`;
+      return `SMSTO:${(d.phone || '').replace(/\s+/g, '')}:${d.message || ''}`;
+
+    case 'whatsapp': {
+      const cleanPhone = (d.phone || '').replace(/[^\d]/g, '');
+      const textParam = d.message ? `?text=${encodeURIComponent(d.message)}` : '';
+      return `https://wa.me/${cleanPhone}${textParam}`;
+    }
+
+    case 'telegram': {
+      const user = (d.username || '').replace(/^@/, '').trim();
+      return `https://t.me/${user}`;
+    }
+
+    case 'messenger': {
+      const user = (d.username || '').trim();
+      return `https://m.me/${user}`;
+    }
+
+    case 'zoom': {
+      if (d.url && d.url.startsWith('http')) return d.url;
+      const id = (d.zoomId || '').replace(/\s+/g, '');
+      const pwd = d.zoomPass ? `?pwd=${encodeURIComponent(d.zoomPass)}` : '';
+      return `https://zoom.us/j/${id}${pwd}`;
+    }
+
+    case 'email': {
+      const sub = d.subject ? `subject=${encodeURIComponent(d.subject)}` : '';
+      const body = d.body ? `body=${encodeURIComponent(d.body)}` : '';
+      const query = [sub, body].filter(Boolean).join('&');
+      return `mailto:${d.email || ''}${query ? `?${query}` : ''}`;
+    }
+
+    case 'wifi': {
+      const enc = d.encryption || 'WPA';
+      const hidden = d.hidden ? 'true' : 'false';
+      return `WIFI:T:${enc};S:${d.ssid || ''};P:${d.password || ''};H:${hidden};;`;
+    }
+
     case 'vcard':
-      return `BEGIN:VCARD\nVERSION:3.0\nN:${data.lastName || ''};${data.firstName || ''}\nFN:${data.firstName || ''} ${data.lastName || ''}\nORG:${data.organization || ''}\nTEL:${data.phone || ''}\nEMAIL:${data.email || ''}\nEND:VCARD`;
-    case 'social': {
-      const cleanHandle = (data.socialHandle || 'yourname').replace(/^@/, '');
-      const handles: Record<string, string> = {
-        tiktok: `https://tiktok.com/@${cleanHandle}`,
-        instagram: `https://instagram.com/${cleanHandle}`,
-        youtube: `https://youtube.com/@${cleanHandle}`,
-        linkedin: `https://linkedin.com/in/${cleanHandle}`,
-        facebook: `https://facebook.com/${cleanHandle}`,
-        whatsapp: `https://wa.me/${cleanHandle}`,
-      };
-      return handles[data.socialNetwork || 'tiktok'] || 'https://example.com';
+    case 'business': {
+      const fn = `${d.firstName || ''} ${d.lastName || ''}`.trim() || d.organization || 'Contact';
+      return [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        `N:${d.lastName || ''};${d.firstName || ''};;;`,
+        `FN:${fn}`,
+        d.organization ? `ORG:${d.organization}` : '',
+        d.title ? `TITLE:${d.title}` : '',
+        d.phone ? `TEL;TYPE=CELL:${d.phone}` : '',
+        d.email ? `EMAIL:${d.email}` : '',
+        d.website || d.url ? `URL:${d.website || d.url}` : '',
+        d.street || d.city ? `ADR;TYPE=WORK:;;${d.street || ''};${d.city || ''};;${d.zip || ''};${d.country || ''}` : '',
+        'END:VCARD',
+      ]
+        .filter(Boolean)
+        .join('\n');
     }
+
     case 'upi': {
-      const pa = encodeURIComponent(data.upiId?.trim() || 'merchant@upi');
-      const pn = encodeURIComponent(data.upiName?.trim() || 'Payee');
-      let upi = `upi://pay?pa=${pa}&pn=${pn}&cu=INR`;
-      if (data.upiAmount && Number(data.upiAmount) > 0) {
-        upi += `&am=${encodeURIComponent(data.upiAmount)}`;
-      }
-      if (data.upiNote?.trim()) {
-        upi += `&tn=${encodeURIComponent(data.upiNote.trim())}`;
-      }
-      return upi;
+      const params = new URLSearchParams();
+      params.set('pa', d.upiId || 'merchant@upi');
+      if (d.upiName) params.set('pn', d.upiName);
+      if (d.upiAmount) params.set('am', d.upiAmount);
+      if (d.upiNote) params.set('tn', d.upiNote);
+      params.set('cu', 'INR');
+      return `upi://pay?${params.toString()}`;
     }
+
+    case 'paypal': {
+      const user = (d.paypalUser || '').replace(/^@/, '').trim();
+      const amt = d.paypalAmount ? `/${d.paypalAmount}${d.paypalCurrency || 'USD'}` : '';
+      return `https://paypal.me/${user}${amt}`;
+    }
+
+    case 'crypto': {
+      const coin = d.cryptoType || 'bitcoin';
+      const addr = d.cryptoAddress || '';
+      const amt = d.cryptoAmount ? `?amount=${encodeURIComponent(d.cryptoAmount)}` : '';
+      return `${coin}:${addr}${amt}`;
+    }
+
+    case 'pix': {
+      // Simplified static Pix key or URL payload
+      return d.pixKey || '00020126360014BR.GOV.BCB.PIX';
+    }
+
+    case 'location': {
+      if (d.locationQuery) {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.locationQuery)}`;
+      }
+      return `geo:${d.latitude || '28.6139'},${d.longitude || '77.2090'}`;
+    }
+
+    case 'googleReview': {
+      if (d.url && d.url.startsWith('http')) return d.url;
+      return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(d.googlePlaceId || '')}`;
+    }
+
     case 'event': {
-      const dtStart = formatICalDate(data.eventStart);
-      const dtEnd = formatICalDate(data.eventEnd || data.eventStart);
+      const formatDt = (s?: string) => (s ? s.replace(/[-:]/g, '').split('.')[0] + 'Z' : '20261201T100000Z');
       return [
         'BEGIN:VEVENT',
-        `SUMMARY:${data.eventTitle || 'Upcoming Event'}`,
-        `DTSTART:${dtStart}`,
-        `DTEND:${dtEnd}`,
-        `LOCATION:${data.eventLocation || ''}`,
-        `DESCRIPTION:${data.eventDescription || ''}`,
+        `SUMMARY:${d.eventTitle || 'Event'}`,
+        d.eventLocation ? `LOCATION:${d.eventLocation}` : '',
+        d.eventDescription ? `DESCRIPTION:${d.eventDescription}` : '',
+        `DTSTART:${formatDt(d.eventStart)}`,
+        `DTEND:${formatDt(d.eventEnd)}`,
         'END:VEVENT',
-      ].join('\n');
+      ]
+        .filter(Boolean)
+        .join('\n');
     }
-    case 'geo': {
-      const lat = data.latitude?.trim() || '28.6139';
-      const lng = data.longitude?.trim() || '77.2090';
-      if (data.geoQuery?.trim()) {
-        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.geoQuery.trim())}`;
+
+    case 'app': {
+      if (d.appPlatform === 'ios') {
+        return d.iosUrl || `https://apps.apple.com/app/id${d.appId || ''}`;
       }
-      return `geo:${lat},${lng}`;
+      return `https://play.google.com/store/apps/details?id=${d.appId || 'com.instagram.android'}`;
     }
-    case 'appstore': {
-      if (data.appPlatform === 'ios') {
-        return `https://apps.apple.com/app/id${(data.appId || '123456789').replace(/^id/, '')}`;
-      } else if (data.appPlatform === 'android') {
-        return `https://play.google.com/store/apps/details?id=${data.appId || 'com.example.app'}`;
-      }
-      return data.appCustomUrl?.trim() || 'https://example.com/app';
+
+    case 'social': {
+      const handle = (d.socialHandle || '').replace(/^@/, '').trim();
+      const map: Record<string, string> = {
+        instagram: `https://instagram.com/${handle}`,
+        tiktok: `https://tiktok.com/@${handle}`,
+        youtube: `https://youtube.com/@${handle}`,
+        x: `https://x.com/${handle}`,
+        linkedin: `https://linkedin.com/in/${handle}`,
+        facebook: `https://facebook.com/${handle}`,
+        spotify: `https://open.spotify.com/artist/${handle}`,
+      };
+      return map[d.socialNetwork || 'instagram'] || `https://instagram.com/${handle}`;
     }
+
+    case 'coupon':
+      return d.url || `COUPON:${d.couponCode || 'SAVE20'} (${d.couponDiscount || '20% OFF'})`;
+
+    case 'menu':
+    case 'pdf':
+    case 'images':
+    case 'video':
+    case 'mp3':
+    case 'feedback':
+      return d.fileUrl || d.menuUrl || d.url || 'https://qrgenerato.com';
+
     default:
-      return 'https://example.com';
+      return d.url || 'https://qrgenerato.com';
   }
 }
