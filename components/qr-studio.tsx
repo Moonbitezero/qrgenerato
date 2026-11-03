@@ -235,22 +235,21 @@ export default function QRStudio() {
   const [activeCategory, setActiveCategory] = useState<QRCategory>('links');
   const [type, setType] = useState<QRType>('url');
   useEffect(() => {
-    const saved = localStorage.getItem('qr-theme');
-    const prefersDark = saved
-      ? saved === 'dark'
-      : document.documentElement.classList.contains('dark');
-    setIsDark(prefersDark);
-    document.documentElement.classList.toggle('dark', prefersDark);
+  const saved = localStorage.getItem('qr-theme');
+  const prefersDark = saved
+    ? saved === 'dark'
+    : document.documentElement.classList.contains('dark') || true; // Default to Dark Mode
+  setIsDark(prefersDark);
+  document.documentElement.classList.toggle('dark', prefersDark);
 
-    const handler = (e: Event) => {
-      const nextDark = Boolean((e as CustomEvent).detail);
-      setIsDark(nextDark);
-      document.documentElement.classList.toggle('dark', nextDark);
-    };
-    window.addEventListener('qr-theme-change', handler);
-    return () => window.removeEventListener('qr-theme-change', handler);
-  }, []);
-
+  const handler = (e: Event) => {
+    const nextDark = Boolean((e as CustomEvent).detail);
+    setIsDark(nextDark);
+    document.documentElement.classList.toggle('dark', nextDark);
+  };
+  window.addEventListener('qr-theme-change', handler);
+  return () => window.removeEventListener('qr-theme-change', handler);
+}, []);
   const [data, setData] = useState<QRPayloadData>({
     url: 'https://qrgenerato.com',
     text: 'Welcome to QR Generato',
