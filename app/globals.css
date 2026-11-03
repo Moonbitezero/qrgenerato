@@ -5,6 +5,7 @@
 html {
   background-color: #f8fafc;
   color: #0f172a;
+  zoom: 90%; /* Forces the entire website to render at 90% scale by default */
 }
 
 html.dark {
