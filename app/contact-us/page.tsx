@@ -1,90 +1,69 @@
-// app/contact-us/page.tsx
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import ContactForm from '@/components/contact-form';
-import { Mail, MessageSquare, Clock, HelpCircle } from 'lucide-react';
+// app/contact/page.tsx
+import React from 'react';
+import { Mail, MessageSquare, Clock, ShieldCheck } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Contact Us — Support, Feedback & Feature Requests',
-  description:
-    'Get in touch with the QR GENERATO team. Report scanning feedback, request new QR payload types, or inquire about custom integrations.',
-  alternates: {
-    canonical: '/contact-us',
-  },
-  openGraph: {
-    title: 'Contact Us | QR GENERATO',
-    description:
-      'Have a question or feature request for QR GENERATO? Reach out to our team anytime.',
-    url: 'https://qrcodestudio.app/contact-us',
-  },
-};
-
-export default function ContactUsPage() {
-  const contactSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'ContactPage',
-    name: 'Contact QR GENERATO',
-    url: 'https://qrcodestudio.app/contact-us',
-    description: 'Contact page for QR GENERATO technical support and feature requests.',
-  };
-
+export default function ContactPage() {
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-8 py-10 sm:py-14 space-y-8">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(contactSchema) }}
-      />
+    <main className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 py-12 px-4 transition-colors">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="bg-white dark:bg-[#111115] border border-slate-200 dark:border-zinc-800/80 rounded-2xl p-8 shadow-sm">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 mb-4">
+            <MessageSquare className="w-3.5 h-3.5" /> Support & Feedback
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">Contact Us</h1>
+          <p className="text-sm text-slate-600 dark:text-zinc-400">
+            Have a feature request, bug report, or business inquiry? Reach out to our team directly.
+          </p>
 
-      <nav aria-label="Breadcrumb" className="text-xs text-zinc-400 flex items-center gap-2">
-        <Link href="/" className="hover:text-white">Home</Link>
-        <span>/</span>
-        <span className="text-pink-300 font-semibold">Contact Us</span>
-      </nav>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Info Column */}
-        <div className="lg:col-span-5 space-y-5">
-          <div className="bg-[#12121c]/90 border border-white/[0.1] rounded-3xl p-6 sm:p-7 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/10 border border-pink-500/30 text-xs font-bold text-pink-300">
-              <MessageSquare size={13} /> We&apos;d Love to Hear From You
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800">
+              <Mail className="w-5 h-5 text-indigo-500 mb-2" />
+              <h2 className="text-sm font-semibold">Email Support</h2>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">support@qrgenerato.com</p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Contact QR GENERATO
-            </h1>
-            <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-              Have a question about our Image-Filled QR engine, need help with a batch CSV export, or
-              want to request a new payload format? Send us a message and we will respond promptly.
-            </p>
-
-            <div className="space-y-3 pt-3 border-t border-white/[0.08] text-xs">
-              <div className="flex items-center gap-3 text-zinc-300">
-                <Mail size={16} className="text-violet-400 shrink-0" />
-                <span>support@qrgenerato.com</span>
-              </div>
-              <div className="flex items-center gap-3 text-zinc-300">
-                <Clock size={16} className="text-emerald-400 shrink-0" />
-                <span>Response Time: Within 24–48 Hours</span>
-              </div>
-              <div className="flex items-center gap-3 text-zinc-300">
-                <HelpCircle size={16} className="text-amber-400 shrink-0" />
-                <Link href="/#faq-heading" className="text-amber-300 underline hover:text-amber-200">
-                  Browse our 8 Instant SEO FAQs
-                </Link>
-              </div>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800">
+              <Clock className="w-5 h-5 text-emerald-500 mb-2" />
+              <h2 className="text-sm font-semibold">Response Time</h2>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">Usually within 24 hours</p>
             </div>
           </div>
-        </div>
 
-        {/* Right Form Column */}
-        <div className="lg:col-span-7">
-          <div className="relative overflow-hidden bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.1] rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500" />
-            <h2 className="text-lg font-bold text-white mb-5">Send Us a Direct Message</h2>
-            <ContactForm />
-          </div>
+          <form className="space-y-4 mt-6 pt-6 border-t border-slate-200 dark:border-zinc-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Your Name</label>
+                <input
+                  type="text"
+                  placeholder="Sameer"
+                  className="w-full rounded-lg bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Email Address</label>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  className="w-full rounded-lg bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-zinc-400 mb-1.5">Message</label>
+              <textarea
+                rows={4}
+                placeholder="How can we help?"
+                className="w-full rounded-lg bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              className="px-6 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-black font-semibold text-sm hover:opacity-90 transition-opacity"
+            >
+              Send Message
+            </button>
+          </form>
         </div>
       </div>
     </main>
   );
 }
-

@@ -1,148 +1,95 @@
 // app/about/page.tsx
-import type { Metadata } from 'next';
+import React from 'react';
 import Link from 'next/link';
-import {
-  Sparkles,
-  ShieldCheck,
-  Layers,
-  IndianRupee,
-  Cpu,
-  CheckCircle2,
-  ArrowRight,
-} from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'About Us — Our Mission for Free, Private & Permanent QR Codes',
-  description:
-    'Learn how QR GENERATO built the best free online QR code generator with logo, UPI support, image-filled pixel masking, and 100% client-side privacy.',
-  alternates: {
-    canonical: '/about',
-  },
-  openGraph: {
-    title: 'About QR GENERATO — Free Online QR Code Generator',
-    description:
-      'Discover the engineering and privacy-first mission behind QR GENERATO, the 100% browser-based QR code generator with zero expiration.',
-    url: 'https://qrcodestudio.app/about',
-  },
-};
+import { QrCode, Zap, ShieldCheck, Sparkles, IndianRupee, Layers, ArrowRight } from 'lucide-react';
 
 export default function AboutPage() {
-  const aboutSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'AboutPage',
-    name: 'About QR GENERATO',
-    url: 'https://qrcodestudio.app/about',
-    description:
-      'QR GENERATO is a client-side web application for generating customizable, scannable QR codes with logos, gradients, UPI payment payloads, and pixel-masked artwork.',
-  };
+  const features = [
+    {
+      icon: Zap,
+      color: 'text-amber-500',
+      title: 'Instant Vector Engine',
+      desc: 'Built on a zero-lag SVG & HTML5 Canvas rendering pipeline that generates crisp, print-ready QR codes in real time.',
+    },
+    {
+      icon: ShieldCheck,
+      color: 'text-emerald-500',
+      title: '100% Client-Side Privacy',
+      desc: 'Your URLs, WiFi credentials, vCards, and payment details are encoded directly inside your browser—never stored on external servers.',
+    },
+    {
+      icon: IndianRupee,
+      color: 'text-indigo-500',
+      title: '30+ Smart QR Payloads',
+      desc: 'From Bharat UPI, PayPal, and Crypto to WhatsApp, WiFi, Restaurant Menus, and vCards—all static and permanent.',
+    },
+    {
+      icon: Layers,
+      color: 'text-pink-500',
+      title: 'Custom Eyes, Frames & Batch ZIP',
+      desc: 'Style independent corner eyes, add center brand badges, wrap codes in illustrated frames, or batch-export up to 50 SVGs at once.',
+    },
+  ];
 
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-8 py-10 sm:py-14 space-y-10">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutSchema) }}
-      />
+    <main className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 py-12 px-4 transition-colors">
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Hero Card */}
+        <div className="bg-white dark:bg-[#111115] border border-slate-200 dark:border-zinc-800/80 rounded-2xl p-8 shadow-sm space-y-5">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+            <Sparkles className="w-3.5 h-3.5" /> Built for Speed & Simplicity
+          </span>
 
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="text-xs text-zinc-400 flex items-center gap-2">
-        <Link href="/" className="hover:text-white">Home</Link>
-        <span>/</span>
-        <span className="text-violet-300 font-semibold">About Us</span>
-      </nav>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            About QR Generato
+          </h1>
 
-      {/* Hero Card */}
-      <section className="relative overflow-hidden bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.1] rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
-        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400" />
+          <p className="text-sm text-slate-600 dark:text-zinc-300 leading-relaxed">
+            Most online QR code generators trick users into creating &ldquo;dynamic&rdquo; links that expire after a 7-day trial unless you pay a monthly subscription. <strong>QR Generato</strong> was built to fix that—giving creators, businesses, shops, and developers a fast, minimalist studio where every QR code is 100% static, permanent, and free forever.
+          </p>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-xs font-bold text-violet-300">
-          <Sparkles size={13} /> Built for Creators, Merchants &amp; Developers
-        </div>
-
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-          Reinventing the Free QR Code Generator for the Modern Web
-        </h1>
-
-        <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
-          We built <strong>QR GENERATO</strong> because we were tired of deceptive &ldquo;free&rdquo;
-          QR code generators that hold your links hostage. Too many websites let you design a QR code,
-          print it on thousands of business cards or restaurant menus, and then deactivate the code
-          two weeks later unless you pay a monthly fee.
-        </p>
-
-        <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
-          Our philosophy is simple: <strong>static QR codes are mathematics, and mathematics should be free forever</strong>.
-          By engineering our entire rendering pipeline to run 100% inside your browser using HTML5
-          Canvas, SVG path generation, and real-time optical decoding, we eliminated server costs and
-          privacy risks simultaneously.
-        </p>
-      </section>
-
-      {/* Core Pillars Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-[#12121c]/90 border border-white/[0.08] rounded-3xl p-6 space-y-3">
-          <div className="w-11 h-11 rounded-2xl bg-fuchsia-500/15 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400">
-            <Layers size={22} />
+          {/* Feature Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            {features.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.title}
+                  className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800 space-y-1.5"
+                >
+                  <Icon className={`w-5 h-5 ${item.color}`} />
+                  <h2 className="text-sm font-semibold">{item.title}</h2>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              );
+            })}
           </div>
-          <h2 className="text-lg font-bold text-white">Image-Filled Pixel Masking Engine</h2>
-          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-            Unlike basic generators that only paste a tiny square in the middle, our custom matrix
-            renderer masks photographs, anime illustrations, and brand textures directly into the dark
-            data modules while protecting the 7×7 corner finder patterns for reliable scanning.
-          </p>
-        </div>
 
-        <div className="bg-[#12121c]/90 border border-white/[0.08] rounded-3xl p-6 space-y-3">
-          <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-            <ShieldCheck size={22} />
+          {/* Bottom CTA */}
+          <div className="pt-6 border-t border-slate-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-900 dark:bg-zinc-800 text-white">
+                <QrCode className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold">No Sign-Up Required</p>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                  Unlimited high-res PNG & Vector SVG downloads
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-black text-xs font-semibold hover:opacity-90 transition-opacity"
+            >
+              Open QR Studio <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-          <h2 className="text-lg font-bold text-white">Zero-Knowledge Browser Architecture</h2>
-          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-            Your Wi-Fi passwords, private vCard contact details, email templates, and uploaded artwork
-            never leave your device. Everything is computed locally in memory, making QR GENERATO
-            safe for enterprise and personal use.
-          </p>
         </div>
-
-        <div className="bg-[#12121c]/90 border border-white/[0.08] rounded-3xl p-6 space-y-3">
-          <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-            <IndianRupee size={22} />
-          </div>
-          <h2 className="text-lg font-bold text-white">Dedicated UPI &amp; Global Standards</h2>
-          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-            We support 12+ standardized payload formats out of the box—including Indian UPI payment
-            links (compatible with GPay, PhonePe, and Paytm), iCalendar events, Google Maps pins, and
-            App Store smart links.
-          </p>
-        </div>
-
-        <div className="bg-[#12121c]/90 border border-white/[0.08] rounded-3xl p-6 space-y-3">
-          <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-            <Cpu size={22} />
-          </div>
-          <h2 className="text-lg font-bold text-white">Real-Time Optical Verification</h2>
-          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-            Every design change is automatically verified by our built-in optical QR decoder to warn
-            you immediately if low contrast or dark backgrounds could reduce camera scannability.
-          </p>
-        </div>
-      </section>
-
-      {/* CTA Banner */}
-      <section className="bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-indigo-600/20 border border-fuchsia-500/30 rounded-3xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-        <div className="space-y-1 text-center sm:text-left">
-          <h2 className="text-xl font-extrabold text-white">Ready to design your custom QR code?</h2>
-          <p className="text-xs sm:text-sm text-zinc-300">
-            100% free, no account required, unlimited high-res PNG &amp; Vector SVG downloads.
-          </p>
-        </div>
-        <Link
-          href="/"
-          className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 shrink-0"
-        >
-          Launch QR Studio <ArrowRight size={16} />
-        </Link>
-      </section>
+      </div>
     </main>
   );
 }
-

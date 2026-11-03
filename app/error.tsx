@@ -13,7 +13,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('QR GENERATO Runtime Error:', error);
+    console.error('QR Generato Runtime Error:', error);
   }, [error]);
 
   return (

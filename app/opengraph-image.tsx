@@ -2,7 +2,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'QR GENERATO — Free Online QR Code Generator with Logo & UPI';
+export const alt = 'QR Generato — Free Online QR Code Generator with Logo & UPI';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -42,7 +42,7 @@ export default async function Image() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-0.02em' }}>
-              QR GENERATO PRO
+              QR Generato PRO
             </span>
             <span style={{ fontSize: '16px', color: '#a1a1aa' }}>
               Free Online QR Code Generator • No Sign Up • No Expiration

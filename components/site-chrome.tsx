@@ -44,7 +44,7 @@ export function SiteHeader() {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-base sm:text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-violet-200 to-fuchsia-300 bg-clip-text text-transparent truncate">
-                QR GENERATO
+                QR Generato
               </span>
               <span className="px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-md bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 shrink-0">
                 PRO
@@ -140,7 +140,7 @@ export function SiteFooter() {
                 <QrCode size={17} />
               </div>
               <span className="text-base font-extrabold text-white tracking-tight">
-                QR GENERATO
+                QR Generato
               </span>
             </Link>
             <p className="text-xs text-zinc-400 leading-relaxed">
@@ -227,7 +227,7 @@ export function SiteFooter() {
         </div>
 
         <div className="pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-          <p>© {new Date().getFullYear()} QR GENERATO. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} QR Generato. All rights reserved.</p>
           <div className="flex flex-wrap gap-5">
             <Link href="/about" className="hover:text-zinc-300">About</Link>
             <Link href="/privacy-policy" className="hover:text-zinc-300">Privacy</Link>

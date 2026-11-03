@@ -5,7 +5,7 @@ import { QrCode, Home, Compass, HelpCircle, Mail, AlertCircle } from 'lucide-rea
 
 export const metadata: Metadata = {
   title: '404 — Page Not Found',
-  description: 'The QR code or page you are looking for could not be found. Return to QR GENERATO to generate free custom QR codes online.',
+  description: 'The QR code or page you are looking for could not be found. Return to QR Generato to generate free custom QR codes online.',
   robots: {
     index: false,
     follow: true,

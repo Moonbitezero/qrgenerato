@@ -1,6 +1,16 @@
 /* app/globals.css */
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
+html {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.dark {
+  background-color: #09090b;
+  color: #f4f4f5;
+}
 @layer base {
   body {
     background-color: #070709;
@@ -69,4 +79,19 @@ input[type="range"]::-webkit-slider-thumb {
     transform: translateZ(0);
     will-change: transform;
   }
+}
+/* Global Zero-Lag Theme System */
+html {
+  background-color: #f8fafc; /* Crisp Slate-50 Light Default */
+  color: #0f172a;
+}
+
+html.dark {
+  background-color: #09090b; /* Pure Zinc-950 Dark Mode */
+  color: #f4f4f5;
+}
+
+/* Remove any old heavy background blur circles */
+.bg-glow, .blur-blob {
+  display: none !important;
 }

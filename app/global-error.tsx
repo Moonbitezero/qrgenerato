@@ -27,7 +27,7 @@ export default function GlobalError({
               Critical Application Error
             </h1>
             <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-              QR GENERATO encountered a critical layout error. Click below to reinitialize the application.
+              QR Generato encountered a critical layout error. Click below to reinitialize the application.
             </p>
             {error?.digest && (
               <p className="text-[11px] font-mono text-zinc-500 pt-1">

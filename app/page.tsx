@@ -1,307 +1,354 @@
-// app/page.tsx
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import QRStudio from '@/components/qr-studio';
+import clsx from 'clsx';
 import {
   QrCode,
-  ShieldCheck,
-  Zap,
   Sparkles,
+  ShieldCheck,
   IndianRupee,
-  CheckCircle2,
-  Layers,
-  Lock,
+  Wifi,
+  Utensils,
+  Contact,
   HelpCircle,
-  ChevronDown,
+  CheckCircle2,
+  Download,
+  Palette,
+  Layers,
 } from 'lucide-react';
 
-const SEO_FAQS = [
-  {
-    question: 'Is there a free QR code generator?',
-    answerHtml:
-      '<p>Yes, <strong>QR GENERATO</strong> is a 100% free QR code generator with no sign up, no watermarks, and no expiration. Because all QR matrices are generated directly inside your browser, your static QR codes are free forever and never expire.</p>',
-    answerText:
-      'Yes, QR GENERATO is a 100% free QR code generator with no sign up, no watermarks, and no expiration. Because all QR matrices are generated directly inside your browser, your static QR codes are free forever and never expire.',
-  },
-  {
-    question: 'What is the best QR code generator?',
-    answerHtml:
-      '<p><strong>QR GENERATO</strong> is rated as the best QR code generator because it combines 12+ payload types (including UPI payments, Website URLs, Wi-Fi, and vCards) with custom finder eye shapes, multi-stop gradients, image-filled pixel masking, and real-time optical scan verification.</p>',
-    answerText:
-      'QR GENERATO is rated as the best QR code generator because it combines 12+ payload types (including UPI payments, Website URLs, Wi-Fi, and vCards) with custom finder eye shapes, multi-stop gradients, image-filled pixel masking, and real-time optical scan verification.',
-  },
-  {
-    question: 'What is the best free QR code generator?',
-    answerHtml:
-      '<p>The best free QR code generator is one that does not lock high-resolution vector downloads behind a paywall or deactivate your links after a trial period. QR GENERATO gives you unlimited high-res PNG, Vector SVG, A4 sticker sheets, and batch CSV exports completely free without requiring an account.</p>',
-    answerText:
-      'The best free QR code generator is one that does not lock high-resolution vector downloads behind a paywall or deactivate your links after a trial period. QR GENERATO gives you unlimited high-res PNG, Vector SVG, A4 sticker sheets, and batch CSV exports completely free without requiring an account.',
-  },
-  {
-    question: 'Does Google have a QR code generator?',
-    answerHtml:
-      '<p>Yes, Google Chrome includes a basic built-in QR generator in the address bar share menu for web links. However, it only creates basic black-and-white URL codes. If you need custom colors, brand logos, UPI payment QR codes, Wi-Fi sharing, or vector SVG downloads, QR GENERATO is the best free alternative.</p>',
-    answerText:
-      'Yes, Google Chrome includes a basic built-in QR generator in the address bar share menu for web links. However, it only creates basic black-and-white URL codes. If you need custom colors, brand logos, UPI payment QR codes, Wi-Fi sharing, or vector SVG downloads, QR GENERATO is the best free alternative.',
-  },
-  {
-    question: 'What is the best online QR code generator?',
-    answerHtml:
-      '<p><strong>QR GENERATO</strong> is the best online QR code generator for privacy and creative control. It runs 100% client-side in your browser—meaning your sensitive Wi-Fi passwords, phone numbers, and UPI IDs are never uploaded to an external server—while offering studio-grade visual customization.</p>',
-    answerText:
-      'QR GENERATO is the best online QR code generator for privacy and creative control. It runs 100% client-side in your browser—meaning your sensitive Wi-Fi passwords, phone numbers, and UPI IDs are never uploaded to an external server—while offering studio-grade visual customization.',
-  },
-  {
-    question: 'What is a dynamic QR code generator?',
-    answerHtml:
-      '<p>A dynamic QR code generator encodes a short redirect URL into the QR code so you can change the destination link later or track scan analytics. However, dynamic QR codes require paid monthly subscriptions and stop working if you cancel. QR GENERATO creates direct-encoded static QR codes that are 100% free and work forever with zero expiration.</p>',
-    answerText:
-      'A dynamic QR code generator encodes a short redirect URL into the QR code so you can change the destination link later or track scan analytics. However, dynamic QR codes require paid monthly subscriptions and stop working if you cancel. QR GENERATO creates direct-encoded static QR codes that are 100% free and work forever with zero expiration.',
-  },
-  {
-    question: 'How to use a QR code generator?',
-    answerHtml:
-      '<p>Using our QR code generator takes three simple steps: (1) Select your payload type (Website URL, UPI Pay, Wi-Fi, Email, Phone, or Contact Card) and enter your details. (2) Customize your gradient colors, corner eye shapes, CTA frame, or upload a logo/artwork. (3) Check the Live Scannable Verified badge and click <strong>Download PNG</strong> or <strong>Export Vector SVG</strong>.</p>',
-    answerText:
-      'Using our QR code generator takes three simple steps: (1) Select your payload type (Website URL, UPI Pay, Wi-Fi, Email, Phone, or Contact Card) and enter your details. (2) Customize your gradient colors, corner eye shapes, CTA frame, or upload a logo/artwork. (3) Check the Live Scannable Verified badge and click Download PNG or Export Vector SVG.',
-  },
-  {
-    question: 'QR code generator kaise kare? (QR कोड कैसे बनाएं?)',
-    answerHtml:
-      '<p><strong>QR GENERATO</strong> पर फ्री QR कोड बनाना बहुत आसान है: 1. सबसे पहले ऊपर दिए गए विकल्पों में से अपना प्रकार चुनें (जैसे <strong>UPI Pay</strong>, <strong>Website</strong>, <strong>Wi-Fi</strong>, या <strong>Phone</strong>) और अपनी जानकारी भरें। 2. अपनी पसंद का कलर ग्रेडिएंट, बॉर्डर फ्रेम, या बीच में लगाने के लिए अपना फोटो/लोगो (Logo) चुनें। 3. अब <strong>Download PNG</strong> या <strong>SVG</strong> बटन पर क्लिक करके अपना हाई-क्वालिटी QR कोड तुरंत मुफ्त में डाउनलोड करें।</p>',
-    answerText:
-      'QR GENERATO पर फ्री QR कोड बनाना बहुत आसान है: 1. सबसे पहले ऊपर दिए गए विकल्पों में से अपना प्रकार चुनें (जैसे UPI Pay, Website, Wi-Fi, या Phone) और अपनी जानकारी भरें। 2. अपनी पसंद का कलर ग्रेडिएंट, बॉर्डर फ्रेम, या बीच में लगाने के लिए अपना फोटो/लोगो (Logo) चुनें। 3. अब Download PNG या SVG बटन पर क्लिक करके अपना हाई-क्वालिटी QR कोड तुरंत मुफ्त में डाउनलोड करें।',
-  },
-];
+export default function HomePage() {
+  // Default to true (Dark Mode) so it matches your dark header & studio on first load!
+  // (Or change to false if you convert all cards inside qr-studio.tsx to use cardClass)
+const [isDark, setIsDark] = useState(false);
 
-export default function Home() {
-  // Exact FAQPage JSON-LD schema format requested
-  const faqSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: SEO_FAQS.map((item) => ({
-      '@type': 'Question',
-      name: item.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.answerHtml,
-      },
-    })),
-  };
+  useEffect(() => {
+    const saved = localStorage.getItem('qr-theme');
+    const prefersDark = saved
+      ? saved === 'dark'
+      : document.documentElement.classList.contains('dark');
+    setIsDark(prefersDark);
+    document.documentElement.classList.toggle('dark', prefersDark);
 
-  const webAppSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'WebApplication',
-    name: 'QR GENERATO — Free QR Code Generator Online',
-    applicationCategory: 'DesignApplication',
-    operatingSystem: 'All',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
+    const handler = (e: Event) => {
+      const nextDark = Boolean((e as CustomEvent).detail);
+      setIsDark(nextDark);
+      document.documentElement.classList.toggle('dark', nextDark);
+    };
+    window.addEventListener('qr-theme-change', handler);
+    return () => window.removeEventListener('qr-theme-change', handler);
+  }, []);
+  const cardClass = isDark
+    ? 'bg-[#111115] border-zinc-800/80 text-zinc-100'
+    : 'bg-white border-slate-200 text-slate-900 shadow-sm';
+
+  const subCardClass = isDark
+    ? 'bg-zinc-900/70 border-zinc-800 text-zinc-100'
+    : 'bg-slate-50 border-slate-200 text-slate-900';
+
+  const mutedText = isDark ? 'text-zinc-400' : 'text-slate-500';
+
+  const steps = [
+    {
+      step: '01',
+      title: 'Choose Among 30+ QR Types',
+      desc: 'Select URL, Bharat UPI, WiFi, WhatsApp, vCard, Restaurant Menu, PDF, or Social links.',
+      icon: Layers,
+      accent: 'text-indigo-500',
+      svg: (
+        <svg
+          viewBox="0 0 160 90"
+          className={clsx(
+            'w-full h-24 rounded-lg border p-2',
+            isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
+          )}
+        >
+          <rect x="14" y="14" width="40" height="26" rx="6" className="fill-indigo-500" />
+          <rect x="60" y="14" width="40" height="26" rx="6" fill={isDark ? '#27272a' : '#cbd5e1'} />
+          <rect x="106" y="14" width="40" height="26" rx="6" fill={isDark ? '#27272a' : '#cbd5e1'} />
+          <rect
+            x="14"
+            y="48"
+            width="132"
+            height="24"
+            rx="6"
+            fill={isDark ? '#18181b' : '#f8fafc'}
+            stroke={isDark ? '#3f3f46' : '#cbd5e1'}
+            strokeWidth="1.5"
+          />
+          <circle cx="28" cy="60" r="4" className="fill-indigo-500" />
+          <rect x="38" y="57" width="75" height="6" rx="3" fill={isDark ? '#52525b' : '#94a3b8'} />
+        </svg>
+      ),
     },
-    description:
-      'The best free QR code generator online with no sign up and no expiration. Create custom QR codes with logo, UPI QR codes, email QR codes, and image-filled artwork in PNG and SVG.',
-  };
+    {
+      step: '02',
+      title: 'Customize Eyes, Frames & Logo',
+      desc: 'Pick custom dot patterns, corner eye shapes, illustrated frames, or convert artwork into a center badge.',
+      icon: Palette,
+      accent: 'text-pink-500',
+      svg: (
+        <svg
+          viewBox="0 0 160 90"
+          className={clsx(
+            'w-full h-24 rounded-lg border p-2',
+            isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
+          )}
+        >
+          <rect x="18" y="15" width="28" height="28" rx="7" className="fill-none stroke-indigo-500" strokeWidth="4" />
+          <circle cx="32" cy="29" r="6" className="fill-pink-500" />
+          <rect
+            x="64"
+            y="15"
+            width="60"
+            height="60"
+            rx="12"
+            fill={isDark ? '#18181b' : '#f8fafc'}
+            stroke={isDark ? '#3f3f46' : '#cbd5e1'}
+            strokeWidth="1.5"
+          />
+          <circle cx="94" cy="45" r="14" className="fill-indigo-500/20 stroke-indigo-500" strokeWidth="2" />
+          <polygon points="94,35 97,42 105,42 99,47 101,54 94,49 87,54 89,47 83,42 91,42" className="fill-indigo-500" />
+        </svg>
+      ),
+    },
+    {
+      step: '03',
+      title: 'Download Print-Ready PNG or SVG',
+      desc: 'Export high-resolution 1200px PNGs or infinite-scale Vector SVGs that work forever with zero scan limits.',
+      icon: Download,
+      accent: 'text-emerald-500',
+      svg: (
+        <svg
+          viewBox="0 0 160 90"
+          className={clsx(
+            'w-full h-24 rounded-lg border p-2',
+            isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
+          )}
+        >
+          <rect
+            x="48"
+            y="10"
+            width="64"
+            height="52"
+            rx="8"
+            fill={isDark ? '#18181b' : '#ffffff'}
+            className="stroke-emerald-500/60"
+            strokeWidth="2"
+          />
+          <rect x="58" y="18" width="14" height="14" rx="3" fill={isDark ? '#ffffff' : '#0f172a'} />
+          <rect x="88" y="18" width="14" height="14" rx="3" fill={isDark ? '#ffffff' : '#0f172a'} />
+          <rect x="58" y="40" width="14" height="14" rx="3" fill={isDark ? '#ffffff' : '#0f172a'} />
+          <circle cx="88" cy="47" r="6" className="fill-emerald-500" />
+          <rect x="38" y="68" width="84" height="14" rx="5" className="fill-emerald-500" />
+        </svg>
+      ),
+    },
+  ];
+
+  const useCases = [
+    {
+      icon: IndianRupee,
+      color: 'text-emerald-500',
+      badge: 'Zero Commission',
+      title: 'Bharat UPI & Shop Payments',
+      desc: 'Generate direct PhonePe, GPay, and Paytm QR stands with fixed or open amounts and custom shop logos.',
+    },
+    {
+      icon: Utensils,
+      color: 'text-amber-500',
+      badge: 'Illustrated Frames',
+      title: 'Cafe & Restaurant Menus',
+      desc: 'Use our Coffee Cup, Chef Hat, Waiter Tray, or Delivery Scooter frames so guests scan your digital PDF menu.',
+    },
+    {
+      icon: Wifi,
+      color: 'text-sky-500',
+      badge: '1-Scan Connect',
+      title: 'Instant Guest WiFi Access',
+      desc: 'Let visitors, airbnb guests, or office clients join your WPA2/WPA3 WiFi network without typing passwords.',
+    },
+    {
+      icon: Contact,
+      color: 'text-indigo-500',
+      badge: 'Digital Business Card',
+      title: 'vCard & WhatsApp Direct',
+      desc: 'Save your phone number, company, email, and website straight into a client’s contacts in a single scan.',
+    },
+  ];
+
+  const faqs = [
+    {
+      q: 'Do QR codes created on QR Generato ever expire?',
+      a: 'No. Every QR code generated here is 100% static. Your URL, UPI ID, WiFi password, or vCard is encoded directly into the dots of the image—meaning it will work forever with unlimited scans and no subscription fees.',
+    },
+    {
+      q: 'Can I use these QR codes for commercial printing and packaging?',
+      a: 'Yes! All downloaded PNG and Vector SVG files are completely free for commercial use on product labels, restaurant table tents, flyers, billboards, and business cards with zero attribution required.',
+    },
+    {
+      q: 'Will my QR code still scan if I add a center logo or custom artwork?',
+      a: 'Yes. Our rendering engine uses Level H (High 30%) Reed-Solomon error correction and automatically clears the center modules around your logo or artwork so smartphone cameras scan it effortlessly.',
+    },
+    {
+      q: 'Is my data or WiFi password stored on your servers?',
+      a: 'Never. QR Generato runs 100% client-side inside your web browser. Your text, links, uploaded logos, and camera scans never leave your device.',
+    },
+    {
+      q: 'What is the difference between PNG and Vector SVG downloads?',
+      a: 'PNG exports a crisp 1200×1200 pixel image ready for websites, WhatsApp sharing, and standard printing. Vector SVG exports mathematical paths that graphic designers can scale to billboard size in Illustrator, CorelDRAW, or Figma without losing sharpness.',
+    },
+  ];
 
   return (
-    <main className="min-h-screen bg-[#07070b] text-zinc-100 relative overflow-x-hidden pb-28 lg:pb-20">
-      {/* FAQPage JSON-LD Schema for Google Rich Snippets */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
-      {/* WebApplication JSON-LD Schema */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
-      />
-
-      {/* Vibrant Multi-Color Ambient Mesh Glows */}
-      <div className="pointer-events-none fixed top-[-180px] left-[8%] w-[320px] sm:w-[550px] h-[320px] sm:h-[550px] rounded-full bg-violet-600/20 blur-[130px] sm:blur-[150px]" />
-      <div className="pointer-events-none fixed top-[20%] right-[-120px] w-[300px] sm:w-[480px] h-[300px] sm:h-[480px] rounded-full bg-fuchsia-600/15 blur-[130px] sm:blur-[150px]" />
-      <div className="pointer-events-none fixed bottom-[-180px] left-[35%] w-[320px] sm:w-[520px] h-[320px] sm:h-[520px] rounded-full bg-cyan-500/10 blur-[130px] sm:blur-[150px]" />
-
-      {/* Main Interactive Application */}
+    <div
+      className={clsx(
+        'min-h-screen transition-colors duration-150',
+        isDark ? 'bg-zinc-950 text-zinc-100' : 'bg-slate-50 text-slate-900'
+      )}
+    >
+      {/* 1. MAIN INTERACTIVE QR STUDIO */}
       <QRStudio />
 
-      {/* =====================================================================
-          ON-PAGE SEO CONTENT & FAQ SECTION (650+ Words + 8 Schema FAQs)
-         ===================================================================== */}
-      <section
-        aria-label="About QR GENERATO Free Online QR Code Generator"
-        className="max-w-[1400px] mx-auto px-4 sm:px-8 mt-12 sm:mt-20 space-y-10"
-      >
-        {/* Card 1: 600+ Word SEO Guide */}
-        <article className="relative overflow-hidden bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8">
-          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400" />
-
-          <div className="max-w-4xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-xs font-bold text-violet-300">
-              <Sparkles size={13} /> Comprehensive Guide &amp; Features
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              The Best Free QR Code Generator Online — No Sign Up &amp; No Expiration
-            </h2>
-            <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
-              Welcome to <strong>QR GENERATO</strong>, the most advanced{' '}
-              <strong>qr code generator</strong> built for creators, businesses, developers, and
-              everyday users. When searching for a reliable <strong>free qr code generator</strong>,
-              most platforms lock high-resolution downloads behind expensive subscriptions or replace
-              your destination URLs with temporary redirect links that break after a 14-day trial.
-              Our platform is engineered differently: it is a 100%{' '}
-              <strong>free qr code generator no sign up</strong> and{' '}
-              <strong>free qr code generator no expiration</strong> tool that processes everything
-              directly inside your web browser.
-            </p>
-            <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
-              Whether you need a fast <strong>link to qr code generator</strong> for a marketing
-              campaign, an <strong>email qr code generator online</strong> for customer support, or
-              a specialized <strong>upi qr code generator</strong> for instant digital payments in
-              India, QR GENERATO encodes your data directly into the mathematical QR matrix.
-              Because there are no middleman tracking servers, every code you create is a permanent{' '}
-              <strong>qr code generator free no expiration</strong> asset that works forever.
-            </p>
-          </div>
-
-          {/* 3-Column Feature Deep Dive */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/[0.08]">
-            <div className="bg-[#0b0b12] border border-white/[0.07] rounded-2xl p-6 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-fuchsia-500/15 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400">
-                <Layers size={20} />
-              </div>
-              <h3 className="text-base font-bold text-white">
-                Custom QR Code Generator With Logo &amp; Artwork
-              </h3>
-              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                Stand out from boring black-and-white squares. Use our{' '}
-                <strong>qr code generator with logo</strong> mode to place your brand emblem in the
-                center, or activate our signature <em>Image-Filled Pixel Mask</em> engine. If you
-                have ever used an <strong>adobe express qr code generator</strong> or{' '}
-                <strong>qr code generator adobe</strong> style tool, you will love our custom corner
-                finder eyes, multi-stop neon gradients, and call-to-action frames.
-              </p>
-            </div>
-
-            <div className="bg-[#0b0b12] border border-white/[0.07] rounded-2xl p-6 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <IndianRupee size={20} />
-              </div>
-              <h3 className="text-base font-bold text-white">
-                Instant UPI QR Code Generator &amp; 12+ Payload Types
-              </h3>
-              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                Accept contactless payments effortlessly with our dedicated{' '}
-                <strong>upi qr code generator</strong>. Enter your VPA/UPI ID, payee name, and exact
-                INR amount to generate a scannable payment badge compatible with Google Pay, PhonePe,
-                and Paytm. We also support Wi-Fi auto-connect, vCard contact cards, calendar events,
-                SMS, and <strong>free qr code generator google</strong> Maps location pins.
-              </p>
-            </div>
-
-            <div className="bg-[#0b0b12] border border-white/[0.07] rounded-2xl p-6 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                <Lock size={20} />
-              </div>
-              <h3 className="text-base font-bold text-white">
-                Optical Verification &amp; Print-Ready Exports
-              </h3>
-              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                Why is QR GENERATO rated as the <strong>best free qr code generator</strong>?
-                Every time you customize colors or upload an image, our built-in optical decoder
-                test-scans your canvas in real time to guarantee 100% readability. Download crisp
-                raster PNGs, scalable vector SVGs, batch CSV archives, or A4 sticker sheets from{' '}
-                <strong>the qr code generator</strong> built for professionals.
-              </p>
-            </div>
-          </div>
-
-          {/* Why Choose Us Checklist */}
-          <div className="pt-6 border-t border-white/[0.08] space-y-3">
-            <h3 className="text-lg font-bold text-white">
-              Why Choose Our QR Code Generator Free Online?
-            </h3>
-            <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-              When users search for a <strong>qr code generator google</strong> or{' '}
-              <strong>qr code generator online</strong>, they need speed, privacy, and zero watermarks.
-              Because QR GENERATO executes 100% client-side using HTML5 Canvas and vector path
-              algorithms, your sensitive Wi-Fi passwords, vCard phone numbers, and UPI IDs never
-              leave your device. You get the creative power of the{' '}
-              <strong>best qr code generator</strong> combined with complete data privacy.
-            </p>
-            <ul className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs sm:text-sm text-zinc-300 pt-2">
-              <li className="flex items-center gap-2.5 bg-[#0b0b12] p-3.5 rounded-xl border border-white/[0.06]">
-                <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                <span>
-                  <strong>Zero Account Required:</strong> True <strong>qr code generator free</strong>{' '}
-                  workflow with instant downloads.
-                </span>
-              </li>
-              <li className="flex items-center gap-2.5 bg-[#0b0b12] p-3.5 rounded-xl border border-white/[0.06]">
-                <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                <span>
-                  <strong>High Error Correction (Level H):</strong> Up to 30% damage resistance for
-                  logos and pixel masks.
-                </span>
-              </li>
-              <li className="flex items-center gap-2.5 bg-[#0b0b12] p-3.5 rounded-xl border border-white/[0.06]">
-                <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                <span>
-                  <strong>Commercial Print Quality:</strong> Export lossless SVG vectors alongside
-                  A4 printable sticker grids.
-                </span>
-              </li>
-            </ul>
-          </div>
-        </article>
-
-        {/* Card 2: Dedicated SEO-Friendly FAQ Accordion Section */}
-        <section
-          aria-labelledby="faq-heading"
-          className="relative overflow-hidden bg-[#12121c]/90 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6"
-        >
-          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-pink-500 via-amber-400 to-emerald-400" />
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-xs font-bold text-fuchsia-300">
-                <HelpCircle size={13} /> Frequently Asked Questions
-              </div>
-              <h2 id="faq-heading" className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                Everything You Need to Know About Our Free QR Code Generator
+      {/* 2. MATCHING CLEAN INFORMATION, VISUAL GUIDE & FAQ SECTION BELOW */}
+      <section className="max-w-7xl mx-auto px-4 pb-16 pt-4 space-y-8">
+        {/* Card A: Visual 3-Step "How It Works" */}
+        <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-6', cardClass)}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-2">
+                <Sparkles className="w-3.5 h-3.5" /> Simple 3-Step Workflow
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                How to Create a Custom QR Code in Seconds
               </h2>
             </div>
-            <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-3.5 py-1.5 rounded-full self-start sm:self-auto shrink-0">
-              8 Verified Answers
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-500">
+              <CheckCircle2 className="w-4 h-4" /> No Sign-Up • 100% Permanent
             </span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {SEO_FAQS.map((faq, idx) => (
-              <details
-                key={idx}
-                open={idx < 2}
-                className="group bg-[#0b0b12] border border-white/[0.08] hover:border-violet-500/40 rounded-2xl p-5 transition-all"
-              >
-                <summary className="flex items-center justify-between gap-3 cursor-pointer list-none font-bold text-sm sm:text-base text-white">
-                  <span className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 text-xs font-extrabold flex items-center justify-center shrink-0">
-                      Q{idx + 1}
-                    </span>
-                    <span>{faq.question}</span>
-                  </span>
-                  <ChevronDown
-                    size={18}
-                    className="text-zinc-400 shrink-0 transition-transform duration-200 group-open:rotate-180 group-open:text-fuchsia-400"
-                  />
-                </summary>
-                <div className="mt-3.5 pt-3.5 border-t border-white/[0.06] text-xs sm:text-sm text-zinc-300 leading-relaxed pl-9">
-                  {faq.answerText}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {steps.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.step}
+                  className={clsx('p-4 rounded-xl border space-y-3 flex flex-col justify-between', subCardClass)}
+                >
+                  {item.svg}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className={clsx('text-[11px] font-bold uppercase tracking-wider', mutedText)}>
+                        Step {item.step}
+                      </span>
+                      <Icon className={`w-4 h-4 ${item.accent}`} />
+                    </div>
+                    <h3 className="text-sm font-semibold">{item.title}</h3>
+                    <p className={clsx('text-xs leading-relaxed', mutedText)}>{item.desc}</p>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Card B: Popular Use Cases */}
+        <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-6', cardClass)}>
+          <div className="max-w-3xl space-y-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <ShieldCheck className="w-3.5 h-3.5" /> Built for Speed & Privacy
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+              Why Creators & Businesses Use QR Generato
+            </h2>
+            <p className={clsx('text-sm leading-relaxed', mutedText)}>
+              Unlike subscription QR tools that deactivate your links after a trial, QR Generato encodes your data directly into the QR matrix inside your browser—delivering instant live SVG previews, custom brand badges, and permanent codes.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {useCases.map((u) => {
+              const Icon = u.icon;
+              return (
+                <div key={u.title} className={clsx('p-4 rounded-xl border space-y-2', subCardClass)}>
+                  <div className="flex items-center justify-between">
+                    <Icon className={`w-5 h-5 ${u.color}`} />
+                    <span
+                      className={clsx(
+                        'text-[10px] font-semibold px-2 py-0.5 rounded-md border',
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-zinc-300' : 'bg-white border-slate-200 text-slate-600'
+                      )}
+                    >
+                      {u.badge}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold pt-1">{u.title}</h3>
+                  <p className={clsx('text-xs leading-relaxed', mutedText)}>{u.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Card C: Accordion FAQ */}
+        <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-5', cardClass)}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <HelpCircle className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight">Frequently Asked Questions</h2>
+              <p className={clsx('text-xs', mutedText)}>
+                Everything you need to know about static QR codes, logos, and printing.
+              </p>
+            </div>
+          </div>
+
+          <div className={clsx('divide-y', isDark ? 'divide-zinc-800/80' : 'divide-slate-200')}>
+            {faqs.map((item) => (
+              <details key={item.q} className="group py-3.5">
+                <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-semibold hover:text-indigo-400 transition-colors">
+                  <span>{item.q}</span>
+                  <span
+                    className={clsx(
+                      'ml-4 text-xs px-2 py-0.5 rounded border group-open:rotate-45 transition-transform',
+                      isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
+                    )}
+                  >
+                    +
+                  </span>
+                </summary>
+                <p className={clsx('mt-2.5 text-xs sm:text-sm leading-relaxed pr-6', mutedText)}>{item.a}</p>
               </details>
             ))}
           </div>
-        </section>
+
+          {/* Minimalist Footer Bar */}
+          <div
+            className={clsx(
+              'pt-5 border-t flex flex-wrap items-center justify-between gap-4 text-xs',
+              isDark ? 'border-zinc-800 text-zinc-400' : 'border-slate-200 text-slate-500'
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <QrCode className="w-4 h-4 text-indigo-500" />
+              <span className={clsx('font-semibold', isDark ? 'text-zinc-200' : 'text-slate-800')}>
+                QR Generato PRO
+              </span>
+              <span>• Free Online QR Code Studio</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link href="/about" className="hover:underline">About Us</Link>
+              <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+              <Link href="/terms" className="hover:underline">Terms & Conditions</Link>
+              <Link href="/contact" className="hover:underline">Contact Us</Link>
+            </div>
+          </div>
+        </div>
       </section>
-    </main>
+    </div>
   );
 }
-

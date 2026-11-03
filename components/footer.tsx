@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center text-white font-bold">
             <QrCode size={16} />
           </div>
-          <span className="text-sm font-bold text-white">QR GENERATO</span>
+          <span className="text-sm font-bold text-white">QR Generato</span>
         </div>
 
         <div className="flex flex-wrap justify-center gap-6 text-xs font-semibold text-zinc-400">
@@ -22,7 +22,7 @@ export default function Footer() {
         </div>
 
         <p className="text-xs text-zinc-500">
-          © {new Date().getFullYear()} QR GENERATO. All rights reserved.
+          © {new Date().getFullYear()} QR Generato. All rights reserved.
         </p>
       </div>
     </footer>
