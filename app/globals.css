@@ -3,96 +3,39 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 html {
-  background-color: #f8fafc;
+  background-color: #eef2f6;
   color: #0f172a;
-  zoom: 90%; /* Forces the entire website to render at 90% scale by default */
+  zoom: 90%;
+  overflow-y: scroll; /* Prevents horizontal layout jump when switching tabs */
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 html.dark {
-  background-color: #09090b;
-  color: #f4f4f5;
+  background-color: #070709;
+  color: #f4f4f6;
 }
+
 @layer base {
   body {
-    background-color: #070709;
-    color: #f4f4f6;
+    background-color: #eef2f6;
+    color: #0f172a;
     font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
-    background-image: 
-      radial-gradient(circle at 15% 10%, rgba(124, 58, 237, 0.12), transparent 35%),
-      radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.08), transparent 35%),
-      radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.08), transparent 35%),
+      radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.06), transparent 35%),
+      radial-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 24px 24px;
     background-attachment: fixed;
     -webkit-tap-highlight-color: transparent;
+    min-height: 100vh;
   }
 
-  code, pre, .font-mono {
-    font-family: var(--font-mono), monospace;
+  html.dark body {
+    background-color: #070709;
+    color: #f4f4f6;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(124, 58, 237, 0.12), transparent 35%),
+      radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.08), transparent 35%),
+      radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   }
-}
-
-/* Hide scrollbars on swipeable mobile tab bars */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Touch-friendly Range Sliders */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  background: rgba(255, 255, 255, 0.1);
-  height: 8px;
-  border-radius: 999px;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #a855f7;
-  cursor: pointer;
-  border: 2px solid #ffffff;
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.7);
-}
-/* Mobile GPU Performance Optimization */
-@media (max-width: 768px) {
-  /* Tone down heavy glassmorphism blurs that cause scroll stutter on phones */
-  .backdrop-blur,
-  .backdrop-blur-sm,
-  .backdrop-blur-md,
-  .backdrop-blur-lg,
-  .backdrop-blur-xl {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background-color: rgba(15, 10, 28, 0.95) !important;
-  }
-
-  /* Prevent giant ambient glow blobs from lagging mobile repaint */
-  .blur-3xl,
-  .blur-2xl {
-    filter: blur(24px) !important;
-    transform: translateZ(0);
-    will-change: transform;
-  }
-}
-/* Global Zero-Lag Theme System */
-html {
-  background-color: #f8fafc; /* Crisp Slate-50 Light Default */
-  color: #0f172a;
-}
-
-html.dark {
-  background-color: #09090b; /* Pure Zinc-950 Dark Mode */
-  color: #f4f4f5;
-}
-
-/* Remove any old heavy background blur circles */
-.bg-glow, .blur-blob {
-  display: none !important;
 }
