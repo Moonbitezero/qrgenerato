@@ -514,7 +514,7 @@ export default function QRStudio() {
   const [qrType, setQrType] = useState<string>('url');
   const [designTab, setDesignTab] = useState<DesignTab>('shapes');
   const [shapeSubTab, setShapeSubTab] = useState<'dots' | 'ring' | 'center'>('dots');
-  const [showFloatingMini, setShowFloatingMini] = useState(false);
+  const [mobileZoomed, setMobileZoomed] = useState(false);
 
   // Basic & Regional Payment Inputs
   const [inputValue, setInputValue] = useState('https://qrgenerato.com');
@@ -615,7 +615,6 @@ export default function QRStudio() {
     'https://qrgenerato.com\nupi://pay?pa=shop@upi&pn=MyStore&cu=INR\nWIFI:T:WPA;S:Cafe_Guest;P:coffee123;;\nhttps://paypal.me/store/25'
   );
 
-  const mobileHeroPreviewRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const scanIntervalRef = useRef<number | null>(null);
   const fileInputLogoRef = useRef<HTMLInputElement>(null);
@@ -636,23 +635,6 @@ export default function QRStudio() {
     window.addEventListener('qr-theme-change', handler);
     return () => window.removeEventListener('qr-theme-change', handler);
   }, []);
-
-  // Show compact floating preview bar on mobile ONLY when user scrolls past the main large QR card
-  useEffect(() => {
-    const el = mobileHeroPreviewRef.current;
-    if (!el || studioMode !== 'create') {
-      setShowFloatingMini(false);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShowFloatingMini(!entry.isIntersecting && entry.boundingClientRect.top < 0);
-      },
-      { threshold: 0.15 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [studioMode]);
 
   const toggleTheme = () => {
     const nextDark = !isDark;
@@ -1307,10 +1289,9 @@ export default function QRStudio() {
     ]
   );
 
-  // Scoped SVG strings so Mobile, Desktop, Sticky Bar, and Export never collide in the DOM
+  // Scoped SVG strings so Mobile, Desktop, and Export never collide in the DOM
   const svgMobile = useMemo(() => getSvgMarkup('mob'), [getSvgMarkup]);
   const svgDesktop = useMemo(() => getSvgMarkup('desk'), [getSvgMarkup]);
-  const svgSticky = useMemo(() => getSvgMarkup('bar'), [getSvgMarkup]);
   const svgExport = useMemo(() => getSvgMarkup('exp'), [getSvgMarkup]);
 
   const handleDownloadPng = () => {
@@ -1618,167 +1599,241 @@ export default function QRStudio() {
           {/* LEFT COLUMN (7 Cols on PC) */}
           <div className="lg:col-span-7 space-y-4">
             
-            {/* FLOATING MINI PREVIEW BAR ON MOBILE (Only appears when scrolling down past the main QR card!) */}
-            {showFloatingMini && (
-              <div className="block lg:hidden fixed top-[64px] left-3 right-3 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div
-                  className={clsx(
-                    'p-2.5 rounded-2xl border backdrop-blur-xl flex items-center justify-between gap-3 shadow-2xl',
-                    isDark ? 'bg-[#111116]/95 border-zinc-700/80 shadow-black/60' : 'bg-white/95 border-slate-300 shadow-slate-400/30'
-                  )}
-                >
-                  <div
-                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                    className="flex items-center gap-2.5 min-w-0 cursor-pointer"
-                  >
+            {/* SMART STICKY MOBILE SPLIT-STAGE DOCK (Stays locked at top while controls scroll underneath!) */}
+            <div className="block lg:hidden sticky top-[62px] z-30">
+              <div
+                className={clsx(
+                  'p-3 sm:p-4 rounded-2xl border backdrop-blur-xl transition-all duration-200 shadow-2xl',
+                  isDark
+                    ? 'bg-[#111116]/95 border-zinc-800/95 shadow-black/80'
+                    : 'bg-white/95 border-slate-200/95 shadow-slate-300/70'
+                )}
+              >
+                {!mobileZoomed ? (
+                  /* COMPACT SPLIT-STAGE MODE (128px QR on Left + Controls on Right) */
+                  <div className="flex items-center gap-3.5">
+                    {/* Left: Clear 128px QR Stage (Tap to Zoom) */}
                     <div
+                      onClick={() => setMobileZoomed(true)}
+                      title="Tap to expand QR"
                       className={clsx(
-                        'w-14 h-14 rounded-xl p-1 flex items-center justify-center border shrink-0 overflow-hidden [&>svg]:w-full [&>svg]:h-full',
+                        'relative w-[128px] h-[128px] sm:w-[140px] sm:h-[140px] rounded-2xl p-2 flex items-center justify-center border shrink-0 overflow-hidden cursor-pointer group [&>svg]:w-full [&>svg]:h-full [&>svg]:drop-shadow-sm',
+                        isDark ? 'bg-zinc-900/95 border-zinc-800' : 'bg-slate-100 border-slate-200'
+                      )}
+                    >
+                      <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svgMobile }} />
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-black/70 text-white backdrop-blur-sm pointer-events-none">
+                        ⤢ Zoom
+                      </span>
+                    </div>
+
+                    {/* Right: Status + Theme Dots + Quick Presets + Download Buttons */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2.5">
+                      {/* Row 1: Live Status + Zoom Toggle */}
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                          <span className="text-[11px] font-extrabold uppercase tracking-wider truncate">
+                            Live QR Preview
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setMobileZoomed(true)}
+                          className={clsx(
+                            'px-2 py-0.5 rounded-md text-[10px] font-bold border cursor-pointer shrink-0',
+                            inactivePillClass
+                          )}
+                        >
+                          Expand ⤢
+                        </button>
+                      </div>
+
+                      {/* Row 2: Instant Color Swatches */}
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5">
+                          {colorThemes.map((t) => (
+                            <button
+                              key={t.name}
+                              type="button"
+                              title={t.name}
+                              onClick={() => {
+                                setFgColor(t.fg);
+                                setGradientColor2(t.g2);
+                                setGradientType('linear');
+                                setFrameColor(t.fg);
+                                setTransparentBg(false);
+                              }}
+                              className={`w-5 h-5 rounded-full bg-gradient-to-br ${t.from} ${t.to} border border-white/40 shadow-sm cursor-pointer active:scale-90 transition-transform`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Row 3: Quick Presets (UPI / Cafe / Cyber) */}
+                      <div className="flex items-center gap-1">
+                        {[
+                          { id: 'classic', label: 'Classic' },
+                          { id: 'upi', label: 'UPI' },
+                          { id: 'cafe', label: 'Cafe' },
+                          { id: 'cyber', label: 'Cyber' },
+                        ].map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => applyQuickPreset(p.id as 'classic' | 'upi' | 'cafe' | 'cyber')}
+                            className={clsx(
+                              'flex-1 py-1 px-1.5 rounded-lg border text-[10px] font-semibold cursor-pointer text-center truncate',
+                              inactivePillClass
+                            )}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Row 4: Action Buttons (PNG + SVG + Copy) */}
+                      <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={handleDownloadPng}
+                          className={clsx(
+                            'col-span-2 flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-[11px] font-bold cursor-pointer shadow-sm',
+                            isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
+                          )}
+                        >
+                          <Download className="w-3.5 h-3.5 shrink-0" /> PNG
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDownloadSvg}
+                          className={clsx(
+                            'col-span-1 py-2 px-1 rounded-xl text-[10px] font-bold border text-center cursor-pointer',
+                            inactivePillClass
+                          )}
+                        >
+                          SVG
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCopyImage}
+                          className={clsx(
+                            'col-span-1 py-2 px-1 rounded-xl text-[10px] font-bold border text-center cursor-pointer',
+                            inactivePillClass
+                          )}
+                        >
+                          {copied ? '✓' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+              ) : (
+                  /* EXPANDED FULL-SIZE MODE (When user taps QR to inspect closer) */
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="w-full flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-xs font-bold uppercase tracking-wider">Full-Size Preview</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMobileZoomed(false)}
+                        className="px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold bg-indigo-600 text-white cursor-pointer"
+                      >
+                        Compact View ⤡
+                      </button>
+                    </div>
+
+                    <div
+                      onClick={() => setMobileZoomed(false)}
+                      className={clsx(
+                        'w-56 h-56 rounded-2xl p-3 flex items-center justify-center border overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
                         isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
                       )}
-                      dangerouslySetInnerHTML={{ __html: svgSticky }}
+                      dangerouslySetInnerHTML={{ __html: svgMobile }}
                     />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-bold truncate">Live Preview</span>
+
+                    {/* RESTORED: Instant Color Swatches for Expanded View */}
+                    <div className="w-full flex items-center justify-between gap-1.5 pt-1">
+                      <div className="flex items-center gap-2">
+                        <span className={clsx('text-[11px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                          Theme:
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {colorThemes.map((t) => (
+                            <button
+                              key={t.name}
+                              type="button"
+                              title={t.name}
+                              onClick={() => {
+                                setFgColor(t.fg);
+                                setGradientColor2(t.g2);
+                                setGradientType('linear');
+                                setFrameColor(t.fg);
+                                setTransparentBg(false);
+                              }}
+                              className={`w-6 h-6 rounded-full bg-gradient-to-br ${t.from} ${t.to} border-2 border-white/30 shadow-sm cursor-pointer active:scale-90 transition-transform`}
+                            />
+                          ))}
+                        </div>
                       </div>
-                      <span className="text-[10px] text-indigo-400 font-semibold">Tap to view full size ↑</span>
+                      
+                      {/* RESTORED: Quick Presets */}
+                      <div className="flex items-center gap-1">
+                        {[
+                          { id: 'upi', label: 'UPI' },
+                          { id: 'cafe', label: 'Cafe' },
+                          { id: 'cyber', label: 'Cyber' },
+                        ].map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => applyQuickPreset(p.id as 'upi' | 'cafe' | 'cyber')}
+                            className={clsx(
+                              'px-2 py-1 rounded-lg border text-[10px] font-semibold cursor-pointer',
+                              inactivePillClass
+                            )}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={handleDownloadPng}
-                      className={clsx(
-                        'flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
-                        isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
-                      )}
-                    >
-                      <Download className="w-3.5 h-3.5" /> PNG
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDownloadSvg}
-                      className={clsx('py-2 px-2.5 rounded-xl text-xs font-bold border cursor-pointer', inactivePillClass)}
-                    >
-                      SVG
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* MOBILE HERO QR PREVIEW CARD (Large, Clean & Centered so QR is never tiny!) */}
-           <div ref={mobileHeroPreviewRef} className="block lg:hidden sticky top-[64px] z-30">
-              <div className={clsx('p-4 sm:p-5 rounded-2xl border flex flex-col items-center space-y-3.5', cardClass)}>
-                {/* Top Status Row */}
-                <div className="w-full flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Live QR Preview</span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                    100% Scannable
-                  </span>
-                </div>
-
-                {/* Large Centered QR Stage (208px x 208px on Mobile) */}
-                <div
-                  className={clsx(
-                    'w-52 h-52 sm:w-60 sm:h-60 rounded-2xl p-3 flex items-center justify-center border overflow-hidden transition-colors [&>svg]:w-full [&>svg]:h-full [&>svg]:drop-shadow-sm',
-                    isDark ? 'bg-zinc-900/90 border-zinc-800' : 'bg-slate-100 border-slate-200/90'
-                  )}
-                  dangerouslySetInnerHTML={{ __html: svgMobile }}
-                />
-
-                {/* Quick Color Theme Swatches + Preset Pills */}
-                <div className="w-full flex items-center justify-between gap-2 pt-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className={clsx('text-[11px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>
-                      Theme:
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {colorThemes.map((t) => (
-                        <button
-                          key={t.name}
-                          type="button"
-                          title={t.name}
-                          onClick={() => {
-                            setFgColor(t.fg);
-                            setGradientColor2(t.g2);
-                            setGradientType('linear');
-                            setFrameColor(t.fg);
-                            setTransparentBg(false);
-                          }}
-                          className={`w-6 h-6 rounded-full bg-gradient-to-br ${t.from} ${t.to} border-2 border-white/30 shadow-sm cursor-pointer active:scale-90 transition-transform`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Mobile Quick Style Presets */}
-                  <div className="flex items-center gap-1">
-                    {[
-                      { id: 'upi', label: 'UPI' },
-                      { id: 'cafe', label: 'Cafe' },
-                      { id: 'cyber', label: 'Cyber' },
-                    ].map((p) => (
+                    <div className="w-full grid grid-cols-4 gap-2 pt-1">
                       <button
-                        key={p.id}
                         type="button"
-                        onClick={() => applyQuickPreset(p.id as 'upi' | 'cafe' | 'cyber')}
+                        onClick={handleDownloadPng}
                         className={clsx(
-                          'px-2 py-1 rounded-lg border text-[10px] font-semibold cursor-pointer',
-                          inactivePillClass
+                          'col-span-2 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
+                          isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
                         )}
                       >
-                        {p.label}
+                        <Download className="w-4 h-4" /> Download PNG
                       </button>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={handleDownloadSvg}
+                        className={clsx('col-span-1 py-2.5 px-2 rounded-xl text-xs font-bold border cursor-pointer', inactivePillClass)}
+                      >
+                        SVG
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCopyImage}
+                        className={clsx('col-span-1 py-2.5 px-2 rounded-xl text-xs font-bold border cursor-pointer', inactivePillClass)}
+                      >
+                        {copied ? '✓' : 'Copy'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                {/* Clean Full-Width Mobile Action Buttons */}
-                <div className="w-full grid grid-cols-4 gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleDownloadPng}
-                    className={clsx(
-                      'col-span-2 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
-                      isDark ? 'bg-white text-zinc-950 hover:bg-zinc-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    )}
-                  >
-                    <Download className="w-4 h-4" /> Download PNG
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDownloadSvg}
-                    className={clsx(
-                      'col-span-1 flex items-center justify-center py-2.5 px-2 rounded-xl text-xs font-bold border cursor-pointer',
-                      inactivePillClass
-                    )}
-                  >
-                    SVG
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCopyImage}
-                    className={clsx(
-                      'col-span-1 flex items-center justify-center py-2.5 px-2 rounded-xl text-xs font-bold border cursor-pointer',
-                      inactivePillClass
-                    )}
-                  >
-                    {copied ? '✓ Copied' : 'Copy'}
-                  </button>
-                </div>
+                )}
               </div>
             </div>
 
             {/* STEP 1: Category + Type + Input Form */}
             <div className={clsx('p-4 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
-              {/* Unified Segmented Category Bar (Removes messy double borders) */}
+              {/* Unified Segmented Category Bar */}
               <div
                 className={clsx(
                   'grid grid-cols-5 gap-1 p-1 rounded-xl border',
@@ -1818,7 +1873,7 @@ export default function QRStudio() {
                 })}
               </div>
 
-              {/* Clean 2-Col Mobile / 4-Col Desktop Grid so QR Type labels never get squished! */}
+              {/* Clean 2-Col Mobile / 4-Col Desktop Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {QR_TYPES.filter((t) => t.category === activeCategory).map((item) => {
                   const Icon = item.icon;
