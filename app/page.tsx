@@ -173,7 +173,7 @@ export default function HomePage() {
             </div>
           </button>
 
-         {/* Center Navigation Pill (Single-line horizontal scroll on mobile) */}
+          {/* Center Navigation Pill */}
           <nav className="w-full sm:w-auto flex items-center gap-1 p-1 rounded-2xl bg-[#09090d] border border-zinc-800/90 overflow-x-auto no-scrollbar">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
@@ -204,118 +204,119 @@ export default function HomePage() {
 
       {/* MAIN BODY */}
       <main className="flex-1">
-        {activeTab === 'studio' ? (
-          <div>
-            <QRStudio />
+        {/* Studio remains mounted in DOM with hidden/block to eliminate light/dark flashes */}
+        <div className={activeTab === 'studio' ? 'block' : 'hidden'}>
+          <QRStudio />
 
-            <section className="max-w-7xl mx-auto px-4 pb-16 pt-2 space-y-6">
-              {/* Simple 3-Step Workflow */}
-              <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-5', cardClass)}>
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 mb-2">
-                      <Sparkles className="w-3.5 h-3.5" /> Simple 3-Step Workflow
-                    </span>
-                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                      How to Create a Custom QR Code in Seconds
-                    </h2>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 className="w-4 h-4" /> No Sign-Up • 100% Permanent
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {steps.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <div key={item.step} className={clsx('p-5 rounded-xl border space-y-2', subCardClass)}>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-500">
-                            Step {item.step}
-                          </span>
-                          <Icon className={`w-4 h-4 ${item.accent}`} />
-                        </div>
-                        <h3 className="text-sm font-bold">{item.title}</h3>
-                        <p className={clsx('text-xs leading-relaxed', mutedText)}>{item.desc}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Popular Use Cases */}
-              <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-5', cardClass)}>
-                <div className="max-w-3xl space-y-1.5">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    <ShieldCheck className="w-3.5 h-3.5" /> Built for Speed &amp; Privacy
+          <section className="max-w-7xl mx-auto px-4 pb-16 pt-2 space-y-6">
+            {/* Simple 3-Step Workflow */}
+            <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-5', cardClass)}>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 mb-2">
+                    <Sparkles className="w-3.5 h-3.5" /> Simple 3-Step Workflow
                   </span>
                   <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                    Why Creators &amp; Businesses Use QR Generato
+                    How to Create a Custom QR Code in Seconds
                   </h2>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {useCases.map((u) => {
-                    const Icon = u.icon;
-                    return (
-                      <div key={u.title} className={clsx('p-4 rounded-xl border space-y-2', subCardClass)}>
-                        <div className="flex items-center justify-between">
-                          <Icon className={`w-5 h-5 ${u.color}`} />
-                          <span
-                            className={clsx(
-                              'text-[10px] font-semibold px-2 py-0.5 rounded-md border',
-                              isDark ? 'bg-zinc-950 border-zinc-800 text-zinc-300' : 'bg-white border-slate-200 text-slate-700'
-                            )}
-                          >
-                            {u.badge}
-                          </span>
-                        </div>
-                        <h3 className="text-sm font-bold pt-1">{u.title}</h3>
-                        <p className={clsx('text-xs leading-relaxed', mutedText)}>{u.desc}</p>
-                      </div>
-                    );
-                  })}
-                </div>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-4 h-4" /> No Sign-Up • 100% Permanent
+                </span>
               </div>
 
-              {/* FAQ Accordion */}
-              <div id="faq" className={clsx('border rounded-2xl p-6 sm:p-8 space-y-4', cardClass)}>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500">
-                    <HelpCircle className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold tracking-tight">Frequently Asked Questions</h2>
-                    <p className={clsx('text-xs', mutedText)}>
-                      Everything you need to know about static QR codes, global payments, and printing.
-                    </p>
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {steps.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.step} className={clsx('p-5 rounded-xl border space-y-2', subCardClass)}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-500">
+                          Step {item.step}
+                        </span>
+                        <Icon className={`w-4 h-4 ${item.accent}`} />
+                      </div>
+                      <h3 className="text-sm font-bold">{item.title}</h3>
+                      <p className={clsx('text-xs leading-relaxed', mutedText)}>{item.desc}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                <div className={clsx('divide-y', isDark ? 'divide-zinc-800/80' : 'divide-slate-200')}>
-                  {faqs.map((item) => (
-                    <details key={item.q} className="group py-3.5">
-                      <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-semibold hover:text-indigo-500 transition-colors">
-                        <span>{item.q}</span>
+            {/* Popular Use Cases */}
+            <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-5', cardClass)}>
+              <div className="max-w-3xl space-y-1.5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Built for Speed &amp; Privacy
+                </span>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                  Why Creators &amp; Businesses Use QR Generato
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {useCases.map((u) => {
+                  const Icon = u.icon;
+                  return (
+                    <div key={u.title} className={clsx('p-4 rounded-xl border space-y-2', subCardClass)}>
+                      <div className="flex items-center justify-between">
+                        <Icon className={`w-5 h-5 ${u.color}`} />
                         <span
                           className={clsx(
-                            'ml-4 text-xs px-2 py-0.5 rounded border group-open:rotate-45 transition-transform',
-                            isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
+                            'text-[10px] font-semibold px-2 py-0.5 rounded-md border',
+                            isDark ? 'bg-zinc-950 border-zinc-800 text-zinc-300' : 'bg-white border-slate-200 text-slate-700'
                           )}
                         >
-                          +
+                          {u.badge}
                         </span>
-                      </summary>
-                      <p className={clsx('mt-2 text-xs sm:text-sm leading-relaxed pr-6', mutedText)}>{item.a}</p>
-                    </details>
-                  ))}
+                      </div>
+                      <h3 className="text-sm font-bold pt-1">{u.title}</h3>
+                      <p className={clsx('text-xs leading-relaxed', mutedText)}>{u.desc}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* FAQ Accordion */}
+            <div id="faq" className={clsx('border rounded-2xl p-6 sm:p-8 space-y-4', cardClass)}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500">
+                  <HelpCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold tracking-tight">Frequently Asked Questions</h2>
+                  <p className={clsx('text-xs', mutedText)}>
+                    Everything you need to know about static QR codes, global payments, and printing.
+                  </p>
                 </div>
               </div>
-            </section>
-          </div>
-        ) : (
-          /* SAME max-w-7xl CONTAINER WIDTH AS STUDIO SO ALIGNMENT NEVER JUMPS */
+
+              <div className={clsx('divide-y', isDark ? 'divide-zinc-800/80' : 'divide-slate-200')}>
+                {faqs.map((item) => (
+                  <details key={item.q} className="group py-3.5">
+                    <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-semibold hover:text-indigo-500 transition-colors">
+                      <span>{item.q}</span>
+                      <span
+                        className={clsx(
+                          'ml-4 text-xs px-2 py-0.5 rounded border group-open:rotate-45 transition-transform',
+                          isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
+                        )}
+                      >
+                        +
+                      </span>
+                    </summary>
+                    <p className={clsx('mt-2 text-xs sm:text-sm leading-relaxed pr-6', mutedText)}>{item.a}</p>
+                  </details>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* OTHER TABS VIEW (About, Privacy, Terms, Contact) */}
+        {activeTab !== 'studio' && (
           <div className="max-w-7xl mx-auto px-4 pt-6 pb-16">
             <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-6', cardClass)}>
               <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4 border-slate-200/80 dark:border-zinc-800/80">

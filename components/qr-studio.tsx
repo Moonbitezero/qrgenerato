@@ -500,7 +500,14 @@ function escapeXml(unsafe: string): string {
 }
 
 export default function QRStudio() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('qr-theme');
+      if (saved) return saved === 'dark';
+      return document.documentElement.classList.contains('dark');
+    }
+    return true;
+  });
   const [studioMode, setStudioMode] = useState<StudioMode>('create');
   const [activeCategory, setActiveCategory] = useState<CategoryId>('links');
   const [qrType, setQrType] = useState<string>('url');

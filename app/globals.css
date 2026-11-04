@@ -5,7 +5,6 @@
 html {
   background-color: #eef2f6;
   color: #0f172a;
-  zoom: 90%;
   overflow-y: scroll; /* Prevents horizontal layout jump when switching tabs */
   transition: background-color 0.15s ease, color 0.15s ease;
 }
