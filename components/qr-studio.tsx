@@ -1,3 +1,4 @@
+// components/qr-studio.tsx
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -513,6 +514,7 @@ export default function QRStudio() {
   const [qrType, setQrType] = useState<string>('url');
   const [designTab, setDesignTab] = useState<DesignTab>('shapes');
   const [shapeSubTab, setShapeSubTab] = useState<'dots' | 'ring' | 'center'>('dots');
+  const [showFloatingMini, setShowFloatingMini] = useState(false);
 
   // Basic & Regional Payment Inputs
   const [inputValue, setInputValue] = useState('https://qrgenerato.com');
@@ -613,6 +615,7 @@ export default function QRStudio() {
     'https://qrgenerato.com\nupi://pay?pa=shop@upi&pn=MyStore&cu=INR\nWIFI:T:WPA;S:Cafe_Guest;P:coffee123;;\nhttps://paypal.me/store/25'
   );
 
+  const mobileHeroPreviewRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const scanIntervalRef = useRef<number | null>(null);
   const fileInputLogoRef = useRef<HTMLInputElement>(null);
@@ -633,6 +636,23 @@ export default function QRStudio() {
     window.addEventListener('qr-theme-change', handler);
     return () => window.removeEventListener('qr-theme-change', handler);
   }, []);
+
+  // Show compact floating preview bar on mobile ONLY when user scrolls past the main large QR card
+  useEffect(() => {
+    const el = mobileHeroPreviewRef.current;
+    if (!el || studioMode !== 'create') {
+      setShowFloatingMini(false);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowFloatingMini(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [studioMode]);
 
   const toggleTheme = () => {
     const nextDark = !isDark;
@@ -809,7 +829,7 @@ export default function QRStudio() {
     }
   }, [payloadString]);
 
-  // 3. Complete Vector SVG Renderer with Scoped Unique IDs (Fixes Mobile + Desktop Duplicate ID Collision!)
+  // 3. Complete Vector SVG Renderer with Scoped Unique IDs
   const getSvgMarkup = useCallback(
     (uid: string) => {
       const count = qrMatrix.length;
@@ -1233,7 +1253,6 @@ export default function QRStudio() {
           </g>
         `;
       } else if (artworkUrl && artPlacement === 'qr-fill') {
-        // Mode 1: Background stays 100% clean white, artwork paints strictly inside the QR dots!
         artDotsOverlay = `
           <g fill="url(#${artPatId})" opacity="${artworkOpacity}">${bodyPaths}</g>
         `;
@@ -1527,7 +1546,7 @@ export default function QRStudio() {
                 type="button"
                 onClick={() => setStudioMode(m.id as StudioMode)}
                 className={clsx(
-                  'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
                   active
                     ? isDark
                       ? 'bg-white text-black shadow-sm'
@@ -1597,30 +1616,89 @@ export default function QRStudio() {
       {studioMode === 'create' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
           {/* LEFT COLUMN (7 Cols on PC) */}
-          <div className="lg:col-span-7 space-y-3.5 sm:space-y-4">
+          <div className="lg:col-span-7 space-y-4">
             
-            {/* MOBILE STICKY COMPACT PREVIEW BAR (Pins to top on mobile so you see live changes while scrolling!) */}
-            <div className="block lg:hidden sticky top-[58px] z-30">
-              <div
-                className={clsx(
-                  'p-3 rounded-2xl border backdrop-blur-md flex items-center justify-between gap-3 shadow-lg',
-                  isDark ? 'bg-[#111116]/95 border-zinc-800' : 'bg-white/95 border-slate-200'
-                )}
-              >
-                <div className="flex items-center gap-3 min-w-0">
+            {/* FLOATING MINI PREVIEW BAR ON MOBILE (Only appears when scrolling down past the main QR card!) */}
+            {showFloatingMini && (
+              <div className="block lg:hidden fixed top-[64px] left-3 right-3 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div
+                  className={clsx(
+                    'p-2.5 rounded-2xl border backdrop-blur-xl flex items-center justify-between gap-3 shadow-2xl',
+                    isDark ? 'bg-[#111116]/95 border-zinc-700/80 shadow-black/60' : 'bg-white/95 border-slate-300 shadow-slate-400/30'
+                  )}
+                >
                   <div
-                    className={clsx(
-                      'w-20 h-20 rounded-xl p-1.5 flex items-center justify-center border shrink-0 overflow-hidden [&>svg]:w-full [&>svg]:h-full',
-                      isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
-                    )}
-                    dangerouslySetInnerHTML={{ __html: svgMobile }}
-                  />
-                  <div className="space-y-1.5 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-xs font-bold truncate">Live QR Preview</span>
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="flex items-center gap-2.5 min-w-0 cursor-pointer"
+                  >
+                    <div
+                      className={clsx(
+                        'w-14 h-14 rounded-xl p-1 flex items-center justify-center border shrink-0 overflow-hidden [&>svg]:w-full [&>svg]:h-full',
+                        isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
+                      )}
+                      dangerouslySetInnerHTML={{ __html: svgSticky }}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-xs font-bold truncate">Live Preview</span>
+                      </div>
+                      <span className="text-[10px] text-indigo-400 font-semibold">Tap to view full size ↑</span>
                     </div>
-                    {/* Mini Color Dots on Mobile */}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleDownloadPng}
+                      className={clsx(
+                        'flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
+                        isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
+                      )}
+                    >
+                      <Download className="w-3.5 h-3.5" /> PNG
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadSvg}
+                      className={clsx('py-2 px-2.5 rounded-xl text-xs font-bold border cursor-pointer', inactivePillClass)}
+                    >
+                      SVG
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MOBILE HERO QR PREVIEW CARD (Large, Clean & Centered so QR is never tiny!) */}
+            <div ref={mobileHeroPreviewRef} className="block lg:hidden">
+              <div className={clsx('p-4 sm:p-5 rounded-2xl border flex flex-col items-center space-y-3.5', cardClass)}>
+                {/* Top Status Row */}
+                <div className="w-full flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Live QR Preview</span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    100% Scannable
+                  </span>
+                </div>
+
+                {/* Large Centered QR Stage (208px x 208px on Mobile) */}
+                <div
+                  className={clsx(
+                    'w-52 h-52 sm:w-60 sm:h-60 rounded-2xl p-3 flex items-center justify-center border overflow-hidden transition-colors [&>svg]:w-full [&>svg]:h-full [&>svg]:drop-shadow-sm',
+                    isDark ? 'bg-zinc-900/90 border-zinc-800' : 'bg-slate-100 border-slate-200/90'
+                  )}
+                  dangerouslySetInnerHTML={{ __html: svgMobile }}
+                />
+
+                {/* Quick Color Theme Swatches + Preset Pills */}
+                <div className="w-full flex items-center justify-between gap-2 pt-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className={clsx('text-[11px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                      Theme:
+                    </span>
                     <div className="flex items-center gap-1.5">
                       {colorThemes.map((t) => (
                         <button
@@ -1634,79 +1712,114 @@ export default function QRStudio() {
                             setFrameColor(t.fg);
                             setTransparentBg(false);
                           }}
-                          className={`w-5 h-5 rounded-full bg-gradient-to-br ${t.from} ${t.to} border border-white/30 shadow-sm cursor-pointer active:scale-90 transition-transform`}
+                          className={`w-6 h-6 rounded-full bg-gradient-to-br ${t.from} ${t.to} border-2 border-white/30 shadow-sm cursor-pointer active:scale-90 transition-transform`}
                         />
                       ))}
                     </div>
                   </div>
+
+                  {/* Mobile Quick Style Presets */}
+                  <div className="flex items-center gap-1">
+                    {[
+                      { id: 'upi', label: 'UPI' },
+                      { id: 'cafe', label: 'Cafe' },
+                      { id: 'cyber', label: 'Cyber' },
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => applyQuickPreset(p.id as 'upi' | 'cafe' | 'cyber')}
+                        className={clsx(
+                          'px-2 py-1 rounded-lg border text-[10px] font-semibold cursor-pointer',
+                          inactivePillClass
+                        )}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Right-side Mobile Action Stack */}
-                <div className="flex flex-col gap-1.5 shrink-0">
+                {/* Clean Full-Width Mobile Action Buttons */}
+                <div className="w-full grid grid-cols-4 gap-2 pt-1">
                   <button
                     type="button"
                     onClick={handleDownloadPng}
                     className={clsx(
-                      'flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
-                      isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
+                      'col-span-2 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
+                      isDark ? 'bg-white text-zinc-950 hover:bg-zinc-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'
                     )}
                   >
-                    <Download className="w-3.5 h-3.5" /> PNG
+                    <Download className="w-4 h-4" /> Download PNG
                   </button>
-                  <div className="grid grid-cols-2 gap-1">
-                    <button
-                      type="button"
-                      onClick={handleDownloadSvg}
-                      className={clsx('py-1.5 px-2 rounded-lg text-[10px] font-bold border text-center cursor-pointer', inactivePillClass)}
-                    >
-                      SVG
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCopyImage}
-                      className={clsx('py-1.5 px-2 rounded-lg text-[10px] font-bold border text-center cursor-pointer', inactivePillClass)}
-                    >
-                      {copied ? '✓' : 'Copy'}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadSvg}
+                    className={clsx(
+                      'col-span-1 flex items-center justify-center py-2.5 px-2 rounded-xl text-xs font-bold border cursor-pointer',
+                      inactivePillClass
+                    )}
+                  >
+                    SVG
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCopyImage}
+                    className={clsx(
+                      'col-span-1 flex items-center justify-center py-2.5 px-2 rounded-xl text-xs font-bold border cursor-pointer',
+                      inactivePillClass
+                    )}
+                  >
+                    {copied ? '✓ Copied' : 'Copy'}
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* STEP 1: Category + Type + Input Form */}
-            <div className={clsx('p-3.5 sm:p-5 rounded-2xl border space-y-3.5', cardClass)}>
-              {/* 5-Column Equal Grid on Mobile so NO Category Tab gets cut off! */}
-              <div className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5 pb-2.5 border-b border-slate-200/80 dark:border-zinc-800/80">
+            <div className={clsx('p-4 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
+              {/* Unified Segmented Category Bar (Removes messy double borders) */}
+              <div
+                className={clsx(
+                  'grid grid-cols-5 gap-1 p-1 rounded-xl border',
+                  isDark ? 'bg-zinc-950/90 border-zinc-800/80' : 'bg-slate-100 border-slate-200/80'
+                )}
+              >
                 {[
                   { id: 'links', label: 'Links', full: 'Links & Basic' },
                   { id: 'payments', label: 'Pay/UPI', full: 'Global & UPI Pay' },
                   { id: 'social', label: 'Social', full: 'Social & Contact' },
                   { id: 'business', label: 'Business', full: 'Business & Menu' },
                   { id: 'access', label: 'WiFi', full: 'WiFi & Access' },
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveCategory(cat.id as CategoryId);
-                      const first = QR_TYPES.find((t) => t.category === cat.id);
-                      if (first) setQrType(first.id);
-                    }}
-                    className={clsx(
-                      'px-1.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer text-center truncate',
-                      activeCategory === cat.id
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                        : inactivePillClass
-                    )}
-                  >
-                    <span className="sm:hidden">{cat.label}</span>
-                    <span className="hidden sm:inline">{cat.full}</span>
-                  </button>
-                ))}
+                ].map((cat) => {
+                  const active = activeCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveCategory(cat.id as CategoryId);
+                        const first = QR_TYPES.find((t) => t.category === cat.id);
+                        if (first) setQrType(first.id);
+                      }}
+                      className={clsx(
+                        'py-2 px-1 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer text-center truncate',
+                        active
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : isDark
+                          ? 'text-zinc-400 hover:text-zinc-200'
+                          : 'text-slate-600 hover:text-slate-900'
+                      )}
+                    >
+                      <span className="sm:hidden">{cat.label}</span>
+                      <span className="hidden sm:inline">{cat.full}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Compact 3-Col Mobile / 4-Col Desktop Pill Grid for QR Types */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
+              {/* Clean 2-Col Mobile / 4-Col Desktop Grid so QR Type labels never get squished! */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {QR_TYPES.filter((t) => t.category === activeCategory).map((item) => {
                   const Icon = item.icon;
                   const active = qrType === item.id;
@@ -1716,11 +1829,11 @@ export default function QRStudio() {
                       type="button"
                       onClick={() => setQrType(item.id)}
                       className={clsx(
-                        'flex items-center gap-1.5 py-2 px-2.5 rounded-xl border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer text-left',
+                        'flex items-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left',
                         active ? activePillClass : inactivePillClass
                       )}
                     >
-                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <Icon className="w-4 h-4 shrink-0" />
                       <span className="truncate">{item.label}</span>
                     </button>
                   );
@@ -1728,7 +1841,7 @@ export default function QRStudio() {
               </div>
 
               {/* Dynamic Input Box */}
-              <div className={clsx('p-3 sm:p-4 rounded-xl border space-y-2.5', subCardClass)}>
+              <div className={clsx('p-3.5 sm:p-4 rounded-xl border space-y-2.5', subCardClass)}>
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                     Enter {QR_TYPES.find((t) => t.id === qrType)?.label} Details
@@ -2019,9 +2132,15 @@ export default function QRStudio() {
               </div>
             </div>
 
-            {/* STEP 2: Organized Customization Card (5 Equal Tabs on Mobile) */}
-            <div className={clsx('p-3.5 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
-              <div className="grid grid-cols-5 gap-1 sm:flex sm:items-center sm:gap-1.5 pb-2.5 border-b border-slate-200/80 dark:border-zinc-800/80">
+            {/* STEP 2: Organized Customization Card */}
+            <div className={clsx('p-4 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
+              {/* Clean Segmented Design Tab Bar */}
+              <div
+                className={clsx(
+                  'grid grid-cols-5 gap-1 p-1 rounded-xl border',
+                  isDark ? 'bg-zinc-950/90 border-zinc-800/80' : 'bg-slate-100 border-slate-200/80'
+                )}
+              >
                 {[
                   { id: 'shapes', label: 'Shapes', full: 'Shape & Eyes', icon: Eye },
                   { id: 'frames', label: 'Frames', full: 'Frames (20)', icon: Frame },
@@ -2037,8 +2156,14 @@ export default function QRStudio() {
                       type="button"
                       onClick={() => setDesignTab(tab.id as DesignTab)}
                       className={clsx(
-                        'flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-1.5 px-1 sm:px-3 rounded-xl text-[10px] sm:text-xs font-semibold border transition-all cursor-pointer truncate',
-                        active ? activePillClass : inactivePillClass
+                        'flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-3 rounded-lg text-[10px] sm:text-xs font-bold transition-all cursor-pointer truncate',
+                        active
+                          ? isDark
+                            ? 'bg-white text-zinc-950 shadow-sm'
+                            : 'bg-indigo-600 text-white shadow-sm'
+                          : isDark
+                          ? 'text-zinc-400 hover:text-zinc-200'
+                          : 'text-slate-600 hover:text-slate-900'
                       )}
                     >
                       <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -2051,8 +2176,8 @@ export default function QRStudio() {
 
               {/* TAB 1: ORGANIZED SHAPES & EYES */}
               {designTab === 'shapes' && (
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="space-y-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5">
                     <div className={clsx('grid grid-cols-3 sm:inline-flex w-full sm:w-auto p-1 rounded-xl border', subCardClass)}>
                       {[
                         { id: 'dots', label: '1. Body Dots' },
@@ -2088,16 +2213,16 @@ export default function QRStudio() {
                     </label>
                   </div>
 
-                  <div className={clsx('p-3 rounded-xl border', subCardClass)}>
+                  <div>
                     {shapeSubTab === 'dots' && (
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                         {BODY_SHAPES.map((s) => (
                           <button
                             key={s.id}
                             type="button"
                             onClick={() => setDotStyle(s.id)}
                             className={clsx(
-                              'py-2 px-2 rounded-lg border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer truncate',
+                              'py-2.5 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer truncate',
                               dotStyle === s.id ? activePillClass : inactivePillClass
                             )}
                           >
@@ -2108,14 +2233,14 @@ export default function QRStudio() {
                     )}
 
                     {shapeSubTab === 'ring' && (
-                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {EYE_BORDER_SHAPES.map((s) => (
                           <button
                             key={s.id}
                             type="button"
                             onClick={() => setFinderShape(s.id)}
                             className={clsx(
-                              'py-2 px-2 rounded-lg border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer truncate',
+                              'py-2.5 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer truncate',
                               finderShape === s.id ? activePillClass : inactivePillClass
                             )}
                           >
@@ -2126,14 +2251,14 @@ export default function QRStudio() {
                     )}
 
                     {shapeSubTab === 'center' && (
-                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 sm:gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 gap-2">
                         {EYE_CENTER_SHAPES.map((s) => (
                           <button
                             key={s.id}
                             type="button"
                             onClick={() => setFinderCenterShape(s.id)}
                             className={clsx(
-                              'py-2 px-1.5 rounded-lg border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer truncate',
+                              'py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer truncate',
                               finderCenterShape === s.id ? activePillClass : inactivePillClass
                             )}
                           >
@@ -2162,7 +2287,7 @@ export default function QRStudio() {
               {/* TAB 2: 20 ILLUSTRATED FRAMES */}
               {designTab === 'frames' && (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[210px] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-1">
                     {FRAME_STYLES.map((f) => (
                       <button
                         key={f.id}
@@ -2172,7 +2297,7 @@ export default function QRStudio() {
                           if (f.defaultText) setFrameText(f.defaultText);
                         }}
                         className={clsx(
-                          'py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left truncate',
+                          'py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left truncate',
                           frameStyle === f.id ? activePillClass : inactivePillClass
                         )}
                       >
@@ -2213,7 +2338,7 @@ export default function QRStudio() {
                         type="button"
                         onClick={() => setGradientType(g.id as 'none' | 'linear' | 'radial')}
                         className={clsx(
-                          'px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
+                          'px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
                           gradientType === g.id ? activePillClass : inactivePillClass
                         )}
                       >
@@ -2298,7 +2423,7 @@ export default function QRStudio() {
                           setCustomLogoUrl(null);
                         }}
                         className={clsx(
-                          'flex flex-col items-center gap-1 p-2 rounded-xl border text-xs font-semibold cursor-pointer',
+                          'flex flex-col items-center gap-1 p-2.5 rounded-xl border text-xs font-semibold cursor-pointer',
                           selectedPresetLogo === l.id && !customLogoUrl ? activePillClass : inactivePillClass
                         )}
                       >
@@ -2350,7 +2475,7 @@ export default function QRStudio() {
                               type="button"
                               onClick={() => setArtPlacement(m.id as ArtPlacement)}
                               className={clsx(
-                                'px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border cursor-pointer text-center',
+                                'px-2.5 py-2 rounded-lg text-[11px] font-semibold border cursor-pointer text-center',
                                 artPlacement === m.id ? activePillClass : inactivePillClass
                               )}
                             >
@@ -2366,7 +2491,7 @@ export default function QRStudio() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[210px] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-1">
                     {ART_PRESETS.map((art) => (
                       <button
                         key={art.id}

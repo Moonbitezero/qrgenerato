@@ -28,15 +28,32 @@ import {
   X,
 } from 'lucide-react';
 
-export type ActiveSiteTab = 'studio' | 'about' | 'privacy' | 'terms' | 'contact';
+export type ActiveSiteTab = 'studio' | 'about' | 'privacy' | 'terms' | 'contact' | 'faq';
 
-export default function HomePage() {
+const VALID_TABS: ActiveSiteTab[] = ['studio', 'about', 'privacy', 'terms', 'contact', 'faq'];
+
+export default function HomePage({ initialTab = 'studio' }: { initialTab?: ActiveSiteTab }) {
   const [isDark, setIsDark] = useState(true);
-  const [activeTab, setActiveTab] = useState<ActiveSiteTab>('studio');
+  const [activeTab, setActiveTab] = useState<ActiveSiteTab>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname === '/faq') return 'faq';
+      const hash = window.location.hash.replace('#', '') as ActiveSiteTab;
+      if (VALID_TABS.includes(hash)) return hash;
+    }
+    return initialTab;
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const [contactSent, setContactSent] = useState(false);
 
   useEffect(() => {
+    // Check URL hash or path on initial load
+    const hash = window.location.hash.replace('#', '') as ActiveSiteTab;
+    if (VALID_TABS.includes(hash)) {
+      setActiveTab(hash);
+    } else if (window.location.pathname === '/faq') {
+      setActiveTab('faq');
+    }
+
     const saved = localStorage.getItem('qr-theme');
     const prefersDark = saved ? saved === 'dark' : true;
     setIsDark(prefersDark);
@@ -47,14 +64,39 @@ export default function HomePage() {
       setIsDark(nextDark);
       document.documentElement.classList.toggle('dark', nextDark);
     };
+
+    const popStateHandler = () => {
+      const currentHash = window.location.hash.replace('#', '') as ActiveSiteTab;
+      if ( window.location.pathname === '/faq') {
+        setActiveTab('faq');
+      } else if (VALID_TABS.includes(currentHash)) {
+        setActiveTab(currentHash);
+      } else {
+        setActiveTab('studio');
+      }
+    };
+
     window.addEventListener('qr-theme-change', themeHandler);
-    return () => window.removeEventListener('qr-theme-change', themeHandler);
+    window.addEventListener('popstate', popStateHandler);
+    return () => {
+      window.removeEventListener('qr-theme-change', themeHandler);
+      window.removeEventListener('popstate', popStateHandler);
+    };
   }, []);
 
   const switchTab = (tab: ActiveSiteTab) => {
     setActiveTab(tab);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Update URL cleanly without triggering a Next.js page reload or flash
+    if (tab === 'studio') {
+      window.history.pushState(null, '', '/');
+    } else if (tab === 'faq') {
+      window.history.pushState(null, '', '/faq');
+    } else {
+      window.history.pushState(null, '', `/#${tab}`);
+    }
   };
 
   const cardClass = isDark
@@ -73,6 +115,7 @@ export default function HomePage() {
     { id: 'privacy', label: 'Privacy Policy' },
     { id: 'terms', label: 'Terms & Conditions' },
     { id: 'contact', label: 'Contact Us' },
+    { id: 'faq', label: 'FAQ' },
   ];
 
   const steps = [
@@ -133,25 +176,65 @@ export default function HomePage() {
   const faqs = [
     {
       q: 'Do QR codes created on QR Generato ever expire?',
-      a: 'No. Every QR code generated here is 100% static. Your URL, payment ID, WiFi password, or vCard is encoded directly into the dots—meaning it works forever with unlimited scans.',
+      a: 'No. Every QR code generated here is 100% static. Your URL, payment ID, WiFi password, or vCard is encoded directly into the dots—meaning it works forever with unlimited scans and zero subscriptions.',
+    },
+    {
+      q: 'Is this a Free QR Code Generator?',
+      a: 'Yes, QR Generato is a 100% free QR code generator. You can create, style, and download high-resolution PNG or SVG files completely free without signing up or paying hidden fees.',
+    },
+    {
+      q: 'What is the difference between a Static QR Code and a Dynamic QR Code?',
+      a: 'A static QR code encodes your data directly into the pixel pattern, meaning it never expires and requires no subscription. Dynamic QR codes route through a tracking server and typically require monthly fees; our studio focuses on reliable, permanent static codes.',
+    },
+    {
+      q: 'Can I use this as an AI QR code generator or custom art generator?',
+      a: 'Yes! Our studio features 16 advanced art presets and custom image placement options that let you blend artwork inside the QR dots or behind the code for a stunning AI-like aesthetic.',
+    },
+    {
+      q: 'Is there a built-in QR Code Scanner?',
+      a: 'Yes. You can switch to the "Scanner" mode at the top of the studio page to scan live codes instantly using your device camera or by uploading a screenshot image.',
+    },
+    {
+      q: 'How do I convert Text to a QR Code?',
+      a: 'Simply select the "Text" type in the studio, type or paste any message, note, or serial number, and your QR code will generate instantly in real-time.',
     },
     {
       q: 'Which countries and payment systems are supported?',
       a: 'We support India Bharat UPI (GPay, PhonePe, Paytm), Europe EPC SEPA IBAN transfers, Global PayPal.me, US/UK CashApp & Venmo, Wise, Revolut, Brazil Pix, Singapore/Thailand PayNow & PromptPay, Stripe, and Crypto wallets.',
     },
     {
-      q: 'How do I put an image inside the QR dots vs. behind the QR code?',
-      a: 'Open the "Art Presets (16)" tab, pick any preset or upload a photo, and choose "1. Art Inside QR Dots (No Background)" to paint only the QR dots on a clean background, or choose "2. Send Behind QR" to place the full image behind the code.',
-    },
-    {
       q: 'Is my data stored on your servers?',
       a: 'Never. QR Generato runs 100% client-side inside your browser. Your links, bank details, and logos never leave your device.',
     },
+    {
+      q: 'Can I use these QR codes for commercial print materials?',
+      a: 'Yes! All downloaded high-resolution 1,400px PNGs and infinite-scale Vector SVGs are 100% free for commercial use on product packaging, flyers, restaurant tables, and billboards.',
+    },
   ];
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.a,
+      },
+    })),
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
-{/* UPPER NAVBAR */}
+      {/* Inject Google FAQ Schema */}
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
+      {/* UPPER NAVBAR */}
       <header className="sticky top-0 z-50 bg-[#121217]/95 backdrop-blur-md border-b border-zinc-800/80 text-zinc-100">
         <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between gap-4">
           <button
@@ -177,7 +260,7 @@ export default function HomePage() {
             </div>
           </button>
 
-          {/* Desktop Navigation Pill */}
+          {/* Desktop Navigation Pill - 100% Instant State Tabs */}
           <nav className="hidden md:flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#09090d] border border-zinc-800/90">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
@@ -310,22 +393,31 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* FAQ Accordion */}
-            <div id="faq" className={clsx('border rounded-2xl p-6 sm:p-8 space-y-4', cardClass)}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500">
-                  <HelpCircle className="w-4 h-4" />
+            {/* FAQ Accordion on Home */}
+            <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-4', cardClass)}>
+              <div className="flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500">
+                    <HelpCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold tracking-tight">Frequently Asked Questions</h2>
+                    <p className={clsx('text-xs', mutedText)}>
+                      Everything you need to know about static QR codes, global payments, and printing.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold tracking-tight">Frequently Asked Questions</h2>
-                  <p className={clsx('text-xs', mutedText)}>
-                    Everything you need to know about static QR codes, global payments, and printing.
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => switchTab('faq')}
+                  className="text-xs font-semibold text-indigo-500 hover:text-indigo-400 cursor-pointer"
+                >
+                  View All FAQs →
+                </button>
               </div>
 
               <div className={clsx('divide-y', isDark ? 'divide-zinc-800/80' : 'divide-slate-200')}>
-                {faqs.map((item) => (
+                {faqs.slice(0, 4).map((item) => (
                   <details key={item.q} className="group py-3.5">
                     <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-semibold hover:text-indigo-500 transition-colors">
                       <span>{item.q}</span>
@@ -346,7 +438,7 @@ export default function HomePage() {
           </section>
         </div>
 
-        {/* OTHER TABS VIEW */}
+        {/* OTHER TABS VIEW (INCLUDING FAQ TAB - ZERO FLASH) */}
         {activeTab !== 'studio' && (
           <div className="max-w-7xl mx-auto px-4 pt-6 pb-16">
             <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-6', cardClass)}>
@@ -518,6 +610,44 @@ export default function HomePage() {
                   </div>
                 </div>
               )}
+
+              {activeTab === 'faq' && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                      <HelpCircle className="w-3.5 h-3.5" /> Help Center
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                      Frequently Asked Questions
+                    </h1>
+                    <p className={clsx('text-sm', mutedText)}>
+                      Everything you need to know about static QR codes, global payment links, custom frames, and print formatting.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {faqs.map((item, idx) => (
+                      <div key={idx} className={clsx('p-5 rounded-xl border space-y-2', subCardClass)}>
+                        <h3 className="text-sm font-bold flex items-center gap-2">
+                          <span className="text-indigo-500">Q{idx + 1}:</span> {item.q}
+                        </h3>
+                        <p className={clsx('text-xs sm:text-sm leading-relaxed pl-5', mutedText)}>{item.a}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-200/80 dark:border-zinc-800/80 text-center space-y-3">
+                    <p className={clsx('text-xs', mutedText)}>Have a question that is not answered here?</p>
+                    <button
+                      type="button"
+                      onClick={() => switchTab('contact')}
+                      className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-xs font-bold bg-purple-600 text-white hover:bg-purple-700 cursor-pointer transition-colors"
+                    >
+                      Contact Support Team
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -565,6 +695,11 @@ export default function HomePage() {
               </h3>
               <ul className="space-y-2.5 text-xs">
                 <li>
+                  <button type="button" onClick={() => switchTab('faq')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
+                    <HelpCircle className="w-3.5 h-3.5 text-amber-500" /> Frequently Asked Questions
+                  </button>
+                </li>
+                <li>
                   <button type="button" onClick={() => switchTab('about')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
                     <Info className="w-3.5 h-3.5 text-indigo-500" /> About Us
                   </button>
@@ -603,6 +738,7 @@ export default function HomePage() {
               <button type="button" onClick={() => switchTab('privacy')} className="hover:text-slate-900 dark:hover:text-zinc-300 cursor-pointer">Privacy</button>
               <button type="button" onClick={() => switchTab('terms')} className="hover:text-slate-900 dark:hover:text-zinc-300 cursor-pointer">Terms</button>
               <button type="button" onClick={() => switchTab('contact')} className="hover:text-slate-900 dark:hover:text-zinc-300 cursor-pointer">Contact</button>
+              <button type="button" onClick={() => switchTab('faq')} className="hover:text-slate-900 dark:hover:text-zinc-300 cursor-pointer">FAQ</button>
             </div>
           </div>
         </div>

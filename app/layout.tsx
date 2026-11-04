@@ -17,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        {/* Adding suppressHydrationWarning directly to the script tag silences the React/Turbopack dev warning */}
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
