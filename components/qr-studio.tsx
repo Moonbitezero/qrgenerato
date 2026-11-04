@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import QRCode from 'qrcode';
 import clsx from 'clsx';
 import {
@@ -40,10 +40,6 @@ import {
   Palette,
   Image as ImageIcon,
   Upload,
-  Trash2,
-  RefreshCw,
-  CheckCircle2,
-  AlertCircle,
   Gift,
   ShoppingBag,
   Coffee,
@@ -509,6 +505,7 @@ export default function QRStudio() {
   const [activeCategory, setActiveCategory] = useState<CategoryId>('links');
   const [qrType, setQrType] = useState<string>('url');
   const [designTab, setDesignTab] = useState<DesignTab>('shapes');
+  const [shapeSubTab, setShapeSubTab] = useState<'dots' | 'ring' | 'center'>('dots');
 
   // Basic & Regional Payment Inputs
   const [inputValue, setInputValue] = useState('https://qrgenerato.com');
@@ -709,7 +706,7 @@ export default function QRStudio() {
     setArtworkUrl(null);
   };
 
-  // 1. Compute Final Payload String (Supports India + Global Payment Standards)
+  // 1. Compute Final Payload String
   const payloadString = useMemo(() => {
     switch (qrType) {
       case 'upi': {
@@ -720,7 +717,6 @@ export default function QRStudio() {
         return `upi://pay?pa=${pa}&pn=${pn}${am}${tn}&cu=INR`;
       }
       case 'sepa': {
-        // Official European EPC SEPA Credit Transfer QR Format
         const amt = sepaAmount.trim() ? `EUR${sepaAmount.trim()}` : '';
         return `BCD\n002\n1\nSCT\n${sepaBic.trim()}\n${sepaName.trim()}\n${sepaIban.replace(/\s+/g, '')}\n${amt}\n\n${sepaRef.trim()}`;
       }
@@ -806,473 +802,493 @@ export default function QRStudio() {
     }
   }, [payloadString]);
 
-  // 3. Complete Vector SVG Renderer
-  const svgPreview = useMemo(() => {
-    const count = qrMatrix.length;
-    const cellSize = 10;
-    const margin = 44;
-    const qrSize = count * cellSize;
+  // 3. Complete Vector SVG Renderer with Scoped Unique IDs (Fixes Mobile + Desktop Duplicate ID Collision!)
+  const getSvgMarkup = useCallback(
+    (uid: string) => {
+      const count = qrMatrix.length;
+      const cellSize = 10;
+      const margin = 36;
+      const qrSize = count * cellSize;
 
-    const needsTopSpace = [
-      'top-tag',
-      'shopping-bag',
-      'cafe-cup',
-      'chef-menu',
-      'gift-box',
-      'smartphone',
-      'review-stars',
-      'wifi-card',
-      'clipboard-pad',
-      'upi-stand',
-    ].includes(frameStyle);
+      const needsTopSpace = [
+        'top-tag',
+        'shopping-bag',
+        'cafe-cup',
+        'chef-menu',
+        'gift-box',
+        'smartphone',
+        'review-stars',
+        'wifi-card',
+        'clipboard-pad',
+        'upi-stand',
+      ].includes(frameStyle);
 
-    const needsBottomSpace = frameStyle !== 'none' && frameStyle !== 'top-tag';
-    const topSpace = needsTopSpace ? 64 : 0;
-    const bottomSpace = needsBottomSpace ? 76 : 0;
+      const needsBottomSpace = frameStyle !== 'none' && frameStyle !== 'top-tag';
+      const topSpace = needsTopSpace ? 56 : 0;
+      const bottomSpace = needsBottomSpace ? 72 : 0;
 
-    const totalW = qrSize + margin * 2;
-    const totalH = qrSize + margin * 2 + topSpace + bottomSpace;
-    const offsetX = margin;
-    const offsetY = margin + topSpace;
+      const totalW = qrSize + margin * 2;
+      const totalH = qrSize + margin * 2 + topSpace + bottomSpace;
+      const offsetX = margin;
+      const offsetY = margin + topSpace;
 
-    const hasCenterBadge =
-      customLogoUrl !== null ||
-      selectedPresetLogo !== 'none' ||
-      (artworkUrl !== null && artPlacement === 'medallion');
+      const linId = `qrLin_${uid}`;
+      const radId = `qrRad_${uid}`;
+      const boundsId = `qrBounds_${uid}`;
+      const artPatId = `qrArtPat_${uid}`;
+      const badgeId = `qrBadge_${uid}`;
 
-    const centerRadiusCells = hasCenterBadge ? Math.floor(count * (logoScale / 2 + 0.04)) : 0;
-    const mid = (count - 1) / 2;
+      const hasCenterBadge =
+        customLogoUrl !== null ||
+        selectedPresetLogo !== 'none' ||
+        (artworkUrl !== null && artPlacement === 'medallion');
 
-    const isFinderZone = (r: number, c: number) =>
-      (r < 7 && c < 7) || (r < 7 && c >= count - 7) || (r >= count - 7 && c < 7);
+      const centerRadiusCells = hasCenterBadge ? Math.floor(count * (logoScale / 2 + 0.04)) : 0;
+      const mid = (count - 1) / 2;
 
-    const isCenterCutout = (r: number, c: number) => {
-      if (!hasCenterBadge) return false;
-      return Math.abs(r - mid) <= centerRadiusCells && Math.abs(c - mid) <= centerRadiusCells;
-    };
+      const isFinderZone = (r: number, c: number) =>
+        (r < 7 && c < 7) || (r < 7 && c >= count - 7) || (r >= count - 7 && c < 7);
 
-    const mainFill =
-      gradientType === 'linear'
-        ? 'url(#qrLinearGrad)'
-        : gradientType === 'radial'
-        ? 'url(#qrRadialGrad)'
-        : fgColor;
+      const isCenterCutout = (r: number, c: number) => {
+        if (!hasCenterBadge) return false;
+        return Math.abs(r - mid) <= centerRadiusCells && Math.abs(c - mid) <= centerRadiusCells;
+      };
 
-    let bodyPaths = '';
-    let contrastHalos = '';
+      const safeFg = fgColor || '#000000';
+      const safeGrad2 = gradientColor2 || safeFg;
 
-    for (let r = 0; r < count; r++) {
-      for (let c = 0; c < count; c++) {
-        if (!qrMatrix[r][c] || isFinderZone(r, c) || isCenterCutout(r, c)) continue;
-        const x = offsetX + c * cellSize;
-        const y = offsetY + r * cellSize;
-        const cx = x + cellSize / 2;
-        const cy = y + cellSize / 2;
+      const mainFill =
+        gradientType === 'linear'
+          ? `url(#${linId})`
+          : gradientType === 'radial'
+          ? `url(#${radId})`
+          : safeFg;
 
-        if (artworkUrl && artPlacement === 'back-halo') {
-          contrastHalos += `<rect x="${x - 1}" y="${y - 1}" width="${cellSize + 2}" height="${cellSize + 2}" rx="2.5" fill="rgba(255,255,255,0.88)" />`;
+      let bodyPaths = '';
+      let contrastHalos = '';
+
+      for (let r = 0; r < count; r++) {
+        for (let c = 0; c < count; c++) {
+          if (!qrMatrix[r][c] || isFinderZone(r, c) || isCenterCutout(r, c)) continue;
+          const x = offsetX + c * cellSize;
+          const y = offsetY + r * cellSize;
+          const cx = x + cellSize / 2;
+          const cy = y + cellSize / 2;
+
+          if (artworkUrl && artPlacement === 'back-halo') {
+            contrastHalos += `<rect x="${x - 0.8}" y="${y - 0.8}" width="${cellSize + 1.6}" height="${cellSize + 1.6}" rx="2.5" fill="#ffffff" fill-opacity="0.9" />`;
+          }
+
+          switch (dotStyle) {
+            case 'dots':
+              bodyPaths += `<circle cx="${cx}" cy="${cy}" r="${cellSize * 0.44}" />`;
+              break;
+            case 'rounded':
+              bodyPaths += `<rect x="${x + 0.5}" y="${y + 0.5}" width="${cellSize - 1}" height="${cellSize - 1}" rx="3" />`;
+              break;
+            case 'extra-round':
+              bodyPaths += `<rect x="${x + 0.4}" y="${y + 0.4}" width="${cellSize - 0.8}" height="${cellSize - 0.8}" rx="4.5" />`;
+              break;
+            case 'classy':
+              bodyPaths += `<path d="M${x},${y + 4} Q${x},${y} ${x + 4},${y} L${x + cellSize},${y} L${x + cellSize},${y + cellSize - 4} Q${x + cellSize},${y + cellSize} ${x + cellSize - 4},${y + cellSize} L${x},${y + cellSize} Z" />`;
+              break;
+            case 'diamond':
+              bodyPaths += `<polygon points="${cx},${y} ${x + cellSize},${cy} ${cx},${y + cellSize} ${x},${cy}" />`;
+              break;
+            case 'star':
+              bodyPaths += `<polygon points="${cx},${y} ${cx + 1.8},${cy - 1.8} ${x + cellSize},${cy} ${cx + 1.8},${cy + 1.8} ${cx},${y + cellSize} ${cx - 1.8},${cy + 1.8} ${x},${cy} ${cx - 1.8},${cy - 1.8}" />`;
+              break;
+            case 'heart':
+              bodyPaths += `<path d="M${cx},${y + cellSize * 0.88} C${x + 1},${cy + 1} ${x},${y + 2.5} ${cx - 2.3},${y + 2} C${cx - 0.5},${y + 1.8} ${cx},${y + 3.2} ${cx},${y + 3.5} C${cx},${y + 3.2} ${cx + 0.5},${y + 1.8} ${cx + 2.3},${y + 2} C${x + cellSize},${y + 2.5} ${x + cellSize - 1},${cy + 1} ${cx},${y + cellSize * 0.88} Z" />`;
+              break;
+            case 'cross':
+              bodyPaths += `<path d="M${x + 3},${y + 0.8} H${x + 7} V${y + 3} H${x + 9.2} V${y + 7} H${x + 7} V${y + 9.2} H${x + 3} V${y + 7} H${x + 0.8} V${y + 3} H${x + 3} Z" />`;
+              break;
+            case 'v-bars':
+              bodyPaths += `<rect x="${x + 1.3}" y="${y}" width="${cellSize - 2.6}" height="${cellSize}" rx="3.2" />`;
+              break;
+            case 'h-bars':
+              bodyPaths += `<rect x="${x}" y="${y + 1.3}" width="${cellSize}" height="${cellSize - 2.6}" rx="3.2" />`;
+              break;
+            default:
+              bodyPaths += `<rect x="${x}" y="${y}" width="${cellSize + 0.25}" height="${cellSize + 0.25}" />`;
+          }
+        }
+      }
+
+      const renderFinderEye = (r0: number, c0: number) => {
+        const x = offsetX + c0 * cellSize;
+        const y = offsetY + r0 * cellSize;
+        const outer = 7 * cellSize;
+        const innerOffset = 2 * cellSize;
+        const inner = 3 * cellSize;
+        const cx = x + outer / 2;
+        const cy = y + outer / 2;
+
+        const borderFill = customEyeColors ? eyeBorderColor : mainFill;
+        const centerFill = customEyeColors ? eyeCenterColor : mainFill;
+
+        let eyeBgPlate = '';
+        if (artworkUrl && (artPlacement === 'back-halo' || artPlacement === 'back-pure')) {
+          eyeBgPlate = `<rect x="${x - 3}" y="${y - 3}" width="${outer + 6}" height="${outer + 6}" rx="12" fill="#ffffff" fill-opacity="0.92" />`;
         }
 
-        switch (dotStyle) {
-          case 'dots':
-            bodyPaths += `<circle cx="${cx}" cy="${cy}" r="${cellSize * 0.44}" />`;
+        const sw = cellSize;
+        const half = sw / 2;
+        const bx = x + half;
+        const by = y + half;
+        const bw = outer - sw;
+        let outerSvg = '';
+
+        switch (finderShape) {
+          case 'circle':
+            outerSvg = `<circle cx="${cx}" cy="${cy}" r="${bw / 2}" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
             break;
           case 'rounded':
-            bodyPaths += `<rect x="${x + 0.5}" y="${y + 0.5}" width="${cellSize - 1}" height="${cellSize - 1}" rx="3" />`;
+            outerSvg = `<rect x="${bx}" y="${by}" width="${bw}" height="${bw}" rx="16" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
             break;
-          case 'extra-round':
-            bodyPaths += `<rect x="${x + 0.4}" y="${y + 0.4}" width="${cellSize - 0.8}" height="${cellSize - 0.8}" rx="4.5" />`;
+          case 'leaf-tl':
+            outerSvg = `<path d="M${bx + 22},${by} H${bx + bw} V${by + bw - 22} Q${bx + bw},${by + bw} ${bx + bw - 22},${by + bw} H${bx} V${by + 22} Q${bx},${by} ${bx + 22},${by} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
             break;
-          case 'classy':
-            bodyPaths += `<path d="M${x},${y + 4} Q${x},${y} ${x + 4},${y} L${x + cellSize},${y} L${x + cellSize},${y + cellSize - 4} Q${x + cellSize},${y + cellSize} ${x + cellSize - 4},${y + cellSize} L${x},${y + cellSize} Z" />`;
+          case 'leaf-tr':
+            outerSvg = `<path d="M${bx},${by} H${bx + bw - 22} Q${bx + bw},${by} ${bx + bw},${by + 22} V${by + bw} H${bx + 22} Q${bx},${by + bw} ${bx},${by + bw - 22} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
             break;
-          case 'diamond':
-            bodyPaths += `<polygon points="${cx},${y} ${x + cellSize},${cy} ${cx},${y + cellSize} ${x},${cy}" />`;
+          case 'leaf-bl':
+            outerSvg = `<path d="M${bx},${by} H${bx + bw} V${by + bw} H${bx + 22} Q${bx},${by + bw} ${bx},${by + bw - 22} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
             break;
-          case 'star':
-            bodyPaths += `<polygon points="${cx},${y} ${cx + 1.8},${cy - 1.8} ${x + cellSize},${cy} ${cx + 1.8},${cy + 1.8} ${cx},${y + cellSize} ${cx - 1.8},${cy + 1.8} ${x},${cy} ${cx - 1.8},${cy - 1.8}" />`;
+          case 'leaf-br':
+            outerSvg = `<path d="M${bx},${by} H${bx + bw} V${by + bw - 22} Q${bx + bw},${by + bw} ${bx + bw - 22},${by + bw} H${bx} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
             break;
-          case 'heart':
-            bodyPaths += `<path d="M${cx},${y + cellSize * 0.88} C${x + 1},${cy + 1} ${x},${y + 2.5} ${cx - 2.3},${y + 2} C${cx - 0.5},${y + 1.8} ${cx},${y + 3.2} ${cx},${y + 3.5} C${cx},${y + 3.2} ${cx + 0.5},${y + 1.8} ${cx + 2.3},${y + 2} C${x + cellSize},${y + 2.5} ${x + cellSize - 1},${cy + 1} ${cx},${y + cellSize * 0.88} Z" />`;
+          case 'cut':
+            outerSvg = `<polygon points="${bx + 12},${by} ${bx + bw - 12},${by} ${bx + bw},${by + 12} ${bx + bw},${by + bw - 12} ${bx + bw - 12},${by + bw} ${bx + 12},${by + bw} ${bx},${by + bw - 12} ${bx},${by + 12}" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
             break;
-          case 'cross':
-            bodyPaths += `<path d="M${x + 3},${y + 0.8} H${x + 7} V${y + 3} H${x + 9.2} V${y + 7} H${x + 7} V${y + 9.2} H${x + 3} V${y + 7} H${x + 0.8} V${y + 3} H${x + 3} Z" />`;
-            break;
-          case 'v-bars':
-            bodyPaths += `<rect x="${x + 1.3}" y="${y}" width="${cellSize - 2.6}" height="${cellSize}" rx="3.2" />`;
-            break;
-          case 'h-bars':
-            bodyPaths += `<rect x="${x}" y="${y + 1.3}" width="${cellSize}" height="${cellSize - 2.6}" rx="3.2" />`;
+          case 'dotted':
+            outerSvg = `<rect x="${bx}" y="${by}" width="${bw}" height="${bw}" rx="10" fill="none" stroke="${borderFill}" stroke-width="${sw}" stroke-dasharray="${cellSize * 0.9} ${cellSize * 0.45}" />`;
             break;
           default:
-            bodyPaths += `<rect x="${x}" y="${y}" width="${cellSize + 0.25}" height="${cellSize + 0.25}" />`;
+            outerSvg = `<rect x="${bx}" y="${by}" width="${bw}" height="${bw}" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
+        }
+
+        const ix = x + innerOffset;
+        const iy = y + innerOffset;
+        let innerSvg = '';
+
+        switch (finderCenterShape) {
+          case 'circle':
+            innerSvg = `<circle cx="${cx}" cy="${cy}" r="${inner / 2}" fill="${centerFill}" />`;
+            break;
+          case 'rounded':
+            innerSvg = `<rect x="${ix}" y="${iy}" width="${inner}" height="${inner}" rx="8" fill="${centerFill}" />`;
+            break;
+          case 'diamond':
+            innerSvg = `<polygon points="${cx},${iy} ${ix + inner},${cy} ${cx},${iy + inner} ${ix},${cy}" fill="${centerFill}" />`;
+            break;
+          case 'star':
+            innerSvg = `<polygon points="${cx},${iy} ${cx + 5},${cy - 5} ${ix + inner},${cy} ${cx + 5},${cy + 5} ${cx},${iy + inner} ${cx - 5},${cy + 5} ${ix},${cy} ${cx - 5},${cy - 5}" fill="${centerFill}" />`;
+            break;
+          case 'cross':
+            innerSvg = `<path d="M${cx - 5},${iy} H${cx + 5} V${cy - 5} H${ix + inner} V${cy + 5} H${cx + 5} V${iy + inner} H${cx - 5} V${cy + 5} H${ix} V${cy - 5} H${cx - 5} Z" fill="${centerFill}" />`;
+            break;
+          case 'leaf':
+            innerSvg = `<path d="M${ix + 12},${iy} H${ix + inner} V${iy + inner - 12} Q${ix + inner},${iy + inner} ${ix + inner - 12},${iy + inner} H${ix} V${iy + 12} Q${ix},${iy} ${ix + 12},${iy} Z" fill="${centerFill}" />`;
+            break;
+          case 'sunburst':
+            innerSvg = `<circle cx="${cx}" cy="${cy}" r="${inner * 0.38}" fill="${centerFill}" /><circle cx="${cx}" cy="${cy}" r="${inner * 0.48}" fill="none" stroke="${centerFill}" stroke-width="3" stroke-dasharray="4 3" />`;
+            break;
+          default:
+            innerSvg = `<rect x="${ix}" y="${iy}" width="${inner}" height="${inner}" fill="${centerFill}" />`;
+        }
+
+        return `${eyeBgPlate}${outerSvg}${innerSvg}`;
+      };
+
+      const bSize = qrSize * logoScale;
+      const bx = offsetX + (qrSize - bSize) / 2;
+      const by = offsetY + (qrSize - bSize) / 2;
+      const badgeRadius = logoShape === 'circle' ? bSize / 2 : logoShape === 'rounded' ? bSize * 0.25 : 4;
+
+      const artPatternDef = artworkUrl
+        ? `<pattern id="${artPatId}" patternUnits="userSpaceOnUse" x="${offsetX}" y="${offsetY}" width="${qrSize}" height="${qrSize}">
+            <image href="${artworkUrl}" xlink:href="${artworkUrl}" x="0" y="0" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid slice" />
+          </pattern>`
+        : '';
+
+      const defs = `
+        <defs>
+          <linearGradient id="${linId}" x1="0" y1="0" x2="${totalW}" y2="${totalH}" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="${safeFg}" />
+            <stop offset="100%" stop-color="${safeGrad2}" />
+          </linearGradient>
+          <radialGradient id="${radId}" cx="${totalW / 2}" cy="${totalH / 2}" r="${totalW * 0.6}" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="${safeGrad2}" />
+            <stop offset="100%" stop-color="${safeFg}" />
+          </radialGradient>
+          <clipPath id="${boundsId}">
+            <rect x="${offsetX - 8}" y="${offsetY - 8}" width="${qrSize + 16}" height="${qrSize + 16}" rx="18" />
+          </clipPath>
+          <clipPath id="${badgeId}">
+            <rect x="${bx}" y="${by}" width="${bSize}" height="${bSize}" rx="${badgeRadius}" />
+          </clipPath>
+          ${artPatternDef}
+        </defs>
+      `;
+
+      let bgSvg = '';
+      let frameSvg = '';
+      const safeLabel = escapeXml(frameText || 'SCAN ME');
+      const midX = totalW / 2;
+
+      if (!transparentBg) {
+        if (frameStyle === 'ticket-stub') {
+          bgSvg = `
+            <rect x="6" y="6" width="${totalW - 12}" height="${totalH - 12}" rx="24" fill="${bgColor}" stroke="${frameColor}" stroke-width="6" />
+            <circle cx="6" cy="${totalH - 76}" r="16" fill="#09090b" />
+            <circle cx="${totalW - 6}" cy="${totalH - 76}" r="16" fill="#09090b" />
+            <line x1="26" y1="${totalH - 76}" x2="${totalW - 26}" y2="${totalH - 76}" stroke="${frameColor}" stroke-width="3" stroke-dasharray="8 6" />
+          `;
+        } else if (frameStyle === 'coupon-cut') {
+          bgSvg = `<rect x="8" y="8" width="${totalW - 16}" height="${totalH - 16}" rx="24" fill="${bgColor}" stroke="${frameColor}" stroke-width="5" stroke-dasharray="14 8" />`;
+        } else if (frameStyle === 'smartphone') {
+          bgSvg = `
+            <rect x="8" y="6" width="${totalW - 16}" height="${totalH - 12}" rx="42" fill="${bgColor}" stroke="${frameColor}" stroke-width="10" />
+            <rect x="${midX - 45}" y="18" width="90" height="14" rx="7" fill="${frameColor}" />
+            <rect x="${midX - 50}" y="${totalH - 22}" width="100" height="6" rx="3" fill="${frameColor}" opacity="0.5" />
+          `;
+        } else if (frameStyle === 'polaroid') {
+          bgSvg = `
+            <rect x="6" y="6" width="${totalW - 12}" height="${totalH - 12}" rx="16" fill="${bgColor}" stroke="#cbd5e1" stroke-width="3" />
+            <rect x="22" y="22" width="${totalW - 44}" height="${qrSize + 36}" rx="8" fill="none" stroke="rgba(15,23,42,0.12)" stroke-width="2" />
+          `;
+        } else {
+          bgSvg = `<rect x="4" y="4" width="${totalW - 8}" height="${totalH - 8}" rx="30" fill="${bgColor}" stroke="${
+            frameStyle !== 'none' ? frameColor : 'rgba(148,163,184,0.28)'
+          }" stroke-width="${frameStyle !== 'none' ? 7 : 2}" />`;
         }
       }
-    }
 
-    const renderFinderEye = (r0: number, c0: number) => {
-      const x = offsetX + c0 * cellSize;
-      const y = offsetY + r0 * cellSize;
-      const outer = 7 * cellSize;
-      const innerOffset = 2 * cellSize;
-      const inner = 3 * cellSize;
-      const cx = x + outer / 2;
-      const cy = y + outer / 2;
-
-      const borderFill = customEyeColors ? eyeBorderColor : mainFill;
-      const centerFill = customEyeColors ? eyeCenterColor : mainFill;
-
-      let eyeBgPlate = '';
-      if (artworkUrl && artPlacement === 'back-halo') {
-        eyeBgPlate = `<rect x="${x - 4}" y="${y - 4}" width="${outer + 8}" height="${outer + 8}" rx="12" fill="rgba(255,255,255,0.9)" />`;
+      switch (frameStyle) {
+        case 'pill':
+          frameSvg = `
+            <rect x="${totalW * 0.16}" y="${totalH - 62}" width="${totalW * 0.68}" height="44" rx="22" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 35}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="16" letter-spacing="1.5">${safeLabel}</text>
+          `;
+          break;
+        case 'top-tag':
+          frameSvg = `
+            <rect x="${totalW * 0.16}" y="18" width="${totalW * 0.68}" height="40" rx="20" fill="${frameColor}" />
+            <text x="${midX}" y="43" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1.2">${safeLabel}</text>
+          `;
+          break;
+        case 'shopping-bag':
+          frameSvg = `
+            <path d="M${midX - 42},54 C${midX - 42},10 ${midX + 42},10 ${midX + 42},54" fill="none" stroke="${frameColor}" stroke-width="8" stroke-linecap="round" />
+            <circle cx="${midX - 42}" cy="56" r="6" fill="${frameColor}" />
+            <circle cx="${midX + 42}" cy="56" r="6" fill="${frameColor}" />
+            <rect x="20" y="${totalH - 68}" width="${totalW - 40}" height="50" rx="14" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
+            <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.88)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">🛍️ OFFICIAL STORE CATALOG</text>
+          `;
+          break;
+        case 'upi-stand':
+          frameSvg = `
+            <rect x="${midX - 70}" y="16" width="46" height="8" rx="4" fill="#f97316" />
+            <rect x="${midX - 22}" y="16" width="44" height="8" rx="4" fill="#cbd5e1" />
+            <rect x="${midX + 24}" y="16" width="46" height="8" rx="4" fill="#16a34a" />
+            <text x="${midX}" y="44" text-anchor="middle" fill="${frameColor}" font-family="system-ui, sans-serif" font-weight="900" font-size="14" letter-spacing="2">INSTANT QR PAY</text>
+            <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="16" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1.2">${safeLabel}</text>
+            <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-family="system-ui, sans-serif" font-weight="700" font-size="10" letter-spacing="1">BHIM • GPay • PhonePe • Paytm</text>
+          `;
+          break;
+        case 'cafe-cup':
+          frameSvg = `
+            <g transform="translate(${midX - 22}, 14)">
+              <circle cx="22" cy="22" r="22" fill="${frameColor}" />
+              <path d="M13 18 H29 V26 C29 30 25 33 21 33 C17 33 13 30 13 26 Z" fill="#ffffff" />
+              <path d="M29 20 H32 C33.5 20 34.5 21 34.5 22.5 C34.5 24 33.5 25 32 25 H29" fill="none" stroke="#ffffff" stroke-width="2" />
+            </g>
+            <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="16" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
+            <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.88)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">☕ FRESH DIGITAL TABLE MENU</text>
+          `;
+          break;
+        case 'chef-menu':
+          frameSvg = `
+            <g transform="translate(${midX - 22}, 14)">
+              <circle cx="22" cy="22" r="22" fill="${frameColor}" />
+              <path d="M14 28 H30 V31 H14 Z M15 26 V20 C13 19 13 15 16 14 C17 11 21 10 22 10 C23 10 27 11 28 14 C31 15 31 19 29 20 V26 Z" fill="#ffffff" />
+            </g>
+            <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="16" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
+            <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.88)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">🍽️ SCAN FOR FULL RESTAURANT MENU</text>
+          `;
+          break;
+        case 'scooter-delivery':
+          frameSvg = `
+            <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="25" fill="${frameColor}" />
+            <circle cx="46" cy="${totalH - 43}" r="18" fill="#ffffff" />
+            <text x="46" y="${totalH - 37}" text-anchor="middle" font-size="18">🛵</text>
+            <text x="${midX + 14}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1">${safeLabel}</text>
+            <text x="${midX + 14}" y="${totalH - 26}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">FAST EXPRESS HOME DELIVERY</text>
+          `;
+          break;
+        case 'gift-box':
+          frameSvg = `
+            <path d="M${midX},12 C${midX - 35},0 ${midX - 45},38 ${midX},34 C${midX + 45},38 ${midX + 35},0 ${midX},12 Z" fill="${frameColor}" />
+            <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="16" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
+            <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.88)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">🎁 SPECIAL GIFT &amp; REWARD INSIDE</text>
+          `;
+          break;
+        case 'chat-bubble':
+          frameSvg = `
+            <polygon points="${midX - 24},${totalH - 68} ${midX + 24},${totalH - 68} ${midX},${totalH - 42}" fill="${frameColor}" />
+            <rect x="22" y="${totalH - 68}" width="${totalW - 44}" height="46" rx="23" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 40}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">💬 ${safeLabel}</text>
+          `;
+          break;
+        case 'polaroid':
+          frameSvg = `
+            <text x="${midX}" y="${totalH - 32}" text-anchor="middle" fill="${frameColor}" font-family="system-ui, sans-serif" font-weight="800" font-size="18" letter-spacing="2">📸 ${safeLabel}</text>
+          `;
+          break;
+        case 'smartphone':
+          frameSvg = `
+            <rect x="28" y="${totalH - 68}" width="${totalW - 56}" height="38" rx="19" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 44}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="13" letter-spacing="1.2">📱 ${safeLabel}</text>
+          `;
+          break;
+        case 'ticket-stub':
+          frameSvg = `
+            <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="${frameColor}" font-family="system-ui, sans-serif" font-weight="900" font-size="15" letter-spacing="2">🎟️ ${safeLabel}</text>
+            <text x="${midX}" y="${totalH - 22}" text-anchor="middle" fill="#64748b" font-family="monospace" font-weight="700" font-size="11">VIP PASS • #2026-PRO</text>
+          `;
+          break;
+        case 'review-stars':
+          frameSvg = `
+            <text x="${midX}" y="42" text-anchor="middle" font-size="22" letter-spacing="4">⭐⭐⭐⭐⭐</text>
+            <rect x="20" y="${totalH - 66}" width="${totalW - 40}" height="46" rx="14" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
+          `;
+          break;
+        case 'wifi-card':
+          frameSvg = `
+            <text x="${midX}" y="42" text-anchor="middle" fill="${frameColor}" font-family="system-ui, sans-serif" font-weight="900" font-size="16" letter-spacing="2">📶 FREE GUEST WIFI</text>
+            <rect x="20" y="${totalH - 66}" width="${totalW - 40}" height="46" rx="14" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1.2">${safeLabel}</text>
+          `;
+          break;
+        case 'coupon-cut':
+          frameSvg = `
+            <rect x="22" y="${totalH - 66}" width="${totalW - 44}" height="46" rx="12" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.5">✂️ ${safeLabel}</text>
+          `;
+          break;
+        case 'neon-cyber':
+          frameSvg = `
+            <path d="M18,52 V18 H52 M${totalW - 52},18 H${totalW - 18} V52 M18,${totalH - 82} V${totalH - 116} M${totalW - 18},${totalH - 82} V${totalH - 116}" fill="none" stroke="${frameColor}" stroke-width="6" stroke-linecap="square" />
+            <polygon points="28,${totalH - 66} ${totalW - 18},${totalH - 66} ${totalW - 28},${totalH - 20} 18,${totalH - 20}" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="monospace" font-weight="900" font-size="15" letter-spacing="2">⚡ ${safeLabel}</text>
+          `;
+          break;
+        case 'clipboard-pad':
+          frameSvg = `
+            <rect x="${midX - 50}" y="10" width="100" height="32" rx="10" fill="${frameColor}" />
+            <circle cx="${midX}" cy="26" r="6" fill="#ffffff" />
+            <rect x="20" y="${totalH - 66}" width="${totalW - 40}" height="46" rx="14" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1.2">📋 ${safeLabel}</text>
+          `;
+          break;
+        case 'royal-ornate':
+          frameSvg = `
+            <rect x="12" y="12" width="${totalW - 24}" height="${totalH - 24}" rx="22" fill="none" stroke="${frameColor}" stroke-width="2" stroke-dasharray="6 4" />
+            <rect x="22" y="${totalH - 66}" width="${totalW - 44}" height="46" rx="23" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="serif" font-weight="800" font-size="15" letter-spacing="2">👑 ${safeLabel}</text>
+          `;
+          break;
+        case 'banner':
+          frameSvg = `
+            <rect x="18" y="${totalH - 66}" width="${totalW - 36}" height="48" rx="14" fill="${frameColor}" />
+            <text x="${midX}" y="${totalH - 37}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.5">${safeLabel}</text>
+          `;
+          break;
       }
 
-      const sw = cellSize;
-      const half = sw / 2;
-      const bx = x + half;
-      const by = y + half;
-      const bw = outer - sw;
-      let outerSvg = '';
+      let artBackLayer = '';
+      let artDotsOverlay = '';
 
-      switch (finderShape) {
-        case 'circle':
-          outerSvg = `<circle cx="${cx}" cy="${cy}" r="${bw / 2}" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-          break;
-        case 'rounded':
-          outerSvg = `<rect x="${bx}" y="${by}" width="${bw}" height="${bw}" rx="16" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-          break;
-        case 'leaf-tl':
-          outerSvg = `<path d="M${bx + 22},${by} H${bx + bw} V${by + bw - 22} Q${bx + bw},${by + bw} ${bx + bw - 22},${by + bw} H${bx} V${by + 22} Q${bx},${by} ${bx + 22},${by} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-          break;
-        case 'leaf-tr':
-          outerSvg = `<path d="M${bx},${by} H${bx + bw - 22} Q${bx + bw},${by} ${bx + bw},${by + 22} V${by + bw} H${bx + 22} Q${bx},${by + bw} ${bx},${by + bw - 22} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-          break;
-        case 'leaf-bl':
-          outerSvg = `<path d="M${bx},${by} H${bx + bw} V${by + bw} H${bx + 22} Q${bx},${by + bw} ${bx},${by + bw - 22} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-          break;
-        case 'leaf-br':
-          outerSvg = `<path d="M${bx},${by} H${bx + bw} V${by + bw - 22} Q${bx + bw},${by + bw} ${bx + bw - 22},${by + bw} H${bx} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-          break;
-        case 'cut':
-          outerSvg = `<polygon points="${bx + 12},${by} ${bx + bw - 12},${by} ${bx + bw},${by + 12} ${bx + bw},${by + bw - 12} ${bx + bw - 12},${by + bw} ${bx + 12},${by + bw} ${bx},${by + bw - 12} ${bx},${by + 12}" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-          break;
-        case 'dotted':
-          outerSvg = `<rect x="${bx}" y="${by}" width="${bw}" height="${bw}" rx="10" fill="none" stroke="${borderFill}" stroke-width="${sw}" stroke-dasharray="${cellSize * 0.9} ${cellSize * 0.45}" />`;
-          break;
-        default:
-          outerSvg = `<rect x="${bx}" y="${by}" width="${bw}" height="${bw}" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-      }
-
-      const ix = x + innerOffset;
-      const iy = y + innerOffset;
-      let innerSvg = '';
-
-      switch (finderCenterShape) {
-        case 'circle':
-          innerSvg = `<circle cx="${cx}" cy="${cy}" r="${inner / 2}" fill="${centerFill}" />`;
-          break;
-        case 'rounded':
-          innerSvg = `<rect x="${ix}" y="${iy}" width="${inner}" height="${inner}" rx="8" fill="${centerFill}" />`;
-          break;
-        case 'diamond':
-          innerSvg = `<polygon points="${cx},${iy} ${ix + inner},${cy} ${cx},${iy + inner} ${ix},${cy}" fill="${centerFill}" />`;
-          break;
-        case 'star':
-          innerSvg = `<polygon points="${cx},${iy} ${cx + 5},${cy - 5} ${ix + inner},${cy} ${cx + 5},${cy + 5} ${cx},${iy + inner} ${cx - 5},${cy + 5} ${ix},${cy} ${cx - 5},${cy - 5}" fill="${centerFill}" />`;
-          break;
-        case 'cross':
-          innerSvg = `<path d="M${cx - 5},${iy} H${cx + 5} V${cy - 5} H${ix + inner} V${cy + 5} H${cx + 5} V${iy + inner} H${cx - 5} V${cy + 5} H${ix} V${cy - 5} H${cx - 5} Z" fill="${centerFill}" />`;
-          break;
-        case 'leaf':
-          innerSvg = `<path d="M${ix + 12},${iy} H${ix + inner} V${iy + inner - 12} Q${ix + inner},${iy + inner} ${ix + inner - 12},${iy + inner} H${ix} V${iy + 12} Q${ix},${iy} ${ix + 12},${iy} Z" fill="${centerFill}" />`;
-          break;
-        case 'sunburst':
-          innerSvg = `<circle cx="${cx}" cy="${cy}" r="${inner * 0.38}" fill="${centerFill}" /><circle cx="${cx}" cy="${cy}" r="${inner * 0.48}" fill="none" stroke="${centerFill}" stroke-width="3" stroke-dasharray="4 3" />`;
-          break;
-        default:
-          innerSvg = `<rect x="${ix}" y="${iy}" width="${inner}" height="${inner}" fill="${centerFill}" />`;
-      }
-
-      return `${eyeBgPlate}${outerSvg}${innerSvg}`;
-    };
-
-    const bSize = qrSize * logoScale;
-    const bx = offsetX + (qrSize - bSize) / 2;
-    const by = offsetY + (qrSize - bSize) / 2;
-    const badgeRadius = logoShape === 'circle' ? bSize / 2 : logoShape === 'rounded' ? bSize * 0.25 : 4;
-
-    const artPatternDef = artworkUrl
-      ? `<pattern id="qrArtPattern" patternUnits="userSpaceOnUse" x="${offsetX}" y="${offsetY}" width="${qrSize}" height="${qrSize}">
-          <image href="${artworkUrl}" xlink:href="${artworkUrl}" x="0" y="0" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid slice" />
-        </pattern>`
-      : '';
-
-    const defs = `
-      <defs>
-        <linearGradient id="qrLinearGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${fgColor}" />
-          <stop offset="100%" stop-color="${gradientColor2}" />
-        </linearGradient>
-        <radialGradient id="qrRadialGrad" cx="50%" cy="50%" r="60%">
-          <stop offset="0%" stop-color="${gradientColor2}" />
-          <stop offset="100%" stop-color="${fgColor}" />
-        </radialGradient>
-        <clipPath id="qrSquareBounds">
-          <rect x="${offsetX - 8}" y="${offsetY - 8}" width="${qrSize + 16}" height="${qrSize + 16}" rx="18" />
-        </clipPath>
-        <clipPath id="badgeClip">
-          <rect x="${bx}" y="${by}" width="${bSize}" height="${bSize}" rx="${badgeRadius}" />
-        </clipPath>
-        ${artPatternDef}
-      </defs>
-    `;
-
-    let bgSvg = '';
-    let frameSvg = '';
-    const safeLabel = escapeXml(frameText || 'SCAN ME');
-    const midX = totalW / 2;
-
-    if (!transparentBg) {
-      if (frameStyle === 'ticket-stub') {
-        bgSvg = `
-          <rect x="6" y="6" width="${totalW - 12}" height="${totalH - 12}" rx="24" fill="${bgColor}" stroke="${frameColor}" stroke-width="6" />
-          <circle cx="6" cy="${totalH - 76}" r="16" fill="#09090b" />
-          <circle cx="${totalW - 6}" cy="${totalH - 76}" r="16" fill="#09090b" />
-          <line x1="26" y1="${totalH - 76}" x2="${totalW - 26}" y2="${totalH - 76}" stroke="${frameColor}" stroke-width="3" stroke-dasharray="8 6" />
-        `;
-      } else if (frameStyle === 'coupon-cut') {
-        bgSvg = `<rect x="8" y="8" width="${totalW - 16}" height="${totalH - 16}" rx="24" fill="${bgColor}" stroke="${frameColor}" stroke-width="5" stroke-dasharray="14 8" />`;
-      } else if (frameStyle === 'smartphone') {
-        bgSvg = `
-          <rect x="8" y="6" width="${totalW - 16}" height="${totalH - 12}" rx="42" fill="${bgColor}" stroke="${frameColor}" stroke-width="10" />
-          <rect x="${midX - 45}" y="18" width="90" height="14" rx="7" fill="${frameColor}" />
-          <rect x="${midX - 50}" y="${totalH - 22}" width="100" height="6" rx="3" fill="${frameColor}" opacity="0.5" />
-        `;
-      } else if (frameStyle === 'polaroid') {
-        bgSvg = `
-          <rect x="6" y="6" width="${totalW - 12}" height="${totalH - 12}" rx="16" fill="${bgColor}" stroke="#cbd5e1" stroke-width="3" />
-          <rect x="22" y="22" width="${totalW - 44}" height="${qrSize + 36}" rx="8" fill="none" stroke="rgba(15,23,42,0.12)" stroke-width="2" />
-        `;
-      } else {
-        bgSvg = `<rect x="4" y="4" width="${totalW - 8}" height="${totalH - 8}" rx="30" fill="${bgColor}" stroke="${
-          frameStyle !== 'none' ? frameColor : 'rgba(148,163,184,0.28)'
-        }" stroke-width="${frameStyle !== 'none' ? 7 : 2}" />`;
-      }
-    }
-
-    switch (frameStyle) {
-      case 'pill':
-        frameSvg = `
-          <rect x="${totalW * 0.16}" y="${totalH - 62}" width="${totalW * 0.68}" height="44" rx="22" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 35}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="16" letter-spacing="1.5">${safeLabel}</text>
-        `;
-        break;
-      case 'top-tag':
-        frameSvg = `
-          <rect x="${totalW * 0.16}" y="18" width="${totalW * 0.68}" height="40" rx="20" fill="${frameColor}" />
-          <text x="${midX}" y="43" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1.2">${safeLabel}</text>
-        `;
-        break;
-      case 'shopping-bag':
-        frameSvg = `
-          <path d="M${midX - 42},54 C${midX - 42},10 ${midX + 42},10 ${midX + 42},54" fill="none" stroke="${frameColor}" stroke-width="8" stroke-linecap="round" />
-          <circle cx="${midX - 42}" cy="56" r="6" fill="${frameColor}" />
-          <circle cx="${midX + 42}" cy="56" r="6" fill="${frameColor}" />
-          <rect x="20" y="${totalH - 68}" width="${totalW - 40}" height="50" rx="14" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
-          <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.88)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">🛍️ OFFICIAL STORE CATALOG</text>
-        `;
-        break;
-      case 'upi-stand':
-        frameSvg = `
-          <rect x="${midX - 70}" y="16" width="46" height="8" rx="4" fill="#f97316" />
-          <rect x="${midX - 22}" y="16" width="44" height="8" rx="4" fill="#cbd5e1" />
-          <rect x="${midX + 24}" y="16" width="46" height="8" rx="4" fill="#16a34a" />
-          <text x="${midX}" y="44" text-anchor="middle" fill="${frameColor}" font-family="system-ui, sans-serif" font-weight="900" font-size="14" letter-spacing="2">INSTANT QR PAY</text>
-          <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="16" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1.2">${safeLabel}</text>
-          <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-family="system-ui, sans-serif" font-weight="700" font-size="10" letter-spacing="1">BHIM • GPay • PhonePe • Paytm</text>
-        `;
-        break;
-      case 'cafe-cup':
-        frameSvg = `
-          <g transform="translate(${midX - 22}, 14)">
-            <circle cx="22" cy="22" r="22" fill="${frameColor}" />
-            <path d="M13 18 H29 V26 C29 30 25 33 21 33 C17 33 13 30 13 26 Z" fill="#ffffff" />
-            <path d="M29 20 H32 C33.5 20 34.5 21 34.5 22.5 C34.5 24 33.5 25 32 25 H29" fill="none" stroke="#ffffff" stroke-width="2" />
+      if (artworkUrl && (artPlacement === 'back-halo' || artPlacement === 'back-pure')) {
+        artBackLayer = `
+          <g clip-path="url(#${boundsId})">
+            <image href="${artworkUrl}" xlink:href="${artworkUrl}" x="${offsetX - 8}" y="${offsetY - 8}" width="${qrSize + 16}" height="${qrSize + 16}" opacity="${
+              artPlacement === 'back-pure' ? Math.min(0.45, artworkOpacity * 0.55) : artworkOpacity
+            }" preserveAspectRatio="xMidYMid slice" />
           </g>
-          <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="16" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
-          <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.88)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">☕ FRESH DIGITAL TABLE MENU</text>
         `;
-        break;
-      case 'chef-menu':
-        frameSvg = `
-          <g transform="translate(${midX - 22}, 14)">
-            <circle cx="22" cy="22" r="22" fill="${frameColor}" />
-            <path d="M14 28 H30 V31 H14 Z M15 26 V20 C13 19 13 15 16 14 C17 11 21 10 22 10 C23 10 27 11 28 14 C31 15 31 19 29 20 V26 Z" fill="#ffffff" />
-          </g>
-          <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="16" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
-          <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.88)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">🍽️ SCAN FOR FULL RESTAURANT MENU</text>
+      } else if (artworkUrl && artPlacement === 'qr-fill') {
+        // Mode 1: Background stays 100% clean white, artwork paints strictly inside the QR dots!
+        artDotsOverlay = `
+          <g fill="url(#${artPatId})" opacity="${artworkOpacity}">${bodyPaths}</g>
         `;
-        break;
-      case 'scooter-delivery':
-        frameSvg = `
-          <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="25" fill="${frameColor}" />
-          <circle cx="46" cy="${totalH - 43}" r="18" fill="#ffffff" />
-          <text x="46" y="${totalH - 37}" text-anchor="middle" font-size="18">🛵</text>
-          <text x="${midX + 14}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1">${safeLabel}</text>
-          <text x="${midX + 14}" y="${totalH - 26}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">FAST EXPRESS HOME DELIVERY</text>
-        `;
-        break;
-      case 'gift-box':
-        frameSvg = `
-          <path d="M${midX},12 C${midX - 35},0 ${midX - 45},38 ${midX},34 C${midX + 45},38 ${midX + 35},0 ${midX},12 Z" fill="${frameColor}" />
-          <rect x="18" y="${totalH - 68}" width="${totalW - 36}" height="50" rx="16" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
-          <text x="${midX}" y="${totalH - 25}" text-anchor="middle" fill="rgba(255,255,255,0.88)" font-family="system-ui, sans-serif" font-weight="600" font-size="10" letter-spacing="1">🎁 SPECIAL GIFT &amp; REWARD INSIDE</text>
-        `;
-        break;
-      case 'chat-bubble':
-        frameSvg = `
-          <polygon points="${midX - 24},${totalH - 68} ${midX + 24},${totalH - 68} ${midX},${totalH - 42}" fill="${frameColor}" />
-          <rect x="22" y="${totalH - 68}" width="${totalW - 44}" height="46" rx="23" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 40}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">💬 ${safeLabel}</text>
-        `;
-        break;
-      case 'polaroid':
-        frameSvg = `
-          <text x="${midX}" y="${totalH - 32}" text-anchor="middle" fill="${frameColor}" font-family="system-ui, sans-serif" font-weight="800" font-size="18" letter-spacing="2">📸 ${safeLabel}</text>
-        `;
-        break;
-      case 'smartphone':
-        frameSvg = `
-          <rect x="28" y="${totalH - 68}" width="${totalW - 56}" height="38" rx="19" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 44}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="13" letter-spacing="1.2">📱 ${safeLabel}</text>
-        `;
-        break;
-      case 'ticket-stub':
-        frameSvg = `
-          <text x="${midX}" y="${totalH - 42}" text-anchor="middle" fill="${frameColor}" font-family="system-ui, sans-serif" font-weight="900" font-size="15" letter-spacing="2">🎟️ ${safeLabel}</text>
-          <text x="${midX}" y="${totalH - 22}" text-anchor="middle" fill="#64748b" font-family="monospace" font-weight="700" font-size="11">VIP PASS • #2026-PRO</text>
-        `;
-        break;
-      case 'review-stars':
-        frameSvg = `
-          <text x="${midX}" y="42" text-anchor="middle" font-size="22" letter-spacing="4">⭐⭐⭐⭐⭐</text>
-          <rect x="20" y="${totalH - 66}" width="${totalW - 40}" height="46" rx="14" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.2">${safeLabel}</text>
-        `;
-        break;
-      case 'wifi-card':
-        frameSvg = `
-          <text x="${midX}" y="42" text-anchor="middle" fill="${frameColor}" font-family="system-ui, sans-serif" font-weight="900" font-size="16" letter-spacing="2">📶 FREE GUEST WIFI</text>
-          <rect x="20" y="${totalH - 66}" width="${totalW - 40}" height="46" rx="14" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1.2">${safeLabel}</text>
-        `;
-        break;
-      case 'coupon-cut':
-        frameSvg = `
-          <rect x="22" y="${totalH - 66}" width="${totalW - 44}" height="46" rx="12" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.5">✂️ ${safeLabel}</text>
-        `;
-        break;
-      case 'neon-cyber':
-        frameSvg = `
-          <path d="M18,52 V18 H52 M${totalW - 52},18 H${totalW - 18} V52 M18,${totalH - 82} V${totalH - 116} M${totalW - 18},${totalH - 82} V${totalH - 116}" fill="none" stroke="${frameColor}" stroke-width="6" stroke-linecap="square" />
-          <polygon points="28,${totalH - 66} ${totalW - 18},${totalH - 66} ${totalW - 28},${totalH - 20} 18,${totalH - 20}" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="monospace" font-weight="900" font-size="15" letter-spacing="2">⚡ ${safeLabel}</text>
-        `;
-        break;
-      case 'clipboard-pad':
-        frameSvg = `
-          <rect x="${midX - 50}" y="10" width="100" height="32" rx="10" fill="${frameColor}" />
-          <circle cx="${midX}" cy="26" r="6" fill="#ffffff" />
-          <rect x="20" y="${totalH - 66}" width="${totalW - 40}" height="46" rx="14" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="14" letter-spacing="1.2">📋 ${safeLabel}</text>
-        `;
-        break;
-      case 'royal-ornate':
-        frameSvg = `
-          <rect x="12" y="12" width="${totalW - 24}" height="${totalH - 24}" rx="22" fill="none" stroke="${frameColor}" stroke-width="2" stroke-dasharray="6 4" />
-          <rect x="22" y="${totalH - 66}" width="${totalW - 44}" height="46" rx="23" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 38}" text-anchor="middle" fill="#ffffff" font-family="serif" font-weight="800" font-size="15" letter-spacing="2">👑 ${safeLabel}</text>
-        `;
-        break;
-      case 'banner':
-        frameSvg = `
-          <rect x="18" y="${totalH - 66}" width="${totalW - 36}" height="48" rx="14" fill="${frameColor}" />
-          <text x="${midX}" y="${totalH - 37}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="15" letter-spacing="1.5">${safeLabel}</text>
-        `;
-        break;
-    }
+      }
 
-let artBackLayer = '';
-    let artDotsOverlay = '';
-
-    if (artworkUrl && (artPlacement === 'back-halo' || artPlacement === 'back-pure')) {
-      // Modes 2 & 3: Send Image Behind QR Code
-      artBackLayer = `
-        <g clip-path="url(#qrSquareBounds)">
-          <image href="${artworkUrl}" xlink:href="${artworkUrl}" x="${offsetX - 8}" y="${offsetY - 8}" width="${qrSize + 16}" height="${qrSize + 16}" opacity="${artworkOpacity}" preserveAspectRatio="xMidYMid slice" />
-        </g>
-      `;
-    } else if (artworkUrl && artPlacement === 'qr-fill') {
-      // Mode 1: Art ONLY Inside QR Dots (Background stays 100% clean white!)
-      artDotsOverlay = `
-        <g fill="url(#qrArtPattern)" opacity="${artworkOpacity}">${bodyPaths}</g>
-      `;
-    }
-    let centerLogoSvg = '';
-    if (artworkUrl && artPlacement === 'medallion') {
-      centerLogoSvg = `
-        <rect x="${bx - 5}" y="${by - 5}" width="${bSize + 10}" height="${bSize + 10}" rx="${badgeRadius + 3}" fill="#ffffff" stroke="${fgColor}" stroke-width="3" />
-        <image href="${artworkUrl}" xlink:href="${artworkUrl}" x="${bx}" y="${by}" width="${bSize}" height="${bSize}" clip-path="url(#badgeClip)" preserveAspectRatio="xMidYMid slice" />
-      `;
-    } else if (customLogoUrl) {
-      centerLogoSvg = `
-        <rect x="${bx - 5}" y="${by - 5}" width="${bSize + 10}" height="${bSize + 10}" rx="${badgeRadius + 3}" fill="#ffffff" stroke="rgba(15,23,42,0.12)" stroke-width="2" />
-        <image href="${customLogoUrl}" xlink:href="${customLogoUrl}" x="${bx}" y="${by}" width="${bSize}" height="${bSize}" clip-path="url(#badgeClip)" preserveAspectRatio="xMidYMid contain" />
-      `;
-    } else if (selectedPresetLogo !== 'none') {
-      const preset = PRESET_LOGOS.find((p) => p.id === selectedPresetLogo);
-      if (preset) {
+      let centerLogoSvg = '';
+      if (artworkUrl && artPlacement === 'medallion') {
         centerLogoSvg = `
-          <rect x="${bx - 4}" y="${by - 4}" width="${bSize + 8}" height="${bSize + 8}" rx="${badgeRadius + 2}" fill="#ffffff" />
-          <rect x="${bx}" y="${by}" width="${bSize}" height="${bSize}" rx="${badgeRadius}" fill="${preset.bg}" />
-          <text x="${bx + bSize / 2}" y="${by + bSize * 0.66}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="${bSize * 0.52}">${preset.emoji}</text>
+          <rect x="${bx - 5}" y="${by - 5}" width="${bSize + 10}" height="${bSize + 10}" rx="${badgeRadius + 3}" fill="#ffffff" stroke="${safeFg}" stroke-width="3" />
+          <image href="${artworkUrl}" xlink:href="${artworkUrl}" x="${bx}" y="${by}" width="${bSize}" height="${bSize}" clip-path="url(#${badgeId})" preserveAspectRatio="xMidYMid slice" />
         `;
+      } else if (customLogoUrl) {
+        centerLogoSvg = `
+          <rect x="${bx - 5}" y="${by - 5}" width="${bSize + 10}" height="${bSize + 10}" rx="${badgeRadius + 3}" fill="#ffffff" stroke="rgba(15,23,42,0.12)" stroke-width="2" />
+          <image href="${customLogoUrl}" xlink:href="${customLogoUrl}" x="${bx}" y="${by}" width="${bSize}" height="${bSize}" clip-path="url(#${badgeId})" preserveAspectRatio="xMidYMid contain" />
+        `;
+      } else if (selectedPresetLogo !== 'none') {
+        const preset = PRESET_LOGOS.find((p) => p.id === selectedPresetLogo);
+        if (preset) {
+          centerLogoSvg = `
+            <rect x="${bx - 4}" y="${by - 4}" width="${bSize + 8}" height="${bSize + 8}" rx="${badgeRadius + 2}" fill="#ffffff" />
+            <rect x="${bx}" y="${by}" width="${bSize}" height="${bSize}" rx="${badgeRadius}" fill="${preset.bg}" />
+            <text x="${bx + bSize / 2}" y="${by + bSize * 0.66}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="800" font-size="${bSize * 0.52}">${preset.emoji}</text>
+          `;
+        }
       }
-    }
 
-    const eyesSvg =
-      renderFinderEye(0, 0) +
-      renderFinderEye(0, count - 7) +
-      renderFinderEye(count - 7, 0);
+      const eyesSvg =
+        renderFinderEye(0, 0) +
+        renderFinderEye(0, count - 7) +
+        renderFinderEye(count - 7, 0);
 
-return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${totalW} ${totalH}" width="100%" height="100%">
-      ${defs}
-      ${bgSvg}
-      ${artBackLayer}
-      ${contrastHalos}
-      <g fill="${mainFill}">${bodyPaths}</g>
-      ${artDotsOverlay}
-      ${eyesSvg}
-      ${centerLogoSvg}
-      ${frameSvg}
-    </svg>`;
-  }, [
-    qrMatrix, dotStyle, finderShape, finderCenterShape,
-    customEyeColors, eyeBorderColor, eyeCenterColor,
-    frameStyle, frameText, frameColor, fgColor,
-    gradientColor2, gradientType, bgColor, transparentBg,
-    selectedPresetLogo, customLogoUrl, logoScale, logoShape,
-    artworkUrl, artPlacement, artworkOpacity,
-  ]);
+      return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${totalW} ${totalH}" width="100%" height="100%">
+        ${defs}
+        ${bgSvg}
+        ${artBackLayer}
+        ${contrastHalos}
+        <g fill="${mainFill}">${bodyPaths}</g>
+        ${artDotsOverlay}
+        ${eyesSvg}
+        ${centerLogoSvg}
+        ${frameSvg}
+      </svg>`;
+    },
+    [
+      qrMatrix, dotStyle, finderShape, finderCenterShape,
+      customEyeColors, eyeBorderColor, eyeCenterColor,
+      frameStyle, frameText, frameColor, fgColor,
+      gradientColor2, gradientType, bgColor, transparentBg,
+      selectedPresetLogo, customLogoUrl, logoScale, logoShape,
+      artworkUrl, artPlacement, artworkOpacity,
+    ]
+  );
+
+  // Scoped SVG strings so Mobile, Desktop, Sticky Bar, and Export never collide in the DOM
+  const svgMobile = useMemo(() => getSvgMarkup('mob'), [getSvgMarkup]);
+  const svgDesktop = useMemo(() => getSvgMarkup('desk'), [getSvgMarkup]);
+  const svgSticky = useMemo(() => getSvgMarkup('bar'), [getSvgMarkup]);
+  const svgExport = useMemo(() => getSvgMarkup('exp'), [getSvgMarkup]);
 
   const handleDownloadPng = () => {
-    const svgBlob = new Blob([svgPreview], { type: 'image/svg+xml;charset=utf-8' });
+    const svgBlob = new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
     const img = new Image();
     img.onload = () => {
@@ -1294,7 +1310,7 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
   };
 
   const handleDownloadSvg = () => {
-    const blob = new Blob([svgPreview], { type: 'image/svg+xml;charset=utf-8' });
+    const blob = new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1304,7 +1320,7 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
   };
 
   const handleCopyImage = () => {
-    const svgBlob = new Blob([svgPreview], { type: 'image/svg+xml;charset=utf-8' });
+    const svgBlob = new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
     const img = new Image();
     img.onload = () => {
@@ -1473,20 +1489,28 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
     isDark ? 'text-zinc-300' : 'text-slate-700'
   );
 
+  const colorThemes = [
+    { name: 'Royal', fg: '#7c3aed', g2: '#db2777', from: 'from-violet-600', to: 'to-pink-600' },
+    { name: 'Emerald', fg: '#059669', g2: '#10b981', from: 'from-emerald-600', to: 'to-teal-400' },
+    { name: 'Oceanic', fg: '#2563eb', g2: '#06b6d4', from: 'from-blue-600', to: 'to-cyan-400' },
+    { name: 'Sunset', fg: '#e11d48', g2: '#f97316', from: 'from-rose-600', to: 'to-orange-500' },
+    { name: 'Gold', fg: '#b45309', g2: '#eab308', from: 'from-amber-700', to: 'to-yellow-500' },
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 pt-6 pb-8">
-      {/* Top Action & Quick Style Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-2 sm:pt-5 pb-14">
+      {/* Compact Top Bar: Mode Switcher + Quick Actions */}
+      <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
         <div
           className={clsx(
-            'inline-flex items-center p-1.5 rounded-2xl border',
+            'inline-flex items-center p-1 rounded-xl border',
             isDark ? 'bg-[#111116] border-zinc-800/90' : 'bg-white border-slate-200/90 shadow-sm'
           )}
         >
           {[
-            { id: 'create', label: 'Create QR', icon: QrCode },
-            { id: 'scanner', label: 'QR Scanner', icon: Camera },
-            { id: 'batch', label: 'Batch Studio', icon: Layers },
+            { id: 'create', label: 'Create', icon: QrCode },
+            { id: 'scanner', label: 'Scan', icon: Camera },
+            { id: 'batch', label: 'Batch', icon: Layers },
           ].map((m) => {
             const Icon = m.icon;
             const active = studioMode === m.id;
@@ -1496,7 +1520,7 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                 type="button"
                 onClick={() => setStudioMode(m.id as StudioMode)}
                 className={clsx(
-                  'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer',
+                  'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
                   active
                     ? isDark
                       ? 'bg-white text-black shadow-sm'
@@ -1513,22 +1537,19 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
           })}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={clsx('text-xs font-semibold mr-1', isDark ? 'text-zinc-400' : 'text-slate-600')}>
-            Quick Style:
-          </span>
+        <div className="flex items-center gap-1.5">
           {[
-            { id: 'classic', label: 'Classic Clean' },
-            { id: 'upi', label: 'UPI Bharat' },
+            { id: 'classic', label: 'Classic' },
+            { id: 'upi', label: 'UPI Stand' },
             { id: 'cafe', label: 'Cafe Menu' },
-            { id: 'cyber', label: 'Cyber Indigo' },
+            { id: 'cyber', label: 'Cyber' },
           ].map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => applyQuickPreset(p.id as 'classic' | 'upi' | 'cafe' | 'cyber')}
               className={clsx(
-                'px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
+                'hidden md:inline-flex px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer',
                 inactivePillClass
               )}
             >
@@ -1539,45 +1560,122 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
           <button
             type="button"
             onClick={handleResetDesign}
-            title="Reset QR Styling"
+            title="Reset Design"
             className={clsx(
               'flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
               inactivePillClass
             )}
           >
-            <RotateCcw className="w-3.5 h-3.5" /> Reset
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reset</span>
           </button>
 
           <button
             type="button"
             onClick={toggleTheme}
             className={clsx(
-              'flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition-all ml-1 cursor-pointer',
+              'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
               isDark
                 ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
                 : 'bg-slate-900 border-slate-900 text-white hover:bg-slate-800 shadow-sm'
             )}
           >
             {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            {isDark ? 'Light Mode' : 'Dark Mode'}
+            <span>{isDark ? 'Light' : 'Dark'}</span>
           </button>
         </div>
       </div>
 
       {/* MODE 1: CREATE QR STUDIO */}
       {studioMode === 'create' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* LEFT COLUMN (7 Cols) */}
-          <div className="lg:col-span-7 space-y-5">
-            {/* 1. Category & 38+ QR Type Selector Card */}
-            <div className={clsx('p-5 rounded-2xl border space-y-4', cardClass)}>
-              <div className="flex flex-wrap items-center gap-2 border-b pb-3.5 border-slate-200/80 dark:border-zinc-800/80">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
+          {/* LEFT COLUMN (7 Cols on PC) */}
+          <div className="lg:col-span-7 space-y-3.5 sm:space-y-4">
+            
+            {/* MOBILE STICKY COMPACT PREVIEW BAR (Pins to top on mobile so you see live changes while scrolling!) */}
+            <div className="block lg:hidden sticky top-[58px] z-30">
+              <div
+                className={clsx(
+                  'p-3 rounded-2xl border backdrop-blur-md flex items-center justify-between gap-3 shadow-lg',
+                  isDark ? 'bg-[#111116]/95 border-zinc-800' : 'bg-white/95 border-slate-200'
+                )}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={clsx(
+                      'w-20 h-20 rounded-xl p-1.5 flex items-center justify-center border shrink-0 overflow-hidden [&>svg]:w-full [&>svg]:h-full',
+                      isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
+                    )}
+                    dangerouslySetInnerHTML={{ __html: svgMobile }}
+                  />
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs font-bold truncate">Live QR Preview</span>
+                    </div>
+                    {/* Mini Color Dots on Mobile */}
+                    <div className="flex items-center gap-1.5">
+                      {colorThemes.map((t) => (
+                        <button
+                          key={t.name}
+                          type="button"
+                          title={t.name}
+                          onClick={() => {
+                            setFgColor(t.fg);
+                            setGradientColor2(t.g2);
+                            setGradientType('linear');
+                            setFrameColor(t.fg);
+                            setTransparentBg(false);
+                          }}
+                          className={`w-5 h-5 rounded-full bg-gradient-to-br ${t.from} ${t.to} border border-white/30 shadow-sm cursor-pointer active:scale-90 transition-transform`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right-side Mobile Action Stack */}
+                <div className="flex flex-col gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDownloadPng}
+                    className={clsx(
+                      'flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
+                      isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
+                    )}
+                  >
+                    <Download className="w-3.5 h-3.5" /> PNG
+                  </button>
+                  <div className="grid grid-cols-2 gap-1">
+                    <button
+                      type="button"
+                      onClick={handleDownloadSvg}
+                      className={clsx('py-1.5 px-2 rounded-lg text-[10px] font-bold border text-center cursor-pointer', inactivePillClass)}
+                    >
+                      SVG
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCopyImage}
+                      className={clsx('py-1.5 px-2 rounded-lg text-[10px] font-bold border text-center cursor-pointer', inactivePillClass)}
+                    >
+                      {copied ? '✓' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* STEP 1: Category + Type + Input Form */}
+            <div className={clsx('p-3.5 sm:p-5 rounded-2xl border space-y-3.5', cardClass)}>
+              {/* 5-Column Equal Grid on Mobile so NO Category Tab gets cut off! */}
+              <div className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5 pb-2.5 border-b border-slate-200/80 dark:border-zinc-800/80">
                 {[
-                  { id: 'links', label: 'Links & Basic' },
-                  { id: 'payments', label: 'Global & UPI Payments' },
-                  { id: 'social', label: 'Contact & Social' },
-                  { id: 'business', label: 'Business & Media' },
-                  { id: 'access', label: 'WiFi & Access' },
+                  { id: 'links', label: 'Links', full: 'Links & Basic' },
+                  { id: 'payments', label: 'Pay/UPI', full: 'Global & UPI Pay' },
+                  { id: 'social', label: 'Social', full: 'Social & Contact' },
+                  { id: 'business', label: 'Business', full: 'Business & Menu' },
+                  { id: 'access', label: 'WiFi', full: 'WiFi & Access' },
                 ].map((cat) => (
                   <button
                     key={cat.id}
@@ -1588,18 +1686,20 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                       if (first) setQrType(first.id);
                     }}
                     className={clsx(
-                      'px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer',
+                      'px-1.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer text-center truncate',
                       activeCategory === cat.id
                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                         : inactivePillClass
                     )}
                   >
-                    {cat.label}
+                    <span className="sm:hidden">{cat.label}</span>
+                    <span className="hidden sm:inline">{cat.full}</span>
                   </button>
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+              {/* Compact 3-Col Mobile / 4-Col Desktop Pill Grid for QR Types */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
                 {QR_TYPES.filter((t) => t.category === activeCategory).map((item) => {
                   const Icon = item.icon;
                   const active = qrType === item.id;
@@ -1609,335 +1709,318 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                       type="button"
                       onClick={() => setQrType(item.id)}
                       className={clsx(
-                        'flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
+                        'flex items-center gap-1.5 py-2 px-2.5 rounded-xl border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer text-left',
                         active ? activePillClass : inactivePillClass
                       )}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span className="truncate max-w-full">{item.label}</span>
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{item.label}</span>
                     </button>
                   );
                 })}
               </div>
-            </div>
 
-            {/* 2. Dynamic Payload Input Form Card */}
-            <div className={clsx('p-5 rounded-2xl border space-y-4', cardClass)}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                  Enter {QR_TYPES.find((t) => t.id === qrType)?.label} Details
-                </h2>
-                <span className={clsx('text-[11px] font-medium', isDark ? 'text-zinc-500' : 'text-slate-500')}>
-                  Instant Vector Sync
-                </span>
-              </div>
-
-              {qrType === 'upi' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className={labelClass}>UPI ID / VPA (India)</label>
-                    <input type="text" value={upiId} onChange={(e) => setUpiId(e.target.value)} placeholder="merchant@okaxis" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Payee / Business Name</label>
-                    <input type="text" value={upiName} onChange={(e) => setUpiName(e.target.value)} placeholder="My Store" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Amount ₹ INR (Optional)</label>
-                    <input type="number" value={upiAmount} onChange={(e) => setUpiAmount(e.target.value)} placeholder="Leave empty for any amount" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Payment Note (Optional)</label>
-                    <input type="text" value={upiNote} onChange={(e) => setUpiNote(e.target.value)} placeholder="Order Payment" className={inputClass} />
-                  </div>
+              {/* Dynamic Input Box */}
+              <div className={clsx('p-3 sm:p-4 rounded-xl border space-y-2.5', subCardClass)}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                    Enter {QR_TYPES.find((t) => t.id === qrType)?.label} Details
+                  </span>
+                  <span className="text-[10px] font-medium text-emerald-500">● Instant Sync</span>
                 </div>
-              ) : qrType === 'sepa' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className={labelClass}>Recipient Name (Europe EPC SEPA)</label>
-                    <input type="text" value={sepaName} onChange={(e) => setSepaName(e.target.value)} placeholder="Euro Business GmbH" className={inputClass} />
+
+                {qrType === 'upi' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>UPI ID / VPA</label>
+                      <input type="text" value={upiId} onChange={(e) => setUpiId(e.target.value)} placeholder="merchant@okaxis" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Payee / Shop Name</label>
+                      <input type="text" value={upiName} onChange={(e) => setUpiName(e.target.value)} placeholder="My Store" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Amount ₹ (Optional)</label>
+                      <input type="number" value={upiAmount} onChange={(e) => setUpiAmount(e.target.value)} placeholder="Any amount" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Note (Optional)</label>
+                      <input type="text" value={upiNote} onChange={(e) => setUpiNote(e.target.value)} placeholder="Order Payment" className={inputClass} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>IBAN Account Number</label>
-                    <input type="text" value={sepaIban} onChange={(e) => setSepaIban(e.target.value)} placeholder="DE89370400440532013000" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>BIC / SWIFT Code</label>
-                    <input type="text" value={sepaBic} onChange={(e) => setSepaBic(e.target.value)} placeholder="COBADEFFXXX" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Amount € EUR &amp; Reference</label>
+                ) : qrType === 'sepa' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Recipient Name (SEPA)</label>
+                      <input type="text" value={sepaName} onChange={(e) => setSepaName(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>IBAN Account</label>
+                      <input type="text" value={sepaIban} onChange={(e) => setSepaIban(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>BIC / SWIFT</label>
+                      <input type="text" value={sepaBic} onChange={(e) => setSepaBic(e.target.value)} className={inputClass} />
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <input type="text" value={sepaAmount} onChange={(e) => setSepaAmount(e.target.value)} placeholder="49.90" className={inputClass} />
-                      <input type="text" value={sepaRef} onChange={(e) => setSepaRef(e.target.value)} placeholder="INV-2026" className={inputClass} />
+                      <div>
+                        <label className={labelClass}>Amount €</label>
+                        <input type="text" value={sepaAmount} onChange={(e) => setSepaAmount(e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Reference</label>
+                        <input type="text" value={sepaRef} onChange={(e) => setSepaRef(e.target.value)} className={inputClass} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : qrType === 'paypal' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className={labelClass}>PayPal.me Username</label>
-                    <input type="text" value={paypalUser} onChange={(e) => setPaypalUser(e.target.value)} placeholder="yourusername" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Amount (Optional)</label>
-                    <input type="text" value={paypalAmount} onChange={(e) => setPaypalAmount(e.target.value)} placeholder="25" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Currency</label>
-                    <select value={paypalCurrency} onChange={(e) => setPaypalCurrency(e.target.value)} className={inputClass}>
-                      <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="GBP">GBP (£)</option>
-                      <option value="AUD">AUD ($)</option>
-                      <option value="CAD">CAD ($)</option>
-                      <option value="JPY">JPY (¥)</option>
-                    </select>
-                  </div>
-                </div>
-              ) : qrType === 'cashapp' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className={labelClass}>App Platform</label>
-                    <select value={p2pPlatform} onChange={(e) => setP2pPlatform(e.target.value as 'cashapp' | 'venmo')} className={inputClass}>
-                      <option value="cashapp">Cash App ($cashtag)</option>
-                      <option value="venmo">Venmo (@username)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Cashtag / Username</label>
-                    <input type="text" value={p2pHandle} onChange={(e) => setP2pHandle(e.target.value)} placeholder="yourhandle" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Amount $ (Optional)</label>
-                    <input type="text" value={p2pAmount} onChange={(e) => setP2pAmount(e.target.value)} placeholder="15" className={inputClass} />
-                  </div>
-                </div>
-              ) : qrType === 'revolut' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>Global Transfer Service</label>
-                    <select value={intlPlatform} onChange={(e) => setIntlPlatform(e.target.value as 'revolut' | 'wise')} className={inputClass}>
-                      <option value="revolut">Revolut.me (UK / Europe / Global)</option>
-                      <option value="wise">Wise.com Pay Link</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Username / Handle</label>
-                    <input type="text" value={intlUser} onChange={(e) => setIntlUser(e.target.value)} placeholder="yourhandle" className={inputClass} />
-                  </div>
-                </div>
-              ) : qrType === 'pix' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>Pix Key (CPF, Email, Phone, EVP)</label>
-                    <input type="text" value={pixKey} onChange={(e) => setPixKey(e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Recipient Name</label>
-                    <input type="text" value={pixName} onChange={(e) => setPixName(e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>City (Brazil)</label>
-                    <input type="text" value={pixCity} onChange={(e) => setPixCity(e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Amount R$ BRL (Optional)</label>
-                    <input type="text" value={pixAmount} onChange={(e) => setPixAmount(e.target.value)} placeholder="50.00" className={inputClass} />
-                  </div>
-                </div>
-              ) : qrType === 'paynow' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className={labelClass}>Asian Payment Standard</label>
-                    <select value={asiaRegion} onChange={(e) => setAsiaRegion(e.target.value as 'SG_PayNow' | 'TH_PromptPay' | 'MY_DuitNow')} className={inputClass}>
-                      <option value="SG_PayNow">🇸🇬 Singapore PayNow</option>
-                      <option value="TH_PromptPay">🇹🇭 Thailand PromptPay</option>
-                      <option value="MY_DuitNow">🇲🇾 Malaysia DuitNow</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Mobile / UEN / Citizen ID</label>
-                    <input type="text" value={asiaId} onChange={(e) => setAsiaId(e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Amount (Optional)</label>
-                    <input type="text" value={asiaAmount} onChange={(e) => setAsiaAmount(e.target.value)} placeholder="20.00" className={inputClass} />
-                  </div>
-                </div>
-              ) : qrType === 'crypto' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className={labelClass}>Blockchain Network</label>
-                    <select value={cryptoCoin} onChange={(e) => setCryptoCoin(e.target.value as 'bitcoin' | 'ethereum' | 'solana' | 'tether')} className={inputClass}>
-                      <option value="bitcoin">Bitcoin (BTC)</option>
-                      <option value="ethereum">Ethereum (ETH)</option>
-                      <option value="tether">USDT (Tether)</option>
-                      <option value="solana">Solana (SOL)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Wallet Address</label>
-                    <input type="text" value={cryptoAddr} onChange={(e) => setCryptoAddr(e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Amount (Optional)</label>
-                    <input type="text" value={cryptoAmount} onChange={(e) => setCryptoAmount(e.target.value)} placeholder="0.01" className={inputClass} />
-                  </div>
-                </div>
-              ) : qrType === 'bank' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>Account Holder Name</label>
-                    <input type="text" value={bankHolder} onChange={(e) => setBankHolder(e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Bank Name</label>
-                    <input type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>IBAN / Account Number</label>
-                    <input type="text" value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>SWIFT / BIC / IFSC Code</label>
-                    <input type="text" value={bankSwift} onChange={(e) => setBankSwift(e.target.value)} className={inputClass} />
-                  </div>
-                </div>
-              ) : qrType === 'wifi' ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                ) : qrType === 'paypal' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
-                      <label className={labelClass}>Network Name (SSID)</label>
-                      <input type="text" value={wifiSsid} onChange={(e) => setWifiSsid(e.target.value)} className={inputClass} />
+                      <label className={labelClass}>PayPal.me User</label>
+                      <input type="text" value={paypalUser} onChange={(e) => setPaypalUser(e.target.value)} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>WiFi Password</label>
-                      <input type="text" value={wifiPass} onChange={(e) => setWifiPass(e.target.value)} className={inputClass} />
+                      <label className={labelClass}>Amount</label>
+                      <input type="text" value={paypalAmount} onChange={(e) => setPaypalAmount(e.target.value)} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Security Type</label>
-                      <select value={wifiType} onChange={(e) => setWifiType(e.target.value as 'WPA' | 'WEP' | 'nopass')} className={inputClass}>
-                        <option value="WPA">WPA / WPA2 / WPA3</option>
-                        <option value="WEP">WEP</option>
-                        <option value="nopass">Open (No Password)</option>
+                      <label className={labelClass}>Currency</label>
+                      <select value={paypalCurrency} onChange={(e) => setPaypalCurrency(e.target.value)} className={inputClass}>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="AUD">AUD ($)</option>
+                        <option value="CAD">CAD ($)</option>
                       </select>
                     </div>
                   </div>
-                  <label className="inline-flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                    <input type="checkbox" checked={wifiHidden} onChange={(e) => setWifiHidden(e.target.checked)} className="rounded accent-indigo-600" />
-                    Hidden WiFi Network
-                  </label>
-                </div>
-              ) : qrType === 'vcard' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>Full Name</label>
-                    <input type="text" value={vcardName} onChange={(e) => setVcardName(e.target.value)} className={inputClass} />
+                ) : qrType === 'cashapp' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Platform</label>
+                      <select value={p2pPlatform} onChange={(e) => setP2pPlatform(e.target.value as 'cashapp' | 'venmo')} className={inputClass}>
+                        <option value="cashapp">Cash App ($)</option>
+                        <option value="venmo">Venmo (@)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Handle</label>
+                      <input type="text" value={p2pHandle} onChange={(e) => setP2pHandle(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Amount $</label>
+                      <input type="text" value={p2pAmount} onChange={(e) => setP2pAmount(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Phone Number</label>
-                    <input type="text" value={vcardPhone} onChange={(e) => setVcardPhone(e.target.value)} className={inputClass} />
+                ) : qrType === 'revolut' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Service</label>
+                      <select value={intlPlatform} onChange={(e) => setIntlPlatform(e.target.value as 'revolut' | 'wise')} className={inputClass}>
+                        <option value="revolut">Revolut.me</option>
+                        <option value="wise">Wise.com</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Username</label>
+                      <input type="text" value={intlUser} onChange={(e) => setIntlUser(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Email Address</label>
-                    <input type="email" value={vcardEmail} onChange={(e) => setVcardEmail(e.target.value)} className={inputClass} />
+                ) : qrType === 'pix' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Pix Key</label>
+                      <input type="text" value={pixKey} onChange={(e) => setPixKey(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Recipient Name</label>
+                      <input type="text" value={pixName} onChange={(e) => setPixName(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>City</label>
+                      <input type="text" value={pixCity} onChange={(e) => setPixCity(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Amount R$</label>
+                      <input type="text" value={pixAmount} onChange={(e) => setPixAmount(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Company / Organization</label>
-                    <input type="text" value={vcardOrg} onChange={(e) => setVcardOrg(e.target.value)} className={inputClass} />
+                ) : qrType === 'paynow' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Standard</label>
+                      <select value={asiaRegion} onChange={(e) => setAsiaRegion(e.target.value as 'SG_PayNow' | 'TH_PromptPay' | 'MY_DuitNow')} className={inputClass}>
+                        <option value="SG_PayNow">🇸🇬 PayNow</option>
+                        <option value="TH_PromptPay">🇹🇭 PromptPay</option>
+                        <option value="MY_DuitNow">🇲🇾 DuitNow</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Phone / UEN / ID</label>
+                      <input type="text" value={asiaId} onChange={(e) => setAsiaId(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Amount</label>
+                      <input type="text" value={asiaAmount} onChange={(e) => setAsiaAmount(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Website URL</label>
-                    <input type="text" value={vcardWebsite} onChange={(e) => setVcardWebsite(e.target.value)} className={inputClass} />
+                ) : qrType === 'crypto' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Network</label>
+                      <select value={cryptoCoin} onChange={(e) => setCryptoCoin(e.target.value as 'bitcoin' | 'ethereum' | 'solana' | 'tether')} className={inputClass}>
+                        <option value="bitcoin">Bitcoin (BTC)</option>
+                        <option value="ethereum">Ethereum (ETH)</option>
+                        <option value="tether">USDT</option>
+                        <option value="solana">Solana (SOL)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Wallet Address</label>
+                      <input type="text" value={cryptoAddr} onChange={(e) => setCryptoAddr(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Amount</label>
+                      <input type="text" value={cryptoAmount} onChange={(e) => setCryptoAmount(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>City / Country</label>
-                    <input type="text" value={vcardCity} onChange={(e) => setVcardCity(e.target.value)} className={inputClass} />
+                ) : qrType === 'bank' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Account Holder</label>
+                      <input type="text" value={bankHolder} onChange={(e) => setBankHolder(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Bank Name</label>
+                      <input type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>IBAN / Account No.</label>
+                      <input type="text" value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>SWIFT / BIC / IFSC</label>
+                      <input type="text" value={bankSwift} onChange={(e) => setBankSwift(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                </div>
-              ) : qrType === 'whatsapp' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>WhatsApp Number (with country code)</label>
-                    <input type="text" value={waPhone} onChange={(e) => setWaPhone(e.target.value)} placeholder="919876543210" className={inputClass} />
+                ) : qrType === 'wifi' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className={labelClass}>WiFi Name (SSID)</label>
+                      <input type="text" value={wifiSsid} onChange={(e) => setWifiSsid(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Password</label>
+                      <input type="text" value={wifiPass} onChange={(e) => setWifiPass(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Security</label>
+                      <select value={wifiType} onChange={(e) => setWifiType(e.target.value as 'WPA' | 'WEP' | 'nopass')} className={inputClass}>
+                        <option value="WPA">WPA / WPA2</option>
+                        <option value="WEP">WEP</option>
+                        <option value="nopass">Open</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Pre-filled Chat Message</label>
-                    <input type="text" value={waMessage} onChange={(e) => setWaMessage(e.target.value)} className={inputClass} />
+                ) : qrType === 'vcard' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Full Name</label>
+                      <input type="text" value={vcardName} onChange={(e) => setVcardName(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Phone Number</label>
+                      <input type="text" value={vcardPhone} onChange={(e) => setVcardPhone(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Email</label>
+                      <input type="email" value={vcardEmail} onChange={(e) => setVcardEmail(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Company</label>
+                      <input type="text" value={vcardOrg} onChange={(e) => setVcardOrg(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                </div>
-              ) : qrType === 'email' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className={labelClass}>Recipient Email</label>
-                    <input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} className={inputClass} />
+                ) : qrType === 'whatsapp' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>WhatsApp Number</label>
+                      <input type="text" value={waPhone} onChange={(e) => setWaPhone(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Message</label>
+                      <input type="text" value={waMessage} onChange={(e) => setWaMessage(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Subject Line</label>
-                    <input type="text" value={emailSub} onChange={(e) => setEmailSub(e.target.value)} className={inputClass} />
+                ) : qrType === 'email' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className={labelClass}>To Email</label>
+                      <input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Subject</label>
+                      <input type="text" value={emailSub} onChange={(e) => setEmailSub(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Message</label>
+                      <input type="text" value={emailBody} onChange={(e) => setEmailBody(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Message Body</label>
-                    <input type="text" value={emailBody} onChange={(e) => setEmailBody(e.target.value)} className={inputClass} />
+                ) : qrType === 'sms' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Phone Number</label>
+                      <input type="text" value={smsPhone} onChange={(e) => setSmsPhone(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>SMS Message</label>
+                      <input type="text" value={smsBody} onChange={(e) => setSmsBody(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
-                </div>
-              ) : qrType === 'sms' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>Mobile Number</label>
-                    <input type="text" value={smsPhone} onChange={(e) => setSmsPhone(e.target.value)} className={inputClass} />
+                ) : qrType === 'event' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Event Title</label>
+                      <input type="text" value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Location</label>
+                      <input type="text" value={eventLocation} onChange={(e) => setEventLocation(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Date (YYYYMMDD)</label>
+                      <input type="text" value={eventStart} onChange={(e) => setEventStart(e.target.value)} className={inputClass} />
+                    </div>
                   </div>
+                ) : qrType === 'maps' ? (
                   <div>
-                    <label className={labelClass}>SMS Text</label>
-                    <input type="text" value={smsBody} onChange={(e) => setSmsBody(e.target.value)} className={inputClass} />
+                    <label className={labelClass}>Location / Address</label>
+                    <input type="text" value={mapsQuery} onChange={(e) => setMapsQuery(e.target.value)} className={inputClass} />
                   </div>
-                </div>
-              ) : qrType === 'event' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                ) : (
                   <div>
-                    <label className={labelClass}>Event Title</label>
-                    <input type="text" value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} className={inputClass} />
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder={QR_TYPES.find((t) => t.id === qrType)?.placeholder || 'https://qrgenerato.com'}
+                      className={inputClass}
+                    />
                   </div>
-                  <div>
-                    <label className={labelClass}>Venue / Location</label>
-                    <input type="text" value={eventLocation} onChange={(e) => setEventLocation(e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Start Date (YYYYMMDD)</label>
-                    <input type="text" value={eventStart} onChange={(e) => setEventStart(e.target.value)} className={inputClass} />
-                  </div>
-                </div>
-              ) : qrType === 'maps' ? (
-                <div>
-                  <label className={labelClass}>Place Name, Address, or Coordinates</label>
-                  <input type="text" value={mapsQuery} onChange={(e) => setMapsQuery(e.target.value)} placeholder="Sector 17 Plaza, Chandigarh" className={inputClass} />
-                </div>
-              ) : (
-                <div>
-                  <label className={labelClass}>
-                    {QR_TYPES.find((t) => t.id === qrType)?.label || 'Destination URL / Content'}
-                  </label>
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder={QR_TYPES.find((t) => t.id === qrType)?.placeholder || 'https://qrgenerato.com'}
-                    className={inputClass}
-                  />
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            {/* 3. Design & Customization Card */}
-            <div className={clsx('p-5 rounded-2xl border space-y-5', cardClass)}>
-              <div className="flex flex-wrap items-center gap-2 border-b pb-3.5 border-slate-200/80 dark:border-zinc-800/80">
+            {/* STEP 2: Organized Customization Card (5 Equal Tabs on Mobile) */}
+            <div className={clsx('p-3.5 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
+              <div className="grid grid-cols-5 gap-1 sm:flex sm:items-center sm:gap-1.5 pb-2.5 border-b border-slate-200/80 dark:border-zinc-800/80">
                 {[
-                  { id: 'shapes', label: 'Shape & Eyes', icon: Eye },
-                  { id: 'frames', label: 'Frames (20)', icon: Frame },
-                  { id: 'colors', label: 'Colors', icon: Palette },
-                  { id: 'logo', label: 'Logo Badge', icon: ImageIcon },
-                  { id: 'artwork', label: 'Art Presets (16)', icon: Sparkles },
+                  { id: 'shapes', label: 'Shapes', full: 'Shape & Eyes', icon: Eye },
+                  { id: 'frames', label: 'Frames', full: 'Frames (20)', icon: Frame },
+                  { id: 'colors', label: 'Colors', full: 'Colors', icon: Palette },
+                  { id: 'logo', label: 'Logo', full: 'Logo Badge', icon: ImageIcon },
+                  { id: 'artwork', label: 'Art', full: 'Art Presets (16)', icon: Sparkles },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   const active = designTab === tab.id;
@@ -1947,78 +2030,46 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                       type="button"
                       onClick={() => setDesignTab(tab.id as DesignTab)}
                       className={clsx(
-                        'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer',
+                        'flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-1.5 px-1 sm:px-3 rounded-xl text-[10px] sm:text-xs font-semibold border transition-all cursor-pointer truncate',
                         active ? activePillClass : inactivePillClass
                       )}
                     >
-                      <Icon className="w-3.5 h-3.5" />
-                      {tab.label}
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="sm:hidden truncate">{tab.label}</span>
+                      <span className="hidden sm:inline">{tab.full}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* TAB 1: SHAPES & EYES */}
+              {/* TAB 1: ORGANIZED SHAPES & EYES */}
               {designTab === 'shapes' && (
-                <div className="space-y-4">
-                  <div className={clsx('p-3.5 rounded-xl border', subCardClass)}>
-                    <label className={labelClass}>1. Body Dot Style</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                      {BODY_SHAPES.map((s) => (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className={clsx('grid grid-cols-3 sm:inline-flex w-full sm:w-auto p-1 rounded-xl border', subCardClass)}>
+                      {[
+                        { id: 'dots', label: '1. Body Dots' },
+                        { id: 'ring', label: '2. Eye Ring' },
+                        { id: 'center', label: '3. Eye Dot' },
+                      ].map((sub) => (
                         <button
-                          key={s.id}
+                          key={sub.id}
                           type="button"
-                          onClick={() => setDotStyle(s.id)}
+                          onClick={() => setShapeSubTab(sub.id as 'dots' | 'ring' | 'center')}
                           className={clsx(
-                            'py-2 px-2.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
-                            dotStyle === s.id ? activePillClass : inactivePillClass
+                            'px-2.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer text-center',
+                            shapeSubTab === sub.id
+                              ? 'bg-indigo-600 text-white shadow-sm'
+                              : isDark
+                              ? 'text-zinc-400 hover:text-white'
+                              : 'text-slate-600 hover:text-slate-900'
                           )}
                         >
-                          {s.label}
+                          {sub.label}
                         </button>
                       ))}
                     </div>
-                  </div>
 
-                  <div className={clsx('p-3.5 rounded-xl border', subCardClass)}>
-                    <label className={labelClass}>2. Eye Frame (Outer Corner Ring)</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                      {EYE_BORDER_SHAPES.map((s) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => setFinderShape(s.id)}
-                          className={clsx(
-                            'py-2 px-2.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
-                            finderShape === s.id ? activePillClass : inactivePillClass
-                          )}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={clsx('p-3.5 rounded-xl border', subCardClass)}>
-                    <label className={labelClass}>3. Eye Center (Inner Corner Dot)</label>
-                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                      {EYE_CENTER_SHAPES.map((s) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => setFinderCenterShape(s.id)}
-                          className={clsx(
-                            'py-2 px-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
-                            finderCenterShape === s.id ? activePillClass : inactivePillClass
-                          )}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-1 flex flex-wrap items-center justify-between gap-4">
                     <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
                       <input
                         type="checkbox"
@@ -2026,29 +2077,85 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                         onChange={(e) => setCustomEyeColors(e.target.checked)}
                         className="w-4 h-4 rounded accent-indigo-600"
                       />
-                      Custom Corner Eye Colors
+                      Custom Eye Colors
                     </label>
+                  </div>
 
-                    {customEyeColors && (
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 text-xs font-medium">
-                          <span>Outer Ring:</span>
-                          <input type="color" value={eyeBorderColor} onChange={(e) => setEyeBorderColor(e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
-                        </label>
-                        <label className="flex items-center gap-2 text-xs font-medium">
-                          <span>Inner Dot:</span>
-                          <input type="color" value={eyeCenterColor} onChange={(e) => setEyeCenterColor(e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
-                        </label>
+                  <div className={clsx('p-3 rounded-xl border', subCardClass)}>
+                    {shapeSubTab === 'dots' && (
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                        {BODY_SHAPES.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setDotStyle(s.id)}
+                            className={clsx(
+                              'py-2 px-2 rounded-lg border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer truncate',
+                              dotStyle === s.id ? activePillClass : inactivePillClass
+                            )}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {shapeSubTab === 'ring' && (
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
+                        {EYE_BORDER_SHAPES.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setFinderShape(s.id)}
+                            className={clsx(
+                              'py-2 px-2 rounded-lg border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer truncate',
+                              finderShape === s.id ? activePillClass : inactivePillClass
+                            )}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {shapeSubTab === 'center' && (
+                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 sm:gap-2">
+                        {EYE_CENTER_SHAPES.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setFinderCenterShape(s.id)}
+                            className={clsx(
+                              'py-2 px-1.5 rounded-lg border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer truncate',
+                              finderCenterShape === s.id ? activePillClass : inactivePillClass
+                            )}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
+
+                  {customEyeColors && (
+                    <div className={clsx('p-3 rounded-xl border flex flex-wrap items-center gap-4', subCardClass)}>
+                      <label className="flex items-center gap-2 text-xs font-medium">
+                        <span>Outer Ring:</span>
+                        <input type="color" value={eyeBorderColor} onChange={(e) => setEyeBorderColor(e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
+                      </label>
+                      <label className="flex items-center gap-2 text-xs font-medium">
+                        <span>Inner Dot:</span>
+                        <input type="color" value={eyeCenterColor} onChange={(e) => setEyeCenterColor(e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
+                      </label>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* TAB 2: 20 ILLUSTRATED FRAMES */}
               {designTab === 'frames' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[210px] overflow-y-auto pr-1">
                     {FRAME_STYLES.map((f) => (
                       <button
                         key={f.id}
@@ -2058,7 +2165,7 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                           if (f.defaultText) setFrameText(f.defaultText);
                         }}
                         className={clsx(
-                          'py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left truncate',
+                          'py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left truncate',
                           frameStyle === f.id ? activePillClass : inactivePillClass
                         )}
                       >
@@ -2068,15 +2175,15 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                   </div>
 
                   {frameStyle !== 'none' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
                       <div className="sm:col-span-2">
-                        <label className={labelClass}>Frame Call-To-Action Label</label>
+                        <label className={labelClass}>Frame Label</label>
                         <input type="text" value={frameText} onChange={(e) => setFrameText(e.target.value)} maxLength={32} className={inputClass} />
                       </div>
                       <div>
                         <label className={labelClass}>Frame Color</label>
                         <div className="flex items-center gap-2">
-                          <input type="color" value={frameColor} onChange={(e) => setFrameColor(e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent" />
+                          <input type="color" value={frameColor} onChange={(e) => setFrameColor(e.target.value)} className="w-9 h-9 rounded-lg cursor-pointer border-0 bg-transparent" />
                           <input type="text" value={frameColor} onChange={(e) => setFrameColor(e.target.value)} className={inputClass} />
                         </div>
                       </div>
@@ -2085,9 +2192,9 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                 </div>
               )}
 
-              {/* TAB 3: COLORS & GRADIENTS */}
+              {/* TAB 3: COLORS */}
               {designTab === 'colors' && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
                     {[
                       { id: 'none', label: 'Solid Color' },
@@ -2099,7 +2206,7 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                         type="button"
                         onClick={() => setGradientType(g.id as 'none' | 'linear' | 'radial')}
                         className={clsx(
-                          'px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
+                          'px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
                           gradientType === g.id ? activePillClass : inactivePillClass
                         )}
                       >
@@ -2108,29 +2215,29 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className={clsx('p-3.5 rounded-xl border', subCardClass)}>
-                      <label className={labelClass}>Primary QR Color</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className={clsx('p-3 rounded-xl border', subCardClass)}>
+                      <label className={labelClass}>Primary Color</label>
                       <div className="flex items-center gap-2">
-                        <input type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className="w-9 h-9 rounded cursor-pointer border-0 bg-transparent" />
+                        <input type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent" />
                         <input type="text" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className={inputClass} />
                       </div>
                     </div>
 
                     {gradientType !== 'none' && (
-                      <div className={clsx('p-3.5 rounded-xl border', subCardClass)}>
-                        <label className={labelClass}>Second Gradient Color</label>
+                      <div className={clsx('p-3 rounded-xl border', subCardClass)}>
+                        <label className={labelClass}>Second Color</label>
                         <div className="flex items-center gap-2">
-                          <input type="color" value={gradientColor2} onChange={(e) => setGradientColor2(e.target.value)} className="w-9 h-9 rounded cursor-pointer border-0 bg-transparent" />
+                          <input type="color" value={gradientColor2} onChange={(e) => setGradientColor2(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent" />
                           <input type="text" value={gradientColor2} onChange={(e) => setGradientColor2(e.target.value)} className={inputClass} />
                         </div>
                       </div>
                     )}
 
-                    <div className={clsx('p-3.5 rounded-xl border', subCardClass)}>
-                      <label className={labelClass}>Card Background</label>
+                    <div className={clsx('p-3 rounded-xl border', subCardClass)}>
+                      <label className={labelClass}>Background</label>
                       <div className="flex items-center gap-2">
-                        <input type="color" value={bgColor} disabled={transparentBg} onChange={(e) => setBgColor(e.target.value)} className="w-9 h-9 rounded cursor-pointer border-0 bg-transparent" />
+                        <input type="color" value={bgColor} disabled={transparentBg} onChange={(e) => setBgColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent" />
                         <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer">
                           <input type="checkbox" checked={transparentBg} onChange={(e) => setTransparentBg(e.target.checked)} className="rounded accent-indigo-600" />
                           Transparent
@@ -2141,20 +2248,19 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                 </div>
               )}
 
-              {/* TAB 4: CENTER LOGO */}
+              {/* TAB 4: LOGO */}
               {designTab === 'logo' && (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <input ref={fileInputLogoRef} type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} className="hidden" />
                       <button
                         type="button"
                         onClick={() => fileInputLogoRef.current?.click()}
-                        className={clsx('flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer', activePillClass)}
+                        className={clsx('flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border cursor-pointer', activePillClass)}
                       >
-                        <Upload className="w-3.5 h-3.5" /> Upload Brand Logo
+                        <Upload className="w-3.5 h-3.5" /> Upload Logo
                       </button>
-
                       {(customLogoUrl || selectedPresetLogo !== 'none') && (
                         <button
                           type="button"
@@ -2162,33 +2268,16 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                             setCustomLogoUrl(null);
                             setSelectedPresetLogo('none');
                           }}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20 cursor-pointer"
+                          className="px-3 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20 cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Remove
+                          Remove
                         </button>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        {(['rounded', 'circle', 'square'] as LogoShape[]).map((sh) => (
-                          <button
-                            key={sh}
-                            type="button"
-                            onClick={() => setLogoShape(sh)}
-                            className={clsx(
-                              'px-2.5 py-1 rounded-lg text-[11px] font-semibold border capitalize cursor-pointer',
-                              logoShape === sh ? activePillClass : inactivePillClass
-                            )}
-                          >
-                            {sh}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium opacity-75">Size:</span>
-                        <input type="range" min="0.16" max="0.28" step="0.02" value={logoScale} onChange={(e) => setLogoScale(parseFloat(e.target.value))} className="w-20 accent-indigo-600" />
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium opacity-75">Size:</span>
+                      <input type="range" min="0.16" max="0.28" step="0.02" value={logoScale} onChange={(e) => setLogoScale(parseFloat(e.target.value))} className="w-20 accent-indigo-600" />
                     </div>
                   </div>
 
@@ -2202,7 +2291,7 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                           setCustomLogoUrl(null);
                         }}
                         className={clsx(
-                          'flex flex-col items-center gap-1 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
+                          'flex flex-col items-center gap-1 p-2 rounded-xl border text-xs font-semibold cursor-pointer',
                           selectedPresetLogo === l.id && !customLogoUrl ? activePillClass : inactivePillClass
                         )}
                       >
@@ -2214,41 +2303,39 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                 </div>
               )}
 
-              {/* TAB 5: 16 ILLUSTRATED ART PRESETS & 4-MODE BACK/FILL ENGINE */}
+              {/* TAB 5: ARTWORK */}
               {designTab === 'artwork' && (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <input ref={fileInputArtRef} type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'art')} className="hidden" />
                       <button
                         type="button"
                         onClick={() => fileInputArtRef.current?.click()}
-                        className={clsx('flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer', activePillClass)}
+                        className={clsx('flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border cursor-pointer', activePillClass)}
                       >
-                        <Upload className="w-3.5 h-3.5" /> Upload Your Own Photo / Art
+                        <Upload className="w-3.5 h-3.5" /> Upload Photo / Art
                       </button>
-
                       {artworkUrl && (
                         <button
                           type="button"
                           onClick={() => setArtworkUrl(null)}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20 cursor-pointer"
+                          className="px-3 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20 cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Clear Art
+                          Clear Art
                         </button>
                       )}
                     </div>
                   </div>
 
                   {artworkUrl && (
-                    <div className={clsx('p-3.5 rounded-xl border space-y-3', subCardClass)}>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-xs font-bold mr-1">Art Mode:</span>
+                    <div className={clsx('p-3 rounded-xl border space-y-2.5', subCardClass)}>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 w-full sm:w-auto">
                           {[
-                            { id: 'qr-fill', label: '1. Art Inside QR (Portrait Blend)' },
-                            { id: 'back-halo', label: '2. Send Behind QR (Smart Halo)' },
-                            { id: 'back-pure', label: '3. Send Behind QR (Pure Back)' },
+                            { id: 'qr-fill', label: '1. Art Inside QR' },
+                            { id: 'back-halo', label: '2. Back (Halo)' },
+                            { id: 'back-pure', label: '3. Back (Pure)' },
                             { id: 'medallion', label: '4. Center Badge' },
                           ].map((m) => (
                             <button
@@ -2256,7 +2343,7 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                               type="button"
                               onClick={() => setArtPlacement(m.id as ArtPlacement)}
                               className={clsx(
-                                'px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer',
+                                'px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border cursor-pointer text-center',
                                 artPlacement === m.id ? activePillClass : inactivePillClass
                               )}
                             >
@@ -2264,24 +2351,15 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                             </button>
                           ))}
                         </div>
-
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium opacity-80">Intensity:</span>
-                          <input
-                            type="range"
-                            min="0.3"
-                            max="1"
-                            step="0.05"
-                            value={artworkOpacity}
-                            onChange={(e) => setArtworkOpacity(parseFloat(e.target.value))}
-                            className="w-24 accent-indigo-600"
-                          />
+                          <span className="text-[11px] font-medium opacity-80">Opacity:</span>
+                          <input type="range" min="0.3" max="1" step="0.05" value={artworkOpacity} onChange={(e) => setArtworkOpacity(parseFloat(e.target.value))} className="w-24 accent-indigo-600" />
                         </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[210px] overflow-y-auto pr-1">
                     {ART_PRESETS.map((art) => (
                       <button
                         key={art.id}
@@ -2293,16 +2371,12 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                           setGradientType('linear');
                         }}
                         className={clsx(
-                          'group p-2 rounded-xl border text-left transition-all cursor-pointer',
+                          'group p-1.5 rounded-xl border text-left cursor-pointer',
                           artworkUrl === art.svgData ? activePillClass : inactivePillClass
                         )}
                       >
-                        <img
-                          src={art.svgData}
-                          alt={art.name}
-                          className="w-full h-16 object-cover rounded-lg mb-1.5"
-                        />
-                        <p className="text-[11px] font-semibold text-center truncate">{art.name}</p>
+                        <img src={art.svgData} alt={art.name} className="w-full h-14 object-cover rounded-lg mb-1" />
+                        <p className="text-[10px] font-semibold text-center truncate">{art.name}</p>
                       </button>
                     ))}
                   </div>
@@ -2311,8 +2385,8 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
             </div>
           </div>
 
-          {/* RIGHT COLUMN (5 Cols): Sticky Live Vector Preview */}
-          <div className="lg:col-span-5 lg:sticky lg:top-20">
+          {/* RIGHT COLUMN (Desktop Sticky Live Preview) */}
+          <div className="hidden lg:block lg:col-span-5 lg:sticky lg:top-20">
             <div className={clsx('p-6 rounded-2xl border flex flex-col items-center', cardClass)}>
               <div className="w-full flex items-center justify-between mb-4">
                 <span className={clsx('text-xs font-bold tracking-wider uppercase', isDark ? 'text-zinc-400' : 'text-slate-600')}>
@@ -2325,15 +2399,15 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
 
               <div
                 className={clsx(
-                  'w-full max-w-[320px] aspect-square rounded-2xl p-4 flex items-center justify-center border overflow-hidden transition-colors [&>svg]:w-full [&>svg]:h-full [&>svg]:max-h-[290px] [&>svg]:drop-shadow-sm',
+                  'w-full max-w-[300px] aspect-square rounded-2xl p-4 flex items-center justify-center border overflow-hidden transition-colors [&>svg]:w-full [&>svg]:h-full [&>svg]:max-h-[270px] [&>svg]:drop-shadow-sm',
                   isDark ? 'bg-zinc-900/90 border-zinc-800' : 'bg-slate-100 border-slate-200/90'
                 )}
-                dangerouslySetInnerHTML={{ __html: svgPreview }}
+                dangerouslySetInnerHTML={{ __html: svgDesktop }}
               />
 
               {/* Instant Color Themes Bar */}
-              <div className="w-full mt-6 mb-2">
-                <div className="flex items-center justify-between mb-2.5">
+              <div className="w-full mt-5 mb-2">
+                <div className="flex items-center justify-between mb-2">
                   <span className={clsx('flex items-center gap-1.5 text-xs font-semibold', isDark ? 'text-zinc-300' : 'text-slate-700')}>
                     <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Instant Color Themes
                   </span>
@@ -2342,13 +2416,7 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                   </span>
                 </div>
                 <div className="grid grid-cols-5 gap-2">
-                  {[
-                    { name: 'Royal', fg: '#7c3aed', g2: '#db2777', from: 'from-violet-600', to: 'to-pink-600' },
-                    { name: 'Emerald', fg: '#059669', g2: '#10b981', from: 'from-emerald-600', to: 'to-teal-400' },
-                    { name: 'Oceanic', fg: '#2563eb', g2: '#06b6d4', from: 'from-blue-600', to: 'to-cyan-400' },
-                    { name: 'Sunset', fg: '#e11d48', g2: '#f97316', from: 'from-rose-600', to: 'to-orange-500' },
-                    { name: 'Gold', fg: '#b45309', g2: '#eab308', from: 'from-amber-700', to: 'to-yellow-500' },
-                  ].map((t) => (
+                  {colorThemes.map((t) => (
                     <button
                       key={t.name}
                       type="button"
@@ -2360,13 +2428,13 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                         setTransparentBg(false);
                       }}
                       className={clsx(
-                        'flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all cursor-pointer',
+                        'flex flex-col items-center gap-1 p-1.5 rounded-xl border transition-all cursor-pointer',
                         isDark
                           ? 'bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
                           : 'bg-slate-50 border-slate-200 hover:border-indigo-400 hover:bg-white'
                       )}
                     >
-                      <div className={`w-full h-6 rounded-lg bg-gradient-to-r ${t.from} ${t.to} shadow-sm`} />
+                      <div className={`w-full h-5 rounded-lg bg-gradient-to-r ${t.from} ${t.to} shadow-sm`} />
                       <span className={clsx('text-[10px] font-semibold', isDark ? 'text-zinc-300' : 'text-slate-700')}>
                         {t.name}
                       </span>
@@ -2375,7 +2443,6 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                 </div>
               </div>
 
-              {/* Export Buttons */}
               <div className="w-full grid grid-cols-2 gap-3 mt-3">
                 <button
                   type="button"
@@ -2384,7 +2451,7 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                     'flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer',
                     isDark
                       ? 'bg-white text-zinc-950 hover:bg-zinc-200'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-500/25'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
                   )}
                 >
                   <Download className="w-4 h-4" /> Download PNG
@@ -2427,54 +2494,40 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
 
       {/* MODE 2: QR SCANNER */}
       {studioMode === 'scanner' && (
-        <div className={clsx('max-w-2xl mx-auto p-6 sm:p-8 rounded-2xl border text-center space-y-5', cardClass)}>
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center mx-auto">
-            <Camera className="w-6 h-6" />
+        <div className={clsx('max-w-2xl mx-auto p-6 rounded-2xl border text-center space-y-4', cardClass)}>
+          <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center mx-auto">
+            <Camera className="w-5 h-5" />
           </div>
-          <h2 className="text-xl font-bold">Instant Client-Side QR Scanner</h2>
+          <h2 className="text-lg font-bold">Instant Client-Side QR Scanner</h2>
           <p className={clsx('text-xs max-w-md mx-auto', isDark ? 'text-zinc-400' : 'text-slate-600')}>
-            Scan any QR code using your device camera or upload a screenshot. Processed 100% locally inside your browser.
+            Scan any QR code using your camera or upload a screenshot. Decoded 100% locally in your browser.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
             {!cameraActive ? (
-              <button
-                type="button"
-                onClick={startCameraScanner}
-                className={clsx('inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold cursor-pointer', activePillClass)}
-              >
-                <Camera className="w-4 h-4" /> Start Camera Scanner
+              <button type="button" onClick={startCameraScanner} className={clsx('inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold cursor-pointer', activePillClass)}>
+                <Camera className="w-4 h-4" /> Start Camera
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={stopCameraScanner}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold bg-rose-600 text-white cursor-pointer"
-              >
+              <button type="button" onClick={stopCameraScanner} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 text-white cursor-pointer">
                 Stop Camera
               </button>
             )}
 
             <input ref={fileInputScanRef} type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'scan')} className="hidden" />
-            <button
-              type="button"
-              onClick={() => fileInputScanRef.current?.click()}
-              className={clsx('inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold border cursor-pointer', inactivePillClass)}
-            >
-              <Upload className="w-4 h-4" /> Upload QR Screenshot
+            <button type="button" onClick={() => fileInputScanRef.current?.click()} className={clsx('inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold border cursor-pointer', inactivePillClass)}>
+              <Upload className="w-4 h-4" /> Upload QR Image
             </button>
           </div>
 
           <video ref={videoRef} className={clsx('w-full max-w-md mx-auto rounded-xl border', cameraActive ? 'block' : 'hidden')} playsInline muted />
 
           {scanResult && (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-left space-y-2">
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-left space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-xs font-bold text-emerald-500">
-                  <CheckCircle2 className="w-4 h-4" /> Decoded QR Content:
-                </span>
+                <span className="text-xs font-bold text-emerald-500">Decoded Content:</span>
                 <button type="button" onClick={() => navigator.clipboard.writeText(scanResult)} className="text-xs font-semibold text-indigo-500 hover:underline cursor-pointer">
-                  Copy Text
+                  Copy
                 </button>
               </div>
               <p className="text-sm font-mono break-all">{scanResult}</p>
@@ -2482,8 +2535,8 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
           )}
 
           {scanError && (
-            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-500 flex items-center justify-center gap-2">
-              <AlertCircle className="w-4 h-4" /> {scanError}
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-500">
+              {scanError}
             </div>
           )}
         </div>
@@ -2491,36 +2544,27 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
 
       {/* MODE 3: BATCH STUDIO */}
       {studioMode === 'batch' && (
-        <div className={clsx('max-w-5xl mx-auto p-6 sm:p-8 rounded-2xl border space-y-5', cardClass)}>
-          <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className={clsx('max-w-5xl mx-auto p-6 rounded-2xl border space-y-4', cardClass)}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold">Batch QR Code Studio</h2>
               <p className={clsx('text-xs', isDark ? 'text-zinc-400' : 'text-slate-600')}>
-                Enter one URL, UPI link, WiFi string, or serial number per line. Click any card to customize it in the main studio.
+                Enter one URL, UPI link, or serial code per line.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold text-indigo-500">
-                {batchInput.split('\n').filter((l) => l.trim()).length} Codes Ready
-              </span>
-              <button
-                type="button"
-                onClick={handlePrintBatch}
-                className={clsx('inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer', activePillClass)}
-              >
-                <Printer className="w-3.5 h-3.5" /> Print / Save PDF Sheet
-              </button>
-            </div>
+            <button type="button" onClick={handlePrintBatch} className={clsx('inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer', activePillClass)}>
+              <Printer className="w-3.5 h-3.5" /> Print Sheet
+            </button>
           </div>
 
-          <textarea rows={5} value={batchInput} onChange={(e) => setBatchInput(e.target.value)} className={inputClass} placeholder="https://example.com/table-1&#10;https://example.com/table-2" />
+          <textarea rows={4} value={batchInput} onChange={(e) => setBatchInput(e.target.value)} className={inputClass} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {batchInput
               .split('\n')
               .map((l) => l.trim())
               .filter(Boolean)
-              .slice(0, 16)
+              .slice(0, 12)
               .map((line, idx) => (
                 <div
                   key={idx}
@@ -2529,22 +2573,10 @@ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1
                     setQrType('url');
                     setStudioMode('create');
                   }}
-                  className={clsx(
-                    'p-4 rounded-xl border cursor-pointer hover:border-indigo-500 transition-all space-y-3 flex flex-col items-center text-center',
-                    subCardClass
-                  )}
+                  className={clsx('p-3 rounded-xl border cursor-pointer hover:border-indigo-500 transition-all space-y-2 flex flex-col items-center', subCardClass)}
                 >
-                  <div className="w-full flex items-center justify-between text-[11px] font-semibold text-indigo-500">
-                    <span>QR #{idx + 1}</span>
-                    <span className="flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3" /> Edit
-                    </span>
-                  </div>
-                  <div
-                    className="w-28 h-28 rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-800 p-1 bg-white"
-                    dangerouslySetInnerHTML={{ __html: renderMiniBatchSvg(line) }}
-                  />
-                  <p className="w-full text-xs truncate font-mono opacity-85">{line}</p>
+                  <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-800 p-1 bg-white" dangerouslySetInnerHTML={{ __html: renderMiniBatchSvg(line) }} />
+                  <p className="w-full text-[11px] truncate font-mono opacity-85 text-center">{line}</p>
                 </div>
               ))}
           </div>

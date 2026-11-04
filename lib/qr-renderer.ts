@@ -114,8 +114,8 @@ function renderDotPath(r: number, c: number, cell: number, offset: number, style
     case 'extra-rounded':
       return `<rect x="${(x + s * 0.04).toFixed(2)}" y="${(y + s * 0.04).toFixed(2)}" width="${(s * 0.92).toFixed(2)}" height="${(s * 0.92).toFixed(2)}" rx="${(s * 0.42).toFixed(2)}" />`;
     case 'classy': {
-      const r1 = (s * 0.38).toFixed(2);
-      return `<path d="M ${x + Number(r1)} ${y} H ${x + s} V ${y + s - Number(r1)} Q ${x + s} ${y + s} ${x + s - Number(r1)} ${y + s} H ${x} V ${y + Number(r1)} Q ${x} ${y} ${x + Number(r1)} ${y} Z" />`;
+      const r1 = s * 0.38;
+      return `<path d="M ${x + r1} ${y} H ${x + s} V ${y + s - r1} Q ${x + s} ${y + s} ${x + s - r1} ${y + s} H ${x} V ${y + r1} Q ${x} ${y} ${x + r1} ${y} Z" />`;
     }
     case 'diamond': {
       const p = s * 0.48;
@@ -298,28 +298,30 @@ export async function generateQRSvg(options: QROptions): Promise<string> {
   const cell = qrBoxSize / (count + margin * 2);
   const offset = margin * cell;
 
+  const uid = Math.random().toString(36).slice(2, 7);
+  const gradId = `qrGrad_${uid}`;
+
   const defs: string[] = [];
   let mainFill = fgColor;
 
   if (gradientType === 'linear') {
     defs.push(
-      `<linearGradient id="qrGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      `<linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="${fgColor}" />
         <stop offset="100%" stop-color="${gradientColor2}" />
       </linearGradient>`
     );
-    mainFill = 'url(#qrGrad)';
+    mainFill = `url(#${gradId})`;
   } else if (gradientType === 'radial') {
     defs.push(
-      `<radialGradient id="qrGrad" cx="50%" cy="50%" r="60%">
+      `<radialGradient id="${gradId}" cx="50%" cy="50%" r="60%">
         <stop offset="0%" stop-color="${fgColor}" />
         <stop offset="100%" stop-color="${gradientColor2}" />
       </radialGradient>`
     );
-    mainFill = 'url(#qrGrad)';
+    mainFill = `url(#${gradId})`;
   }
 
-  // Calculate Logo Cutout Zone
   const logoPixelSize = logoUrl ? qrBoxSize * logoSize : 0;
   const logoMin = (qrBoxSize - logoPixelSize) / 2 - (removeLogoBg ? cell * 0.9 : 0);
   const logoMax = (qrBoxSize + logoPixelSize) / 2 + (removeLogoBg ? cell * 0.9 : 0);
@@ -379,7 +381,6 @@ export async function generateQRSvg(options: QROptions): Promise<string> {
 
   const safeLabel = escapeXml(frameText || 'Scan me!');
 
-  // --- DISTINCT FRAME ILLUSTRATIONS ---
   if (frameStyle === 'none') {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${qrBoxSize} ${qrBoxSize}" width="${options.size}" height="${options.size}">
       <defs>${defs.join('')}</defs>
@@ -387,7 +388,6 @@ export async function generateQRSvg(options: QROptions): Promise<string> {
     </svg>`;
   }
 
-  // All 15 distinct frames rendered inside a 420x500 viewBox
   const W = 420;
   const H = 500;
   const qx = 50;
@@ -491,7 +491,6 @@ export async function generateQRSvg(options: QROptions): Promise<string> {
       break;
 
     case 'coffee':
-      // Coffee Cup with Steam Waves, Cup Handle, and Saucer Base
       qy = 64;
       frameBack = `
         <path d="M 155 44 Q 145 26 160 14 M 210 44 Q 200 26 215 14 M 265 44 Q 255 26 270 14" fill="none" stroke="${frameColor}" stroke-width="6" stroke-linecap="round" />
@@ -503,7 +502,6 @@ export async function generateQRSvg(options: QROptions): Promise<string> {
       break;
 
     case 'beer':
-      // Frothy Beer Stein Mug with Fluffy Foam Cloud Top & Sturdy Handle
       qy = 78;
       frameBack = `
         <path d="M 368 140 H 394 A 20 20 0 0 1 414 160 V 290 A 20 20 0 0 1 394 310 H 368" fill="none" stroke="${frameColor}" stroke-width="14" stroke-linejoin="round" />
@@ -515,7 +513,6 @@ export async function generateQRSvg(options: QROptions): Promise<string> {
       break;
 
     case 'chef':
-      // Tall Puffy French Chef Toque Hat Crown + Menu Board
       qy = 86;
       frameBack = `
         <path d="M 95 78 C 55 68, 65 22, 115 30 C 135 6, 185 4, 210 24 C 235 4, 285 6, 305 30 C 355 22, 365 68, 325 78 Z" fill="${bgColor}" stroke="${frameColor}" stroke-width="9" stroke-linejoin="round" />
@@ -527,7 +524,6 @@ export async function generateQRSvg(options: QROptions): Promise<string> {
       break;
 
     case 'cloche':
-      // Silver Service Waiter Dome Cloche with Ring Knob Top & Serving Platter Base
       qy = 80;
       frameBack = `
         <circle cx="210" cy="22" r="13" fill="none" stroke="${frameColor}" stroke-width="8" />
@@ -539,7 +535,6 @@ export async function generateQRSvg(options: QROptions): Promise<string> {
       break;
 
     case 'scooter':
-      // Express Delivery Box with Speed Lines, Handlebars & Two Scooter Wheels
       qy = 44;
       frameBack = `
         <rect x="34" y="28" width="352" height="354" rx="26" fill="${bgColor}" stroke="${frameColor}" stroke-width="9" />
@@ -553,7 +548,6 @@ export async function generateQRSvg(options: QROptions): Promise<string> {
       break;
 
     case 'envelope':
-      // Open Mail Envelope with V-Flap Header, Corner Mail Lines & Stamp Seal
       qy = 84;
       frameBack = `
         <polygon points="34,78 210,16 386,78" fill="${frameColor}" stroke="${frameColor}" stroke-width="8" stroke-linejoin="round" />

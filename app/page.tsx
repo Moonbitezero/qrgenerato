@@ -173,8 +173,8 @@ export default function HomePage() {
             </div>
           </button>
 
-          {/* Center Navigation Pill */}
-          <nav className="flex flex-wrap items-center gap-1 p-1.5 rounded-2xl bg-[#09090d] border border-zinc-800/90">
+         {/* Center Navigation Pill (Single-line horizontal scroll on mobile) */}
+          <nav className="w-full sm:w-auto flex items-center gap-1 p-1 rounded-2xl bg-[#09090d] border border-zinc-800/90 overflow-x-auto no-scrollbar">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -183,7 +183,7 @@ export default function HomePage() {
                   type="button"
                   onClick={() => switchTab(item.id)}
                   className={clsx(
-                    'px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer',
+                    'px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0',
                     isActive
                       ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-sm'
                       : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60'
