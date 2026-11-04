@@ -1671,7 +1671,7 @@ export default function QRStudio() {
             )}
 
             {/* MOBILE HERO QR PREVIEW CARD (Large, Clean & Centered so QR is never tiny!) */}
-            <div ref={mobileHeroPreviewRef} className="block lg:hidden">
+           <div ref={mobileHeroPreviewRef} className="block lg:hidden sticky top-[64px] z-30">
               <div className={clsx('p-4 sm:p-5 rounded-2xl border flex flex-col items-center space-y-3.5', cardClass)}>
                 {/* Top Status Row */}
                 <div className="w-full flex items-center justify-between">
