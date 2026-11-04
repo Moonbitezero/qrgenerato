@@ -94,7 +94,7 @@ export default function ContactPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold mb-1.5">Your Name</label>
-                <input type="text" required placeholder="Sameer Kumar" className={inputClass} />
+                <input type="text" required placeholder="" className={inputClass} />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1.5">Email Address</label>

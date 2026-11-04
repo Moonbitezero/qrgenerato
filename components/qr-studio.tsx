@@ -563,23 +563,23 @@ export default function QRStudio() {
   const [wifiPass, setWifiPass] = useState('welcome2026');
   const [wifiType, setWifiType] = useState<'WPA' | 'WEP' | 'nopass'>('WPA');
   const [wifiHidden, setWifiHidden] = useState(false);
-  const [vcardName, setVcardName] = useState('Sameer Kumar');
-  const [vcardPhone, setVcardPhone] = useState('+919876543210');
+  const [vcardName, setVcardName] = useState('');
+  const [vcardPhone, setVcardPhone] = useState('');
   const [vcardEmail, setVcardEmail] = useState('contact@qrgenerato.com');
   const [vcardOrg, setVcardOrg] = useState('QR Generato PRO');
   const [vcardWebsite, setVcardWebsite] = useState('https://qrgenerato.com');
-  const [vcardCity, setVcardCity] = useState('Haryana, India');
-  const [waPhone, setWaPhone] = useState('919876543210');
+  const [vcardCity, setVcardCity] = useState('');
+  const [waPhone, setWaPhone] = useState('');
   const [waMessage, setWaMessage] = useState('Hello! I just scanned your QR code.');
   const [emailTo, setEmailTo] = useState('support@qrgenerato.com');
   const [emailSub, setEmailSub] = useState('Business Inquiry');
   const [emailBody, setEmailBody] = useState('Hi team, I would like to connect.');
-  const [smsPhone, setSmsPhone] = useState('+919876543210');
+  const [smsPhone, setSmsPhone] = useState('');
   const [smsBody, setSmsBody] = useState('Hi, I am interested in your services.');
   const [eventTitle, setEventTitle] = useState('Product Launch 2026');
-  const [eventLocation, setEventLocation] = useState('Chandigarh Convention Center');
+  const [eventLocation, setEventLocation] = useState('');
   const [eventStart, setEventStart] = useState('20261201T100000Z');
-  const [mapsQuery, setMapsQuery] = useState('Sector 17, Chandigarh, India');
+  const [mapsQuery, setMapsQuery] = useState('');
 
   // Shape, Eye, Frame, Color, Logo & Artwork States
   const [dotStyle, setDotStyle] = useState('square');
