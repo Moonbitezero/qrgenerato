@@ -24,6 +24,8 @@ import {
   Info,
   Scale,
   Globe,
+  Menu,
+  X,
 } from 'lucide-react';
 
 export type ActiveSiteTab = 'studio' | 'about' | 'privacy' | 'terms' | 'contact';
@@ -31,6 +33,7 @@ export type ActiveSiteTab = 'studio' | 'about' | 'privacy' | 'terms' | 'contact'
 export default function HomePage() {
   const [isDark, setIsDark] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveSiteTab>('studio');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [contactSent, setContactSent] = useState(false);
 
   useEffect(() => {
@@ -50,6 +53,7 @@ export default function HomePage() {
 
   const switchTab = (tab: ActiveSiteTab) => {
     setActiveTab(tab);
+    setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -147,34 +151,34 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* UPPER NAVBAR */}
+{/* UPPER NAVBAR */}
       <header className="sticky top-0 z-50 bg-[#121217]/95 backdrop-blur-md border-b border-zinc-800/80 text-zinc-100">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={() => switchTab('studio')}
-            className="flex items-center gap-3 group cursor-pointer text-left"
+            className="flex items-center gap-3.5 group cursor-pointer text-left min-w-0"
           >
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-purple-500/40 shadow-sm shadow-purple-500/20 flex items-center justify-center text-purple-400 group-hover:border-purple-400 transition-colors">
-              <QrCode className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-purple-500/50 shadow-md shadow-purple-500/20 flex items-center justify-center text-purple-400 group-hover:border-purple-400 transition-colors shrink-0">
+              <QrCode className="w-6 h-6" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-base tracking-tight text-white">
+                <span className="font-extrabold text-base tracking-tight text-white truncate">
                   QR Generato
                 </span>
                 <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">
                   PRO
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-400">
+              <p className="text-xs text-zinc-400 truncate">
                 Free Online QR Code Generator With Logo &amp; Global Payments
               </p>
             </div>
           </button>
 
-          {/* Center Navigation Pill */}
-          <nav className="w-full sm:w-auto flex items-center gap-1 p-1 rounded-2xl bg-[#09090d] border border-zinc-800/90 overflow-x-auto no-scrollbar">
+          {/* Desktop Navigation Pill */}
+          <nav className="hidden md:flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#09090d] border border-zinc-800/90">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -183,9 +187,9 @@ export default function HomePage() {
                   type="button"
                   onClick={() => switchTab(item.id)}
                   className={clsx(
-                    'px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0',
+                    'px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap',
                     isActive
-                      ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-sm'
+                      ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-md shadow-purple-500/25'
                       : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60'
                   )}
                 >
@@ -195,16 +199,43 @@ export default function HomePage() {
             })}
           </nav>
 
-          <div className="hidden xl:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>No Sign Up • Free Forever</span>
+          {/* Mobile Menu Toggle Button */}
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 cursor-pointer"
+              aria-label="Toggle Menu"
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Dropdown Menu Drawer */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-zinc-800 bg-[#121217] px-4 py-3 space-y-1.5 shadow-xl">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => switchTab(item.id)}
+                className={clsx(
+                  'w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer',
+                  activeTab === item.id
+                    ? 'bg-purple-600 text-white'
+                    : 'text-zinc-300 hover:bg-zinc-800/80'
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* MAIN BODY */}
       <main className="flex-1">
-        {/* Studio remains mounted in DOM with hidden/block to eliminate light/dark flashes */}
         <div className={activeTab === 'studio' ? 'block' : 'hidden'}>
           <QRStudio />
 
@@ -315,7 +346,7 @@ export default function HomePage() {
           </section>
         </div>
 
-        {/* OTHER TABS VIEW (About, Privacy, Terms, Contact) */}
+        {/* OTHER TABS VIEW */}
         {activeTab !== 'studio' && (
           <div className="max-w-7xl mx-auto px-4 pt-6 pb-16">
             <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-6', cardClass)}>
@@ -492,8 +523,8 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* ADAPTIVE 4-COLUMN FOOTER */}
-      <footer className="bg-white/95 dark:bg-[#0a0a0f]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-zinc-800/80 text-slate-600 dark:text-zinc-400 transition-colors duration-150">
+      {/* FOOTER */}
+      <footer className="bg-white/95 dark:bg-[#0a0a0f]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-zinc-800/80 text-slate-600 dark:text-zinc-400">
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <div className="space-y-3">
@@ -525,11 +556,6 @@ export default function HomePage() {
                     <IndianRupee className="w-3.5 h-3.5 text-emerald-500" /> UPI &amp; Global Payment QR
                   </button>
                 </li>
-                <li>
-                  <button type="button" onClick={() => switchTab('studio')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
-                    <Zap className="w-3.5 h-3.5 text-amber-500" /> QR Code Generator With Logo
-                  </button>
-                </li>
               </ul>
             </div>
 
@@ -546,11 +572,6 @@ export default function HomePage() {
                 <li>
                   <button type="button" onClick={() => switchTab('contact')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
                     <Mail className="w-3.5 h-3.5 text-pink-500" /> Contact Us
-                  </button>
-                </li>
-                <li>
-                  <button type="button" onClick={() => switchTab('studio')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
-                    <HelpCircle className="w-3.5 h-3.5 text-amber-500" /> Frequently Asked Questions
                   </button>
                 </li>
               </ul>
@@ -572,9 +593,6 @@ export default function HomePage() {
                   </button>
                 </li>
               </ul>
-              <p className="text-[11px] leading-relaxed text-slate-400 dark:text-zinc-500 pt-1">
-                100% browser-based execution. Zero server uploads or tracking cookies.
-              </p>
             </div>
           </div>
 
