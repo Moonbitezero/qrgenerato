@@ -34,9 +34,14 @@ const VALID_TABS: ActiveSiteTab[] = ['studio', 'about', 'privacy', 'terms', 'con
 
 export default function HomePage({ initialTab = 'studio' }: { initialTab?: ActiveSiteTab }) {
   const [isDark, setIsDark] = useState(true);
-  const [activeTab, setActiveTab] = useState<ActiveSiteTab>(() => {
+ const [activeTab, setActiveTab] = useState<ActiveSiteTab>(() => {
     if (typeof window !== 'undefined') {
-      if (window.location.pathname === '/faq') return 'faq';
+      const p = window.location.pathname;
+      if (p === '/faq') return 'faq';
+      if (p === '/about' || p === '/about-us') return 'about';
+      if (p === '/contact' || p === '/contact-us') return 'contact';
+      if (p === '/privacy' || p === '/privacy-policy') return 'privacy';
+      if (p === '/terms' || p === '/terms-and-conditions') return 'terms';
       const hash = window.location.hash.replace('#', '') as ActiveSiteTab;
       if (VALID_TABS.includes(hash)) return hash;
     }

@@ -16,24 +16,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <head>
-        {/* Adding suppressHydrationWarning directly to the script tag silences the React/Turbopack dev warning */}
-        <script
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var saved = localStorage.getItem('qr-theme');
-                  var isDark = saved ? saved === 'dark' : true;
-                  document.documentElement.classList.toggle('dark', isDark);
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body className="min-h-screen flex flex-col transition-colors duration-150">
+      <body
+        suppressHydrationWarning
+        className="antialiased selection:bg-indigo-500 selection:text-white"
+      >
         {children}
       </body>
     </html>
