@@ -1,0 +1,38 @@
+{
+  "name": "qr-code-studio",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@next/third-parties": "^16.4.6",
+    "@tailwindcss/postcss": "^4.3.3",
+    "clsx": "^2.1.1",
+    "jsqr": "^1.4.0",
+    "jszip": "^3.10.2",
+    "lucide-react": "^1.64.0",
+    "next": "^16.4.3",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
+    "@types/node": "^22.15.30",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "autoprefixer": "^10.6.2",
+    "eslint": "^9.36.0",
+    "eslint-config-next": "^16.4.3",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.156.0"
+  }
+}

@@ -1,0 +1,40 @@
+/* app/globals.css */
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+html {
+  background-color: #eef2f6;
+  color: #0f172a;
+  overflow-y: scroll; /* Prevents horizontal layout jump when switching tabs */
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+html.dark {
+  background-color: #070709;
+  color: #f4f4f6;
+}
+
+@layer base {
+  body {
+    background-color: #eef2f6;
+    color: #0f172a;
+    font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.08), transparent 35%),
+      radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.06), transparent 35%),
+      radial-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 24px 24px;
+    background-attachment: fixed;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 100vh;
+  }
+
+  html.dark body {
+    background-color: #070709;
+    color: #f4f4f6;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(124, 58, 237, 0.12), transparent 35%),
+      radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.08), transparent 35%),
+      radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  }
+}
