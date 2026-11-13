@@ -1501,7 +1501,7 @@ export default function QRStudio() {
         await videoRef.current.play();
         setCameraActive(true);
         if ('BarcodeDetector' in window) {
-          // @ts-expect-error experimental
+         
           const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
           scanIntervalRef.current = window.setInterval(async () => {
             if (videoRef.current && videoRef.current.readyState === 4) {
@@ -2469,7 +2469,7 @@ export default function QRStudio() {
         img.onload = async () => {
           try {
             if ('BarcodeDetector' in window) {
-              // @ts-expect-error experimental Web API
+             
               const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
               const barcodes = await detector.detect(img);
               if (barcodes.length > 0) {
