@@ -1966,10 +1966,15 @@ export default function QRStudio() {
   const toggleMore = (key: string) => setShowAll((prev) => ({ ...prev, [key]: !prev[key] }));
   const [exportState, setExportState] = useState<{ format: 'gif' | 'mp4'; progress: number; label: string } | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [cardKind, setCardKind] = useState<CardKind>('anime');
+  const [cardKind, setCardKind] = useState<CardKind>('holo');
   const [cardName, setCardName] = useState('');
   const [cardTitle, setCardTitle] = useState('');
   const [cardExtra, setCardExtra] = useState('');
+  /** User-uploaded character art for anime / holo cards (downscaled data URL) */
+  const [cardArt, setCardArt] = useState<string | null>(null);
+  const [cardArtFit, setCardArtFit] = useState<'fill' | 'cutout'>('fill');
+  const [cardArtBusy, setCardArtBusy] = useState(false);
+  const cardArtInputRef = useRef<HTMLInputElement>(null);
 
   // Scanner & Batch States
   const [copied, setCopied] = useState(false);
@@ -2006,6 +2011,7 @@ export default function QRStudio() {
     const rawPath = window.location.pathname.replace(/^\/|\/$/g, '');
     const landingPath = LANDING_PATHS[rawPath];
     if (landingPath) setDesignTab(landingPath[1]);
+    if (rawPath === 'business-card-qr') setCardKind('business');
     const path = landingPath ? landingPath[0] : rawPath;
     if (['upi', 'sepa', 'paypal', 'cashapp', 'revolut', 'pix', 'paynow', 'crypto', 'stripe', 'bank'].includes(path)) {
       setActiveCategory('payments');
@@ -2986,6 +2992,39 @@ export default function QRStudio() {
     ]
   );
 
+  /**
+   * Loads a character image for anime / holo cards. It is downscaled to 1000px in the browser (nothing
+   * is uploaded) so the card SVG stays light; PNG/WebP keep transparency for cut-out characters.
+   */
+  const handleCardArtUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !file.type.startsWith('image/')) return;
+    setCardArtBusy(true);
+    try {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Could not read image'));
+        img.src = url;
+      });
+      const scale = Math.min(1, 1000 / Math.max(img.naturalWidth, img.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      const keepAlpha = /png|webp|gif|svg/.test(file.type);
+      setCardArt(keepAlpha ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.9));
+      if (keepAlpha) setCardArtFit('cutout');
+    } catch {
+      setCardArt(null);
+    } finally {
+      setCardArtBusy(false);
+    }
+  };
+
   // Wraps the QR in the selected card layout (if any). Empty fields fall back to the card's sample text.
   const activeCard = cardId !== 'none' ? CARD_MAP[cardId] : undefined;
   const getFinalMarkup = useCallback(
@@ -2998,6 +3037,8 @@ export default function QRStudio() {
               name: defCardName.trim() || activeCard.defaults.name,
               title: defCardTitle.trim() || activeCard.defaults.title,
               extra: defCardExtra.trim() || activeCard.defaults.extra,
+              art: activeCard.kind !== 'business' && cardArt ? cardArt : undefined,
+              artFit: cardArtFit,
             },
             qr,
             uid
@@ -3005,7 +3046,7 @@ export default function QRStudio() {
         : qr;
       return design;
     },
-    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra]
+    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra, cardArt, cardArtFit]
   );
 
   const isAnimated = animEffectId !== 'none';
@@ -4370,8 +4411,9 @@ export default function QRStudio() {
                     <div className={clsx('inline-flex p-0.5 rounded-lg border', subCardClass)} role="tablist" aria-label="Card type">
                       {(
                         [
-                          { id: 'anime', label: `Anime Cards (${CARD_DESIGNS.filter((c) => c.kind === 'anime').length})` },
-                          { id: 'business', label: `Business & Events (${CARD_DESIGNS.filter((c) => c.kind === 'business').length})` },
+                          { id: 'holo', label: `✦ Holo TCG (${CARD_DESIGNS.filter((c) => c.kind === 'holo').length})` },
+                          { id: 'anime', label: `Anime (${CARD_DESIGNS.filter((c) => c.kind === 'anime').length})` },
+                          { id: 'business', label: `Business (${CARD_DESIGNS.filter((c) => c.kind === 'business').length})` },
                         ] as const
                       ).map((k) => (
                         <button
@@ -4428,8 +4470,60 @@ export default function QRStudio() {
                           </label>
                         ))}
                       </div>
+                      {activeCard.kind !== 'business' && (
+                        <div className={clsx('flex flex-wrap items-center gap-2 pt-1 border-t', isDark ? 'border-zinc-800' : 'border-slate-200')}>
+                          <span className={clsx('text-[10px] font-semibold mr-auto pt-1', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                            Character art {cardArt ? '· your image' : '· built-in character'}
+                          </span>
+                          <input ref={cardArtInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleCardArtUpload} className="hidden" />
+                          <button
+                            type="button"
+                            onClick={() => cardArtInputRef.current?.click()}
+                            disabled={cardArtBusy}
+                            className={clsx('flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer disabled:opacity-60', activePillClass)}
+                          >
+                            <Upload className="w-3.5 h-3.5" /> {cardArtBusy ? 'Loading…' : cardArt ? 'Change image' : 'Upload your character'}
+                          </button>
+                          {cardArt && (
+                            <>
+                              <div className={clsx('inline-flex p-0.5 rounded-lg border', subCardClass)} role="radiogroup" aria-label="Image fit">
+                                {(
+                                  [
+                                    { id: 'fill', label: 'Fill card' },
+                                    { id: 'cutout', label: 'Cut-out' },
+                                  ] as const
+                                ).map((opt) => (
+                                  <button
+                                    key={opt.id}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={cardArtFit === opt.id}
+                                    onClick={() => setCardArtFit(opt.id)}
+                                    className={clsx(
+                                      'px-2 py-1 rounded-md text-[10.5px] font-bold cursor-pointer',
+                                      cardArtFit === opt.id ? 'bg-indigo-600 text-white' : isDark ? 'text-zinc-400' : 'text-slate-600'
+                                    )}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setCardArt(null)}
+                                className={clsx('px-2.5 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer', inactivePillClass)}
+                              >
+                                Remove
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
                       <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-400' : 'text-slate-500')}>
-                        Your QR design, colours and animation are placed on the card. PNG downloads at print resolution (2000px).
+                        {activeCard.kind !== 'business'
+                          ? 'Upload your own artwork or photo (it stays on your device). Use “Cut-out” for transparent PNG characters to keep the card background. Only use images you have the right to use.'
+                          : 'Your QR design, colours and animation are placed on the card.'}{' '}
+                        PNG downloads at print resolution (2000px).
                       </p>
                     </div>
                   ) : null}

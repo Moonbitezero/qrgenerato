@@ -1,13 +1,25 @@
 // lib/qr-cards.ts
-// 24 printable card layouts (12 anime collectible + 12 business / event) that
+// 36 printable card layouts (12 holo TCG + 12 anime collectible + 12 business / event) that
 // wrap the live QR code. All artwork is original vector art generated here.
 
-export type CardKind = 'anime' | 'business';
+import { TCG_DESIGNS } from './qr-cards-tcg';
+
+export type CardKind = 'holo' | 'anime' | 'business';
 
 export interface CardFields {
   name: string;
   title: string;
   extra: string;
+  /** Optional user-uploaded character art (data URL) used instead of the built-in character */
+  art?: string;
+  /** 'fill' covers the whole art area; 'cutout' keeps the card background and fits the image inside */
+  artFit?: 'fill' | 'cutout';
+}
+
+/** <image> element for user art. Both href forms are set for older renderers. */
+export function cardArtImage(href: string, x: number, y: number, w: number, h: number, fit: 'fill' | 'cutout'): string {
+  const par = fit === 'fill' ? 'xMidYMid slice' : 'xMidYMax meet';
+  return `<image href="${href}" xlink:href="${href}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${par}"/>`;
 }
 
 export interface CardDesign {
@@ -199,8 +211,12 @@ function animeCard(o: AnimeFrameOpts) {
       <rect width="${A_W}" height="${A_H}" rx="22" fill="url(#${bId})"/>
       <rect x="8" y="8" width="${A_W - 16}" height="${A_H - 16}" rx="16" fill="${o.inner}"/>
       <g clip-path="url(#${id('win')})">
-        ${o.scene(WIN, id)}
-        ${o.chara ? placeChara(WIN.x + 20, WIN.y + 14, WIN.w - 40, WIN.h - 14, animeCharacter(o.chara)) : ''}
+        ${f.art && f.artFit !== 'cutout' ? '' : o.scene(WIN, id)}
+        ${f.art
+          ? cardArtImage(f.art, WIN.x, WIN.y, WIN.w, WIN.h, f.artFit ?? 'fill')
+          : o.chara
+          ? placeChara(WIN.x + 20, WIN.y + 14, WIN.w - 40, WIN.h - 14, animeCharacter(o.chara))
+          : ''}
         ${o.overlay ? o.overlay(id) : ''}
       </g>
       <rect x="${WIN.x}" y="${WIN.y}" width="${WIN.w}" height="${WIN.h}" rx="12" fill="none" stroke="url(#${bId})" stroke-width="3"/>
@@ -920,6 +936,8 @@ export const CARD_DESIGNS: CardDesign[] = [
     }),
   },
 ];
+
+CARD_DESIGNS.unshift(...TCG_DESIGNS);
 
 export const CARD_MAP: Record<string, CardDesign> = Object.fromEntries(CARD_DESIGNS.map((c) => [c.id, c]));
 

@@ -65,7 +65,7 @@ const STEPS = [
   {
     step: '02',
     title: 'Style It: Art, Cards & Animation',
-    desc: '40 templates, 30 QR artworks, 24 printable cards, 50 animated effects and 23 card motions.',
+    desc: '56 templates, 30 QR artworks, 36 printable cards and 70 animated effects.',
     icon: Palette,
     accent: 'text-pink-500',
   },
@@ -145,7 +145,7 @@ const FAQS = [
   },
   {
     q: 'Can I put my QR code on a business card or anime trading card?',
-    a: 'Yes. The Cards tab has 24 printable layouts — 12 anime collectible cards and 12 business, ID, ticket, invitation and menu cards. Add your own name and details and download a 2000px PNG ready for print.',
+    a: 'Yes. The Cards tab has 36 printable layouts — 12 holographic trading cards, 12 anime collectible cards and 12 business, ID, ticket, invitation and menu cards. All characters are original artwork. Add your own name and details and download a 2000px PNG ready for print.',
   },
   {
     q: 'Can I add artwork or a logo to my QR code?',
