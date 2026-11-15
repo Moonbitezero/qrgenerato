@@ -9,5 +9,5 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default function PdfRoute() {
-  return <HomePage initialTab="studio" heading="Free PDF & Menu QR Code Generator" />;
+  return <HomePage initialTab="studio" landing="pdf" heading="Free PDF & Menu QR Code Generator" />;
 }

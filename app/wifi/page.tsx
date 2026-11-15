@@ -9,5 +9,5 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default function WifiRoute() {
-  return <HomePage initialTab="studio" heading="Free WiFi QR Code Generator" />;
+  return <HomePage initialTab="studio" landing="wifi" heading="Free WiFi QR Code Generator" />;
 }

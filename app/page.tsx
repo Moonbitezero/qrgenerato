@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import clsx from 'clsx';
+import { LANDING_CONTENT, type LandingKey } from '@/lib/landing-content';
 import {
   QrCode,
   Sparkles,
@@ -111,39 +112,43 @@ const USE_CASES = [
 const FAQS = [
   {
     q: 'Do QR codes created on QR Generato ever expire?',
-    a: 'No. Every QR code generated here is 100% static. Your URL, payment ID, WiFi password, or vCard is encoded directly into the dots—meaning it works forever with unlimited scans and zero subscriptions.',
+    a: 'No. Every QR code made here is static: your link, payment ID, WiFi details or contact card is stored directly in the code, so it works forever with unlimited scans and no subscription.',
   },
   {
-    q: 'Is this a Free QR Code Generator?',
-    a: 'Yes, QR Generato is a 100% free QR code generator. You can create, style, and download high-resolution PNG or SVG files completely free without signing up or paying hidden fees.',
+    q: 'Is QR Generato really a free QR code generator?',
+    a: 'Yes. Creating, styling and downloading QR codes is completely free — no sign-up, no watermark and no hidden fees, including PNG, SVG, GIF and MP4 downloads.',
   },
   {
-    q: 'What is the difference between a Static QR Code and a Dynamic QR Code?',
-    a: 'A static QR code encodes your data directly into the pixel pattern, meaning it never expires and requires no subscription. Dynamic QR codes route through a tracking server and typically require monthly fees; our studio focuses on reliable, permanent static codes.',
+    q: 'What is the difference between a static and a dynamic QR code?',
+    a: 'A static QR code stores your data inside the pattern itself, so it never expires and needs no server. A dynamic QR code points to a redirect server that can be edited or tracked, but usually needs a paid plan. QR Generato makes reliable, permanent static codes.',
   },
   {
-    q: 'Can I use this as an AI QR code generator or custom art generator?',
-    a: 'Yes! Our studio features 16 advanced art presets and custom image placement options that let you blend artwork inside the QR dots or behind the code for a stunning AI-like aesthetic.',
+    q: 'Can I make an animated QR code?',
+    a: 'Yes. The Animate tab has 70 animated effects — light sweeps, radar, liquid fill, glitch, rainbow and more. The corner eyes stay still so animated codes keep scanning, and you can download them as GIF, MP4 or animated SVG.',
   },
   {
-    q: 'Is there a built-in QR Code Scanner?',
-    a: 'Yes. You can switch to the "Scanner" mode at the top of the studio page to scan live codes instantly using your device camera or by uploading a screenshot image.',
+    q: 'Can I put my QR code on a business card or anime trading card?',
+    a: 'Yes. The Cards tab has 24 printable layouts — 12 anime collectible cards and 12 business, ID, ticket, invitation and menu cards. Add your own name and details and download a 2000px PNG ready for print.',
   },
   {
-    q: 'How do I convert Text to a QR Code?',
-    a: 'Simply select the "Text" type in the studio, type or paste any message, note, or serial number, and your QR code will generate instantly in real-time.',
+    q: 'Can I add artwork or a logo to my QR code?',
+    a: 'Yes. Choose from 30 QR art presets or upload your own image to blend art into the QR dots, place it behind the code or show it as a centre badge. You can also add a preset or custom logo in the Logos tab.',
   },
   {
-    q: 'Which countries and payment systems are supported?',
-    a: 'We support India Bharat UPI (GPay, PhonePe, Paytm), Europe EPC SEPA IBAN transfers, Global PayPal.me, US/UK CashApp & Venmo, Wise, Revolut, Brazil Pix, Singapore/Thailand PayNow & PromptPay, Stripe, and Crypto wallets.',
+    q: 'Is there a built-in QR code scanner?',
+    a: 'Yes. Switch to Scan at the top of the studio to read QR codes with your camera or by uploading a screenshot.',
+  },
+  {
+    q: 'Which payment QR codes are supported?',
+    a: 'Bharat UPI (Google Pay, PhonePe, Paytm, BHIM), SEPA bank transfers, PayPal.me, Cash App, Revolut, Brazil Pix, Singapore PayNow, Stripe payment links, bank transfer details and crypto wallets (Bitcoin, Ethereum, Solana, USDT).',
   },
   {
     q: 'Is my data stored on your servers?',
-    a: 'Never. QR Generato runs 100% client-side inside your browser. Your links, bank details, and logos never leave your device.',
+    a: 'No. QR Generato runs entirely in your browser. Your links, bank details, photos and logos never leave your device.',
   },
   {
-    q: 'Can I use these QR codes for commercial print materials?',
-    a: 'Yes! All downloaded high-resolution 1,400px PNGs and infinite-scale Vector SVGs are 100% free for commercial use on product packaging, flyers, restaurant tables, and billboards.',
+    q: 'Can I use these QR codes commercially?',
+    a: 'Yes. All downloads — high-resolution PNG, scalable SVG, GIF and MP4 — are free for commercial use on packaging, flyers, menus, signs and ads. Always test a printed code with a phone before a large print run.',
   },
 ];
 
@@ -184,13 +189,29 @@ const APP_SCHEMA_JSON = JSON.stringify({
   ],
 });
 
+function faqSchemaJson(faqs: { q: string; a: string }[]): string {
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+  });
+}
+
 export default function HomePage({
   initialTab = 'studio',
   heading = 'Free QR Code Generator Online',
+  landing,
 }: {
   initialTab?: ActiveSiteTab;
   heading?: string;
+  /** Tool landing pages (/wifi, /upi…) get their own guide section + FAQ schema */
+  landing?: LandingKey;
 }) {
+  const landingData = landing ? LANDING_CONTENT[landing] : null;
   const [isDark, setIsDark] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveSiteTab>(() => {
     if (typeof window !== 'undefined') {
@@ -273,7 +294,7 @@ export default function HomePage({
       <script
         type="application/ld+json"
         suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: FAQ_SCHEMA_JSON }}
+        dangerouslySetInnerHTML={{ __html: landingData ? faqSchemaJson(landingData.faqs) : FAQ_SCHEMA_JSON }}
       />
       <script
         type="application/ld+json"
@@ -401,6 +422,66 @@ export default function HomePage({
             </div>
           )}
           <QRStudio />
+
+          {landingData && (
+            <section className="max-w-7xl mx-auto px-4 pt-2 pb-6" aria-labelledby="landing-guide">
+              <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-6', cardClass)}>
+                <div className="space-y-2 max-w-3xl">
+                  <h2 id="landing-guide" className="text-xl sm:text-2xl font-bold tracking-tight">
+                    {landingData.title}
+                  </h2>
+                  {landingData.intro.map((para) => (
+                    <p key={para} className={clsx('text-sm leading-relaxed', mutedText)}>
+                      {para}
+                    </p>
+                  ))}
+                </div>
+
+                <ol className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {landingData.steps.map((step, i) => (
+                    <li key={step.title} className={clsx('p-5 rounded-xl border space-y-1.5', subCardClass)}>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-500">Step {i + 1}</span>
+                      <h3 className="text-sm font-bold">{step.title}</h3>
+                      <p className={clsx('text-xs sm:text-sm leading-relaxed', mutedText)}>{step.text}</p>
+                    </li>
+                  ))}
+                </ol>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold">Popular uses</h3>
+                    <ul className={clsx('text-sm space-y-1.5', mutedText)}>
+                      {landingData.uses.map((u) => (
+                        <li key={u} className="flex gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> {u}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold">Tips</h3>
+                    <ul className={clsx('text-sm space-y-1.5 list-disc pl-5', mutedText)}>
+                      {landingData.tips.map((t) => (
+                        <li key={t}>{t}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold">Frequently asked questions</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {landingData.faqs.map((f) => (
+                      <div key={f.q} className={clsx('p-4 rounded-xl border space-y-1', subCardClass)}>
+                        <h4 className="text-sm font-semibold">{f.q}</h4>
+                        <p className={clsx('text-xs sm:text-sm leading-relaxed', mutedText)}>{f.a}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="max-w-7xl mx-auto px-4 pb-16 pt-2 space-y-6">
             {/* Simple 3-Step Workflow */}

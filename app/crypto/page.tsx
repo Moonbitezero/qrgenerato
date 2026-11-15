@@ -9,5 +9,5 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default function CryptoRoute() {
-  return <HomePage initialTab="studio" heading="Free Crypto Wallet QR Code Generator" />;
+  return <HomePage initialTab="studio" landing="crypto" heading="Free Crypto Wallet QR Code Generator" />;
 }

@@ -9,5 +9,5 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default function WhatsappRoute() {
-  return <HomePage initialTab="studio" heading="Free WhatsApp QR Code Generator" />;
+  return <HomePage initialTab="studio" landing="whatsapp" heading="Free WhatsApp QR Code Generator" />;
 }

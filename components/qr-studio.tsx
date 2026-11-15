@@ -1707,6 +1707,11 @@ const COLOR_THEMES = [
   { name: 'Cyber Gold', fg: '#facc15', g2: '#eab308', bg: '#09090b', bg2: '#18181b', bgGrad: 'linear' as const, from: 'from-yellow-400', to: 'to-zinc-900' },
 ];
 
+/** Escapes characters that are special in the WIFI: QR payload format. */
+function escWifi(v: string): string {
+  return v.replace(/[\\;,:"]/g, (ch) => '\\' + ch);
+}
+
 function escapeXml(unsafe: string): string {
   return unsafe.replace(/[<>&'"]/g, (c) => {
     switch (c) {
@@ -1884,7 +1889,7 @@ export default function QRStudio() {
   const [vcardPhone, setVcardPhone] = useState('');
   const [vcardEmail, setVcardEmail] = useState('contact@qrgenerato.com');
   const [vcardOrg, setVcardOrg] = useState('QR Generato PRO');
-  const [vcardWebsite] = useState('https://qrgenerato.com');
+  const [vcardWebsite] = useState('');
   const [vcardCity] = useState('');
   const [waPhone, setWaPhone] = useState('');
   const [waMessage, setWaMessage] = useState('Hello! I just scanned your QR code.');
@@ -2161,9 +2166,23 @@ export default function QRStudio() {
       case 'bank':
         return `BANK TRANSFER\nAccount Holder: ${bankHolder}\nBank: ${bankName}\nIBAN/Account: ${bankAccount}\nSWIFT/BIC: ${bankSwift}`;
       case 'wifi':
-        return `WIFI:T:${wifiType};S:${wifiSsid};P:${wifiPass};H:${wifiHidden ? 'true' : 'false'};;`;
+        // Escape \ ; , : " as the Wi-Fi QR format requires, otherwise phones read the wrong network/password.
+        return `WIFI:T:${wifiType};S:${escWifi(wifiSsid)};P:${wifiType === 'nopass' ? '' : escWifi(wifiPass)};H:${wifiHidden ? 'true' : 'false'};;`;
       case 'vcard':
-        return `BEGIN:VCARD\nVERSION:3.0\nFN:${vcardName}\nORG:${vcardOrg}\nTEL:${vcardPhone}\nEMAIL:${vcardEmail}\nURL:${vcardWebsite}\nADR:;;${vcardCity};;;;\nEND:VCARD`;
+        // Only include fields the user filled in; empty URL/ADR lines show up as junk in some contact apps.
+        return [
+          'BEGIN:VCARD',
+          'VERSION:3.0',
+          `FN:${vcardName}`,
+          vcardOrg && `ORG:${vcardOrg}`,
+          vcardPhone && `TEL:${vcardPhone}`,
+          vcardEmail && `EMAIL:${vcardEmail}`,
+          vcardWebsite && `URL:${vcardWebsite}`,
+          vcardCity && `ADR:;;${vcardCity};;;;`,
+          'END:VCARD',
+        ]
+          .filter(Boolean)
+          .join('\n');
       case 'whatsapp': {
         const cleanPhone = waPhone.replace(/\D/g, '');
         return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;

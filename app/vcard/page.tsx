@@ -9,5 +9,5 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default function VcardRoute() {
-  return <HomePage initialTab="studio" heading="Free vCard QR Code Generator" />;
+  return <HomePage initialTab="studio" landing="vcard" heading="Free vCard QR Code Generator" />;
 }

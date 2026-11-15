@@ -9,5 +9,5 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default function PaypalRoute() {
-  return <HomePage initialTab="studio" heading="Free PayPal QR Code Generator" />;
+  return <HomePage initialTab="studio" landing="paypal" heading="Free PayPal QR Code Generator" />;
 }

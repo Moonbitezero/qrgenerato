@@ -9,5 +9,5 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default function UpiRoute() {
-  return <HomePage initialTab="studio" heading="Free UPI QR Code Generator" />;
+  return <HomePage initialTab="studio" landing="upi" heading="Free UPI QR Code Generator" />;
 }
