@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     'Free online QR code generator with logo, colors and frames. Create QR codes for URLs, Wi-Fi, UPI, PayPal, vCard and WhatsApp. No sign-up, no watermark, codes never expire. Download PNG or SVG.'
   ),
   applicationName: SITE_NAME,
+  icons: { icon: [{ url: '/favicon.ico', sizes: 'any' }, { url: '/icon', type: 'image/png', sizes: '32x32' }], apple: '/apple-touch-icon.png' },
   keywords: [
     'qr generator',
     'qr code generator',
