@@ -1,6 +1,6 @@
 // app/layout.tsx
 import type { Metadata } from 'next';
-import { GoogleAnalytics } from '@next/third-parties/google';
+import Analytics from '@/components/analytics';
 import { SITE_NAME, SITE_URL, pageMetadata } from '@/lib/seo';
 import './globals.css';
 
@@ -42,7 +42,7 @@ export default function RootLayout({
       >
         {children}
       </body>
-      <GoogleAnalytics gaId="G-93JX2N2RNH" />
+      <Analytics gaId="G-93JX2N2RNH" />
     </html>
   );
 }
