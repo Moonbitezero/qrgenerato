@@ -50,7 +50,7 @@ export function SiteHeader() {
                 PRO
               </span>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-zinc-400 truncate">
+            <p className="hidden sm:block text-[11px] text-zinc-400 truncate">
               Free Online QR Code Generator With Logo &amp; UPI
             </p>
           </div>

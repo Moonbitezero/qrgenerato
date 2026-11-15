@@ -1,70 +1,30 @@
-// Updated Nov 9, 2026
-import { MetadataRoute } from 'next';
+import type { MetadataRoute } from 'next';
+import { SITE_URL } from '@/lib/seo';
+
+type Entry = [path: string, changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'], priority: number];
+
+const ROUTES: Entry[] = [
+  ['/', 'weekly', 1.0],
+  ['/wifi', 'weekly', 0.9],
+  ['/upi', 'weekly', 0.9],
+  ['/paypal', 'weekly', 0.9],
+  ['/whatsapp', 'weekly', 0.9],
+  ['/vcard', 'weekly', 0.9],
+  ['/pdf', 'weekly', 0.9],
+  ['/crypto', 'weekly', 0.9],
+  ['/faq', 'monthly', 0.8],
+  ['/about', 'monthly', 0.7],
+  ['/contact-us', 'monthly', 0.6],
+  ['/privacy-policy', 'yearly', 0.4],
+  ['/terms-and-conditions', 'yearly', 0.4],
+];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://qrgenerato.com';
   const lastModified = new Date();
-
-  return [
-    {
-      url: `${baseUrl}/`,
-      lastModified,
-      changeFrequency: 'weekly',
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/wifi`,
-      lastModified,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/upi`,
-      lastModified,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/paypal`,
-      lastModified,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/whatsapp`,
-      lastModified,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/vcard`,
-      lastModified,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/contact-us`,
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/privacy-policy`,
-      lastModified,
-      changeFrequency: 'yearly',
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/terms-and-conditions`,
-      lastModified,
-      changeFrequency: 'yearly',
-      priority: 0.6,
-    },
-  ];
+  return ROUTES.map(([path, changeFrequency, priority]) => ({
+    url: `${SITE_URL}${path === '/' ? '' : path}`,
+    lastModified,
+    changeFrequency,
+    priority,
+  }));
 }

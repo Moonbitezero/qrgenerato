@@ -63,15 +63,15 @@ const STEPS = [
   },
   {
     step: '02',
-    title: 'Customize 20 Frames & 16 Artworks',
-    desc: 'Style dot shapes, corner eyes, illustrated frames, or fill QR dots with custom artwork.',
+    title: 'Style It: Art, Cards & Animation',
+    desc: '40 templates, 30 QR artworks, 24 printable cards, 50 animated effects and 23 card motions.',
     icon: Palette,
     accent: 'text-pink-500',
   },
   {
     step: '03',
-    title: 'Download 1400px PNG or Vector SVG',
-    desc: 'Export print-ready high-res PNGs or infinite-scale Vector SVGs that work forever.',
+    title: 'Download PNG, SVG, GIF or MP4',
+    desc: 'Print-ready PNG, infinite-scale SVG, or animated GIF & MP4 for social media. Codes never expire.',
     icon: Download,
     accent: 'text-emerald-500',
   },
@@ -160,7 +160,37 @@ const FAQ_SCHEMA_JSON = JSON.stringify({
   })),
 });
 
-export default function HomePage({ initialTab = 'studio' }: { initialTab?: ActiveSiteTab }) {
+const APP_SCHEMA_JSON = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'QR Generato',
+  alternateName: 'QR Generato – Free QR Code Generator',
+  url: 'https://qrgenerato.com/',
+  description:
+    'Free online QR code generator with logo, colors, frames and payment QR codes. No sign-up, no watermark, permanent static codes.',
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Any',
+  browserRequirements: 'Requires JavaScript',
+  isAccessibleForFree: true,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  featureList: [
+    'QR code generator with logo',
+    'Custom colors, gradients and frames',
+    'Wi-Fi, vCard, WhatsApp, URL, email and SMS QR codes',
+    'UPI, PayPal, SEPA, Pix and crypto payment QR codes',
+    'PNG and SVG download',
+    'Batch QR generation',
+    'QR code scanner',
+  ],
+});
+
+export default function HomePage({
+  initialTab = 'studio',
+  heading = 'Free QR Code Generator Online',
+}: {
+  initialTab?: ActiveSiteTab;
+  heading?: string;
+}) {
   const [isDark, setIsDark] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveSiteTab>(() => {
     if (typeof window !== 'undefined') {
@@ -179,16 +209,10 @@ export default function HomePage({ initialTab = 'studio' }: { initialTab?: Activ
   const [contactSent, setContactSent] = useState(false);
 
   useEffect(() => {
-    // Check URL hash or path on initial load
-    const hash = window.location.hash.replace('#', '') as ActiveSiteTab;
-    if (VALID_TABS.includes(hash)) {
-      setActiveTab(hash);
-    } else if (window.location.pathname === '/faq') {
-      setActiveTab('faq');
-    }
-
+    // Initial tab (hash/path) is already resolved by the useState initializer above.
     const saved = localStorage.getItem('qr-theme');
     const prefersDark = saved ? saved === 'dark' : true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only readable after hydration
     setIsDark(prefersDark);
     document.documentElement.classList.toggle('dark', prefersDark);
 
@@ -251,6 +275,11 @@ export default function HomePage({ initialTab = 'studio' }: { initialTab?: Activ
         suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: FAQ_SCHEMA_JSON }}
       />
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: APP_SCHEMA_JSON }}
+      />
 
       {/* UPPER NAVBAR - Solid on mobile for 60fps scrolling, blurred on desktop */}
       <header className="sticky top-0 z-50 bg-[#121217] md:bg-[#121217]/95 md:backdrop-blur-md border-b border-zinc-800/80 text-zinc-100">
@@ -272,7 +301,7 @@ export default function HomePage({ initialTab = 'studio' }: { initialTab?: Activ
                   PRO
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 truncate">
+              <p className="hidden sm:block text-xs text-zinc-400 truncate">
                 Free Online QR Code Generator With Logo &amp; Global Payments
               </p>
             </div>
@@ -338,6 +367,39 @@ export default function HomePage({ initialTab = 'studio' }: { initialTab?: Activ
       {/* MAIN BODY */}
       <main className="flex-1">
         <div className={activeTab === 'studio' ? 'block' : 'hidden'}>
+          {activeTab === 'studio' && (
+            <div className="max-sm:sr-only max-w-7xl mx-auto px-4 pt-4 sm:pt-6 pb-0">
+              {/* Visually hidden on phones (kept in the DOM for SEO / screen readers), shown from sm up. */}
+              <h1 className="text-[22px] leading-[1.15] sm:text-3xl lg:text-[34px] font-extrabold tracking-tight text-balance">
+                {heading.replace(/ Online$/, '')}
+                {heading.endsWith(' Online') && (
+                  <>
+                    {' '}
+                    <span className="bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 bg-clip-text text-transparent">
+                      Online
+                    </span>
+                  </>
+                )}
+              </h1>
+              <p className={clsx('mt-1 sm:mt-2 text-[13px] leading-snug sm:text-[15px] max-w-4xl', mutedText)}>
+                Custom QR codes with logo, colours, cards &amp; animation.
+                <span className="hidden sm:inline"> Free forever — no sign-up, no watermark, codes never expire.</span>
+              </p>
+              <ul className="hidden sm:flex flex-wrap gap-2 mt-2.5" aria-label="Highlights">
+                {['100% free', 'No sign-up', 'Never expires', 'PNG · SVG · GIF · MP4'].map((chip) => (
+                  <li
+                    key={chip}
+                    className={clsx(
+                      'px-2.5 py-1 rounded-full text-[11px] font-semibold border',
+                      isDark ? 'border-zinc-800 bg-zinc-900/70 text-zinc-300' : 'border-slate-200 bg-white text-slate-600'
+                    )}
+                  >
+                    ✓ {chip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <QRStudio />
 
           <section className="max-w-7xl mx-auto px-4 pb-16 pt-2 space-y-6">
@@ -493,7 +555,7 @@ export default function HomePage({ initialTab = 'studio' }: { initialTab?: Activ
                       </p>
                     </div>
                     <div className={clsx('p-5 rounded-xl border', subCardClass)}>
-                      <h3 className="text-xs font-bold text-purple-500 mb-1.5">1400px PNG &amp; Vector SVG</h3>
+                      <h3 className="text-xs font-bold text-purple-500 mb-1.5">PNG, SVG, GIF &amp; MP4</h3>
                       <p className={clsx('text-xs leading-relaxed', mutedText)}>
                         Download print-ready high-resolution images for flyers, table tents, and product packaging.
                       </p>

@@ -44,6 +44,8 @@ export default function GlobalError({
             >
               <RotateCcw size={15} /> Try Again
             </button>
+            {/* Plain <a> is intentional: a full page reload recovers from a broken root layout. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/"
               className="px-5 py-3 rounded-xl bg-white/10 text-zinc-200 font-bold text-xs flex items-center justify-center"

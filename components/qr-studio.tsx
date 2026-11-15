@@ -12,6 +12,22 @@ import React, {
 import QRCode from 'qrcode';
 import clsx from 'clsx';
 import {
+  ANIMATED_EFFECTS,
+  ANIMATED_EFFECT_MAP,
+  FX_GROUPS,
+  POPULAR_FX,
+  buildFxLayer,
+  effectLoopSeconds,
+  isDarkColor,
+  moduleDelay,
+  renderEffectThumb,
+  wrapModule,
+  type FxGroupId,
+} from '@/lib/qr-animations';
+import { downloadBlob, exportGif, exportMp4 } from '@/lib/qr-export';
+import { EXTRA_ART_PRESETS } from '@/lib/qr-art-extra';
+import { CARD_DESIGNS, CARD_MAP, SAMPLE_QR_SVG, renderCardSvg, type CardKind } from '@/lib/qr-cards';
+import {
   QrCode,
   Camera,
   Layers,
@@ -67,7 +83,7 @@ import {
 
 type StudioMode = 'create' | 'scanner' | 'batch';
 type CategoryId = 'links' | 'payments' | 'social' | 'business' | 'access';
-type DesignTab = 'templates' | 'shapes' | 'colors' | 'logo' | 'frames' | 'artwork';
+type DesignTab = 'templates' | 'animate' | 'cards' | 'shapes' | 'colors' | 'logo' | 'frames' | 'artwork';
 type ArtPlacement = 'qr-fill' | 'neon-cutout' | 'back-halo' | 'back-pure' | 'medallion';
 type LogoShape = 'rounded' | 'circle' | 'square';
 
@@ -1004,9 +1020,441 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
     eyeDot: '#d97706',
     logo: 'menu',
   },
+  {
+    id: 'minimal-ink',
+    name: 'Ink Minimal',
+    badge: 'Editorial Classy',
+    fg: '#111827',
+    g2: '#111827',
+    grad: 'none',
+    bg: '#f8fafc',
+    bg2: '#f8fafc',
+    bgGrad: 'none',
+    dot: 'classy',
+    ring: 'cut',
+    center: 'diamond',
+    customEyes: false,
+    eyeRing: '#111827',
+    eyeDot: '#111827',
+    logo: 'none',
+  },
+  {
+    id: 'ocean-depth',
+    name: 'Ocean Depth',
+    badge: 'Deep Blue Gradient',
+    fg: '#0c4a6e',
+    g2: '#0369a1',
+    grad: 'linear',
+    bg: '#f0f9ff',
+    bg2: '#e0f2fe',
+    bgGrad: 'linear',
+    dot: 'rounded',
+    ring: 'rounded',
+    center: 'circle',
+    customEyes: false,
+    eyeRing: '#0c4a6e',
+    eyeDot: '#0369a1',
+    logo: 'none',
+  },
+  {
+    id: 'forest-leaf',
+    name: 'Forest Leaf',
+    badge: 'Organic Liquid',
+    fg: '#14532d',
+    g2: '#15803d',
+    grad: 'linear',
+    bg: '#f0fdf4',
+    bg2: '#f0fdf4',
+    bgGrad: 'none',
+    dot: 'liquid',
+    ring: 'leaf-tl',
+    center: 'leaf',
+    customEyes: false,
+    eyeRing: '#14532d',
+    eyeDot: '#15803d',
+    logo: 'none',
+  },
+  {
+    id: 'rose-gold',
+    name: 'Rose Gold',
+    badge: 'Wedding & Gifts',
+    fg: '#9f1239',
+    g2: '#b45309',
+    grad: 'linear',
+    bg: '#fff1f2',
+    bg2: '#ffe4e6',
+    bgGrad: 'linear',
+    dot: 'dots',
+    ring: 'circle',
+    center: 'heart',
+    customEyes: true,
+    eyeRing: '#9f1239',
+    eyeDot: '#b45309',
+    logo: 'none',
+  },
+  {
+    id: 'midnight-neon',
+    name: 'Midnight Neon',
+    badge: 'Dark Mode Glow',
+    fg: '#f0abfc',
+    g2: '#67e8f9',
+    grad: 'linear',
+    bg: '#0b0b14',
+    bg2: '#1e1b4b',
+    bgGrad: 'linear',
+    dot: 'dots',
+    ring: 'rounded',
+    center: 'circle',
+    customEyes: true,
+    eyeRing: '#67e8f9',
+    eyeDot: '#f0abfc',
+    logo: 'none',
+  },
+  {
+    id: 'retro-sunset',
+    name: 'Retro Sunset',
+    badge: 'Vintage Bars',
+    fg: '#7c2d12',
+    g2: '#be185d',
+    grad: 'linear',
+    bg: '#fff7ed',
+    bg2: '#fde68a',
+    bgGrad: 'linear',
+    dot: 'v-bars',
+    ring: 'square',
+    center: 'square',
+    customEyes: false,
+    eyeRing: '#7c2d12',
+    eyeDot: '#be185d',
+    logo: 'none',
+  },
+  {
+    id: 'corporate-slate',
+    name: 'Corporate Slate',
+    badge: 'Business Card',
+    fg: '#1e293b',
+    g2: '#1e293b',
+    grad: 'none',
+    bg: '#ffffff',
+    bg2: '#ffffff',
+    bgGrad: 'none',
+    dot: 'extra-round',
+    ring: 'rounded',
+    center: 'rounded',
+    customEyes: true,
+    eyeRing: '#2563eb',
+    eyeDot: '#1e293b',
+    logo: 'none',
+  },
+  {
+    id: 'lavender-dream',
+    name: 'Lavender Dream',
+    badge: 'Starry Soft',
+    fg: '#5b21b6',
+    g2: '#7c3aed',
+    grad: 'radial',
+    bg: '#faf5ff',
+    bg2: '#f3e8ff',
+    bgGrad: 'radial',
+    dot: 'star',
+    ring: 'dotted',
+    center: 'star',
+    customEyes: false,
+    eyeRing: '#5b21b6',
+    eyeDot: '#7c3aed',
+    logo: 'none',
+  },
+  {
+    id: 'u-candy-hearts',
+    name: 'Candy Hearts',
+    badge: 'Heart Dots',
+    fg: '#be185d',
+    g2: '#7c3aed',
+    grad: 'linear',
+    bg: '#fff1f2',
+    bg2: '#fce7f3',
+    bgGrad: 'linear',
+    dot: 'heart',
+    ring: 'circle',
+    center: 'heart',
+    customEyes: true,
+    eyeRing: '#be185d',
+    eyeDot: '#7c3aed',
+    logo: 'none',
+  },
+  {
+    id: 'u-starry-night',
+    name: 'Starry Night',
+    badge: 'Star Dots',
+    fg: '#1e3a8a',
+    g2: '#6d28d9',
+    grad: 'radial',
+    bg: '#eef2ff',
+    bg2: '#e0e7ff',
+    bgGrad: 'radial',
+    dot: 'star',
+    ring: 'rounded',
+    center: 'star',
+    customEyes: true,
+    eyeRing: '#1e3a8a',
+    eyeDot: '#ca8a04',
+    logo: 'none',
+  },
+  {
+    id: 'u-royal-diamond',
+    name: 'Royal Diamond',
+    badge: 'Gold Diamonds',
+    fg: '#78350f',
+    g2: '#b45309',
+    grad: 'linear',
+    bg: '#fffbeb',
+    bg2: '#fef3c7',
+    bgGrad: 'linear',
+    dot: 'diamond',
+    ring: 'cut',
+    center: 'diamond',
+    customEyes: true,
+    eyeRing: '#1e1b4b',
+    eyeDot: '#b45309',
+    logo: 'none',
+  },
+  {
+    id: 'u-medic-cross',
+    name: 'Medic Cross',
+    badge: 'Plus Modules',
+    fg: '#b91c1c',
+    g2: '#dc2626',
+    grad: 'none',
+    bg: '#ffffff',
+    bg2: '#ffffff',
+    bgGrad: 'none',
+    dot: 'cross',
+    ring: 'square',
+    center: 'cross',
+    customEyes: true,
+    eyeRing: '#0f172a',
+    eyeDot: '#b91c1c',
+    logo: 'none',
+  },
+  {
+    id: 'u-ocean-bars',
+    name: 'Ocean Bars',
+    badge: 'Horizontal Bars',
+    fg: '#0c4a6e',
+    g2: '#0e7490',
+    grad: 'linear',
+    bg: '#ecfeff',
+    bg2: '#cffafe',
+    bgGrad: 'linear',
+    dot: 'h-bars',
+    ring: 'rounded',
+    center: 'rounded',
+    customEyes: false,
+    eyeRing: '#0c4a6e',
+    eyeDot: '#0e7490',
+    logo: 'none',
+  },
+  {
+    id: 'u-barcode-pro',
+    name: 'Barcode Pro',
+    badge: 'Vertical Bars',
+    fg: '#111827',
+    g2: '#374151',
+    grad: 'linear',
+    bg: '#f9fafb',
+    bg2: '#f3f4f6',
+    bgGrad: 'none',
+    dot: 'v-bars',
+    ring: 'square',
+    center: 'square',
+    customEyes: false,
+    eyeRing: '#111827',
+    eyeDot: '#111827',
+    logo: 'none',
+  },
+  {
+    id: 'u-lava-liquid',
+    name: 'Lava Liquid',
+    badge: 'Molten Flow',
+    fg: '#7f1d1d',
+    g2: '#c2410c',
+    grad: 'linear',
+    bg: '#fff7ed',
+    bg2: '#ffedd5',
+    bgGrad: 'linear',
+    dot: 'liquid',
+    ring: 'leaf-tr',
+    center: 'leaf',
+    customEyes: false,
+    eyeRing: '#7f1d1d',
+    eyeDot: '#c2410c',
+    logo: 'none',
+  },
+  {
+    id: 'u-mint-bubble',
+    name: 'Mint Bubble',
+    badge: 'Soft Dots',
+    fg: '#065f46',
+    g2: '#0d9488',
+    grad: 'radial',
+    bg: '#ecfdf5',
+    bg2: '#d1fae5',
+    bgGrad: 'radial',
+    dot: 'dots',
+    ring: 'circle',
+    center: 'circle',
+    customEyes: false,
+    eyeRing: '#065f46',
+    eyeDot: '#0d9488',
+    logo: 'none',
+  },
+  {
+    id: 'u-sunburst-gold',
+    name: 'Sunburst Gold',
+    badge: 'Sun Eyes',
+    fg: '#92400e',
+    g2: '#ea580c',
+    grad: 'radial',
+    bg: '#fefce8',
+    bg2: '#fef9c3',
+    bgGrad: 'radial',
+    dot: 'extra-round',
+    ring: 'dotted',
+    center: 'sunburst',
+    customEyes: true,
+    eyeRing: '#92400e',
+    eyeDot: '#ea580c',
+    logo: 'none',
+  },
+  {
+    id: 'u-grape-soda',
+    name: 'Grape Soda',
+    badge: 'Fizzy Purple',
+    fg: '#581c87',
+    g2: '#a21caf',
+    grad: 'linear',
+    bg: '#faf5ff',
+    bg2: '#fae8ff',
+    bgGrad: 'linear',
+    dot: 'dots',
+    ring: 'leaf-bl',
+    center: 'grid',
+    customEyes: true,
+    eyeRing: '#581c87',
+    eyeDot: '#a21caf',
+    logo: 'none',
+  },
+  {
+    id: 'u-vintage-sepia',
+    name: 'Vintage Sepia',
+    badge: 'Old Paper',
+    fg: '#44403c',
+    g2: '#78350f',
+    grad: 'linear',
+    bg: '#fafaf9',
+    bg2: '#f5f0e6',
+    bgGrad: 'linear',
+    dot: 'classy',
+    ring: 'cut',
+    center: 'square',
+    customEyes: false,
+    eyeRing: '#44403c',
+    eyeDot: '#78350f',
+    logo: 'none',
+  },
+  {
+    id: 'u-neon-pink-night',
+    name: 'Neon Pink Night',
+    badge: 'Dark Glow',
+    fg: '#f472b6',
+    g2: '#c084fc',
+    grad: 'linear',
+    bg: '#0f0a1a',
+    bg2: '#1e1033',
+    bgGrad: 'linear',
+    dot: 'dots',
+    ring: 'circle',
+    center: 'circle',
+    customEyes: true,
+    eyeRing: '#f472b6',
+    eyeDot: '#c084fc',
+    logo: 'none',
+  },
+  {
+    id: 'u-cyber-lime',
+    name: 'Cyber Lime',
+    badge: 'Matrix Dark',
+    fg: '#a3e635',
+    g2: '#22d3ee',
+    grad: 'linear',
+    bg: '#030712',
+    bg2: '#0b1120',
+    bgGrad: 'linear',
+    dot: 'square',
+    ring: 'square',
+    center: 'square',
+    customEyes: true,
+    eyeRing: '#a3e635',
+    eyeDot: '#22d3ee',
+    logo: 'none',
+  },
+  {
+    id: 'u-arctic-frost',
+    name: 'Arctic Frost',
+    badge: 'Ice Blue',
+    fg: '#1e3a8a',
+    g2: '#0369a1',
+    grad: 'linear',
+    bg: '#f0f9ff',
+    bg2: '#e0f2fe',
+    bgGrad: 'radial',
+    dot: 'rounded',
+    ring: 'leaf-tl',
+    center: 'diamond',
+    customEyes: true,
+    eyeRing: '#0369a1',
+    eyeDot: '#1e3a8a',
+    logo: 'none',
+  },
+  {
+    id: 'u-coffee-bean',
+    name: 'Coffee Bean',
+    badge: 'Warm Roast',
+    fg: '#3f2a1d',
+    g2: '#78350f',
+    grad: 'linear',
+    bg: '#fdf8f3',
+    bg2: '#f5e9dc',
+    bgGrad: 'linear',
+    dot: 'extra-round',
+    ring: 'rounded',
+    center: 'circle',
+    customEyes: false,
+    eyeRing: '#3f2a1d',
+    eyeDot: '#78350f',
+    logo: 'none',
+  },
+  {
+    id: 'u-rainbow-pop',
+    name: 'Rainbow Pop',
+    badge: 'Multi Gradient',
+    fg: '#7c3aed',
+    g2: '#c2410c',
+    grad: 'linear',
+    bg: '#ffffff',
+    bg2: '#ffffff',
+    bgGrad: 'none',
+    dot: 'rounded',
+    ring: 'circle',
+    center: 'star',
+    customEyes: true,
+    eyeRing: '#0e7490',
+    eyeDot: '#be185d',
+    logo: 'none',
+  },
 ];
 
-// 18 Dual-Mode Artworks: Original Full-Bleed Illustrated Posters + Transparent Cutouts
+// 30 Dual-Mode Artworks: Original Full-Bleed Illustrated Posters + Transparent Cutouts
 const ART_PRESETS: ArtPresetItem[] = [
   createDualArtPreset(
     'crimson-hero',
@@ -1248,6 +1696,7 @@ const ART_PRESETS: ArtPresetItem[] = [
      <polygon points="160,110 132,122 150,132" fill="#22d3ee"/>
      <circle cx="120" cy="186" r="9" fill="#09090b"/>`
   ),
+  ...EXTRA_ART_PRESETS.map((a) => createDualArtPreset(a.id, a.name, a.fg, a.g2, a.eyeAccent, a.bg, a.art)),
 ];
 
 const COLOR_THEMES = [
@@ -1271,12 +1720,82 @@ function escapeXml(unsafe: string): string {
   });
 }
 
+type TemplateCategory = 'unique' | 'basic' | 'payments' | 'social' | 'business' | 'stylish';
+
+const TEMPLATE_CATEGORIES: { id: 'all' | TemplateCategory; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'unique', label: '✦ Unique' },
+  { id: 'basic', label: 'Basic' },
+  { id: 'payments', label: 'Payments' },
+  { id: 'social', label: 'Social' },
+  { id: 'business', label: 'Business' },
+  { id: 'stylish', label: 'Stylish' },
+];
+
+function templateCategory(id: string): TemplateCategory {
+  if (id.startsWith('u-')) return 'unique';
+  if (/^(normal-|minimal-ink|corporate-slate)/.test(id)) return 'basic';
+  if (/(upi|phonepe|paytm)/.test(id)) return 'payments';
+  if (/^(ig-|yt-|wa-|fb-|x-|tg-|snap-|spotify|linkedin|discord|twitch)/.test(id)) return 'social';
+  if (/^(wifi|google-|gmaps|gdrive|docs|slides|forms|cafe)/.test(id)) return 'business';
+  return 'stylish';
+}
+
+/** Module grid for template thumbnails (7px cells, skipping eyes and centre), drawn in the template's dot style. */
+const THUMB_CELLS: [number, number][] = (() => {
+  const cells: [number, number][] = [];
+  for (let r = 0; r < 12; r++) {
+    for (let c = 0; c < 12; c++) {
+      const eye = (r < 4 && c < 4) || (r < 4 && c > 7) || (r > 7 && c < 4);
+      const centre = r >= 5 && r <= 6 && c >= 5 && c <= 6;
+      if (eye || centre) continue;
+      const h = Math.sin(r * 91.7 + c * 47.3) * 43758.5453;
+      if (h - Math.floor(h) > 0.45) cells.push([8 + c * 7, 8 + r * 7]);
+    }
+  }
+  return cells;
+})();
+
+function thumbModules(dot: string): string {
+  return THUMB_CELLS.map(([x, y]) => {
+    const cx = x + 3;
+    const cy = y + 3;
+    switch (dot) {
+      case 'square':
+        return `<rect x="${x}" y="${y}" width="6.4" height="6.4"/>`;
+      case 'dots':
+        return `<circle cx="${cx}" cy="${cy}" r="2.8"/>`;
+      case 'extra-round':
+      case 'liquid':
+        return `<rect x="${x}" y="${y}" width="6" height="6" rx="3"/>`;
+      case 'classy':
+        return `<path d="M${x},${y + 2.5} Q${x},${y} ${x + 2.5},${y} H${x + 6} V${y + 3.5} Q${x + 6},${y + 6} ${x + 3.5},${y + 6} H${x} Z"/>`;
+      case 'diamond':
+        return `<polygon points="${cx},${y - 0.4} ${x + 6.4},${cy} ${cx},${y + 6.4} ${x - 0.4},${cy}"/>`;
+      case 'star':
+        return `<polygon points="${cx},${y - 0.6} ${cx + 1.1},${cy - 1.1} ${x + 6.6},${cy} ${cx + 1.1},${cy + 1.1} ${cx},${y + 6.6} ${cx - 1.1},${cy + 1.1} ${x - 0.6},${cy} ${cx - 1.1},${cy - 1.1}"/>`;
+      case 'heart':
+        return `<path d="M${cx},${y + 6} C${x - 1},${cy} ${x},${y} ${cx},${y + 1.8} C${x + 6},${y} ${x + 7},${cy} ${cx},${y + 6} Z"/>`;
+      case 'cross':
+        return `<path d="M${x + 2},${y} H${x + 4} V${y + 2} H${x + 6} V${y + 4} H${x + 4} V${y + 6} H${x + 2} V${y + 4} H${x} V${y + 2} H${x + 2} Z"/>`;
+      case 'v-bars':
+        return `<rect x="${x + 1}" y="${y - 0.5}" width="4" height="7" rx="2"/>`;
+      case 'h-bars':
+        return `<rect x="${x - 0.5}" y="${y + 1}" width="7" height="4" rx="2"/>`;
+      default:
+        return `<rect x="${x}" y="${y}" width="6" height="6" rx="1.8"/>`;
+    }
+  }).join('');
+}
+
 function renderTemplateThumbSvg(t: BrandTemplate): string {
   const gradDef =
     t.bgGrad !== 'none'
       ? `<defs><linearGradient id="bg_${t.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${t.bg}"/><stop offset="100%" stop-color="${t.bg2}"/></linearGradient></defs>`
       : '';
   const bgFill = t.bgGrad !== 'none' ? `url(#bg_${t.id})` : t.bg;
+  const modFill = t.grad !== 'none' ? `url(#fg_${t.id})` : t.fg;
+  const fgGradDef = t.grad !== 'none' ? `<defs><linearGradient id="fg_${t.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${t.fg}"/><stop offset="100%" stop-color="${t.g2}"/></linearGradient></defs>` : '';
   const eyeRx = t.ring === 'circle' ? 11 : t.ring === 'rounded' ? 5 : 1;
   const dotRx = t.dot === 'square' ? 0.5 : 3.5;
   const logoObj = PRESET_LOGOS.find((l) => l.id === t.logo);
@@ -1289,7 +1808,7 @@ function renderTemplateThumbSvg(t: BrandTemplate): string {
       : `<rect x="42" y="42" width="16" height="16" rx="${dotRx}" fill="${t.fg}"/>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
-    ${gradDef}
+    ${gradDef}${fgGradDef}
     <rect width="100" height="100" rx="18" fill="${bgFill}" stroke="rgba(148,163,184,0.25)" stroke-width="2"/>
     <rect x="12" y="12" width="22" height="22" rx="${eyeRx}" fill="none" stroke="${t.eyeRing}" stroke-width="4"/>
     <rect x="18" y="18" width="10" height="10" rx="${eyeRx * 0.5}" fill="${t.eyeDot}"/>
@@ -1297,19 +1816,7 @@ function renderTemplateThumbSvg(t: BrandTemplate): string {
     <rect x="72" y="18" width="10" height="10" rx="${eyeRx * 0.5}" fill="${t.eyeDot}"/>
     <rect x="12" y="66" width="22" height="22" rx="${eyeRx}" fill="none" stroke="${t.eyeRing}" stroke-width="4"/>
     <rect x="18" y="72" width="10" height="10" rx="${eyeRx * 0.5}" fill="${t.eyeDot}"/>
-    <g fill="${t.fg}">
-      <rect x="40" y="14" width="18" height="6" rx="${dotRx}"/>
-      <circle cx="46" cy="28" r="3.5"/>
-      <circle cx="56" cy="28" r="3.5"/>
-      <rect x="14" y="42" width="6" height="16" rx="${dotRx}"/>
-      <circle cx="28" cy="48" r="3.5"/>
-      <rect x="78" y="42" width="8" height="18" rx="${dotRx}"/>
-      <circle cx="68" cy="52" r="3.5"/>
-      <rect x="42" y="76" width="20" height="7" rx="${dotRx}"/>
-      <circle cx="72" cy="72" r="4"/>
-      <circle cx="82" cy="82" r="4"/>
-      <rect x="66" y="80" width="12" height="6" rx="${dotRx}"/>
-    </g>
+    <g fill="${modFill}">${thumbModules(t.dot)}</g>
     ${centerBadge}
   </svg>`;
 }
@@ -1372,13 +1879,13 @@ export default function QRStudio() {
   const [wifiSsid, setWifiSsid] = useState('Office_WiFi_5G');
   const [wifiPass, setWifiPass] = useState('welcome2026');
   const [wifiType, setWifiType] = useState<'WPA' | 'WEP' | 'nopass'>('WPA');
-  const [wifiHidden, setWifiHidden] = useState(false);
+  const [wifiHidden] = useState(false);
   const [vcardName, setVcardName] = useState('');
   const [vcardPhone, setVcardPhone] = useState('');
   const [vcardEmail, setVcardEmail] = useState('contact@qrgenerato.com');
   const [vcardOrg, setVcardOrg] = useState('QR Generato PRO');
-  const [vcardWebsite, setVcardWebsite] = useState('https://qrgenerato.com');
-  const [vcardCity, setVcardCity] = useState('');
+  const [vcardWebsite] = useState('https://qrgenerato.com');
+  const [vcardCity] = useState('');
   const [waPhone, setWaPhone] = useState('');
   const [waMessage, setWaMessage] = useState('Hello! I just scanned your QR code.');
   const [emailTo, setEmailTo] = useState('support@qrgenerato.com');
@@ -1412,7 +1919,7 @@ export default function QRStudio() {
   const [selectedPresetLogo, setSelectedPresetLogo] = useState('none');
   const [customLogoUrl, setCustomLogoUrl] = useState<string | null>(null);
   const [logoScale, setLogoScale] = useState(0.22);
-  const [logoShape, setLogoShape] = useState<LogoShape>('rounded');
+  const [logoShape] = useState<LogoShape>('rounded');
 
   // UNIFIED QR ART STATES (Supports both Classic Poster Art & Neon Cutout Art!)
   const [selectedArtId, setSelectedArtId] = useState<string>('crimson-hero');
@@ -1422,8 +1929,25 @@ export default function QRStudio() {
   const [artworkOpacity, setArtworkOpacity] = useState(0.88);
   const [artScale, setArtScale] = useState(0.82);
   const [artScanDots, setArtScanDots] = useState(0.5);
-  const [artGlow, setArtGlow] = useState(6);
+  const [artGlow] = useState(6);
   const [showArtAdvanced, setShowArtAdvanced] = useState(false);
+
+  // Animated QR effects
+  const [animEffectId, setAnimEffectId] = useState<string>('none');
+  const [animSpeed, setAnimSpeed] = useState(1);
+  const [fxGroup, setFxGroup] = useState<FxGroupId>('popular');
+  // Printable card layouts (anime collectibles, business & event cards)
+  const [cardId, setCardId] = useState<string>('none');
+  // Mobile grids show the first rows only until "Show all" is tapped.
+  const [showAll, setShowAll] = useState<Record<string, boolean>>({});
+  const [templateCat, setTemplateCat] = useState<'all' | TemplateCategory>('all');
+  const toggleMore = (key: string) => setShowAll((prev) => ({ ...prev, [key]: !prev[key] }));
+  const [exportState, setExportState] = useState<{ format: 'gif' | 'mp4'; progress: number; label: string } | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [cardKind, setCardKind] = useState<CardKind>('anime');
+  const [cardName, setCardName] = useState('');
+  const [cardTitle, setCardTitle] = useState('');
+  const [cardExtra, setCardExtra] = useState('');
 
   // Scanner & Batch States
   const [copied, setCopied] = useState(false);
@@ -1444,6 +1968,7 @@ export default function QRStudio() {
   useEffect(() => {
     const saved = localStorage.getItem('qr-theme');
     const prefersDark = saved ? saved === 'dark' : true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage/URL are only readable after hydration
     setIsDark(prefersDark);
     document.documentElement.classList.toggle('dark', prefersDark);
 
@@ -1479,15 +2004,6 @@ export default function QRStudio() {
     document.documentElement.classList.toggle('dark', nextDark);
     window.dispatchEvent(new CustomEvent('qr-theme-change', { detail: nextDark }));
   };
-
-  useEffect(() => {
-    if (studioMode !== 'scanner' && cameraActive) {
-      stopCameraScanner();
-    }
-    return () => {
-      if (scanIntervalRef.current) window.clearInterval(scanIntervalRef.current);
-    };
-  }, [studioMode, cameraActive]);
 
   const startCameraScanner = async () => {
     setScanError(null);
@@ -1536,8 +2052,20 @@ export default function QRStudio() {
     setCameraActive(false);
   };
 
+  useEffect(() => {
+    if (studioMode !== 'scanner' && cameraActive) {
+      stopCameraScanner();
+    }
+    return () => {
+      if (scanIntervalRef.current) window.clearInterval(scanIntervalRef.current);
+    };
+  }, [studioMode, cameraActive]);
+
   const handleResetDesign = () => {
     setActiveTemplateId('normal-classic');
+    setCardId('none');
+    setAnimEffectId('none');
+    setAnimSpeed(1);
     setSelectedArtId('none');
     setDotStyle('square');
     setFinderShape('square');
@@ -1681,6 +2209,11 @@ export default function QRStudio() {
   const defArtOpacity = useDeferredValue(artworkOpacity);
   const defArtScanDots = useDeferredValue(artScanDots);
   const defArtGlow = useDeferredValue(artGlow);
+  const defAnimEffectId = useDeferredValue(animEffectId);
+  const defAnimSpeed = useDeferredValue(animSpeed);
+  const defCardName = useDeferredValue(cardName);
+  const defCardTitle = useDeferredValue(cardTitle);
+  const defCardExtra = useDeferredValue(cardExtra);
 
   // Live Scannability Score (0 to 100)
   const scannability = useMemo(() => {
@@ -1765,7 +2298,7 @@ export default function QRStudio() {
 
   // 3. Complete Vector SVG Renderer (Supports BOTH Original Classic Art & Neon Cutout Art!)
   const getSvgMarkup = useCallback(
-    (uid: string) => {
+    (uid: string, animate = true) => {
       const count = qrMatrix.length;
       const cellSize = 10;
       const margin = 32;
@@ -1853,7 +2386,25 @@ export default function QRStudio() {
           ? `url(#${bgRadId})`
           : safeBg;
 
+      const fxEffect = animate ? ANIMATED_EFFECT_MAP[defAnimEffectId] : undefined;
+      const fx = fxEffect
+        ? buildFxLayer({
+            uid,
+            effect: fxEffect,
+            count,
+            offsetX,
+            offsetY,
+            qrSize,
+            fg: safeFg,
+            solidFill: mainFill.startsWith('url(') ? null : mainFill,
+            accent: gradientType !== 'none' && safeGrad2.toLowerCase() !== safeFg.toLowerCase() ? safeGrad2 : isDarkColor(safeBg) ? '#c084fc' : '#7c3aed',
+            bg: safeBg,
+            speed: defAnimSpeed,
+          })
+        : null;
+
       let bodyPaths = '';
+      let bodyModules = '';
       let contrastHalos = '';
       let wovenScanDots = '';
 
@@ -1881,51 +2432,56 @@ export default function QRStudio() {
             contrastHalos += `<rect x="${x - 0.8}" y="${y - 0.8}" width="${cellSize + 1.6}" height="${cellSize + 1.6}" rx="2.5" fill="#ffffff" fill-opacity="0.92" />`;
           }
 
+          let shape = '';
           switch (dotStyle) {
             case 'liquid': {
               const right = isActiveBodyModule(r, c + 1);
               const bottom = isActiveBodyModule(r + 1, c);
-              bodyPaths += `<rect x="${x + 0.5}" y="${y + 0.5}" width="${cellSize - 1}" height="${cellSize - 1}" rx="3.8" />`;
+              shape += `<rect x="${x + 0.5}" y="${y + 0.5}" width="${cellSize - 1}" height="${cellSize - 1}" rx="3.8" />`;
               if (right) {
-                bodyPaths += `<rect x="${x + cellSize * 0.45}" y="${y + 0.5}" width="${cellSize * 0.6}" height="${cellSize - 1}" />`;
+                shape += `<rect x="${x + cellSize * 0.45}" y="${y + 0.5}" width="${cellSize * 0.6}" height="${cellSize - 1}" />`;
               }
               if (bottom) {
-                bodyPaths += `<rect x="${x + 0.5}" y="${y + cellSize * 0.45}" width="${cellSize - 1}" height="${cellSize * 0.6}" />`;
+                shape += `<rect x="${x + 0.5}" y="${y + cellSize * 0.45}" width="${cellSize - 1}" height="${cellSize * 0.6}" />`;
               }
               break;
             }
             case 'dots':
-              bodyPaths += `<circle cx="${cx}" cy="${cy}" r="${cellSize * 0.44}" />`;
+              shape += `<circle cx="${cx}" cy="${cy}" r="${cellSize * 0.44}" />`;
               break;
             case 'rounded':
-              bodyPaths += `<rect x="${x + 0.5}" y="${y + 0.5}" width="${cellSize - 1}" height="${cellSize - 1}" rx="3" />`;
+              shape += `<rect x="${x + 0.5}" y="${y + 0.5}" width="${cellSize - 1}" height="${cellSize - 1}" rx="3" />`;
               break;
             case 'extra-round':
-              bodyPaths += `<rect x="${x + 0.4}" y="${y + 0.4}" width="${cellSize - 0.8}" height="${cellSize - 0.8}" rx="4.5" />`;
+              shape += `<rect x="${x + 0.4}" y="${y + 0.4}" width="${cellSize - 0.8}" height="${cellSize - 0.8}" rx="4.5" />`;
               break;
             case 'classy':
-              bodyPaths += `<path d="M${x},${y + 4} Q${x},${y} ${x + 4},${y} L${x + cellSize},${y} L${x + cellSize},${y + cellSize - 4} Q${x + cellSize},${y + cellSize} ${x + cellSize - 4},${y + cellSize} L${x},${y + cellSize} Z" />`;
+              shape += `<path d="M${x},${y + 4} Q${x},${y} ${x + 4},${y} L${x + cellSize},${y} L${x + cellSize},${y + cellSize - 4} Q${x + cellSize},${y + cellSize} ${x + cellSize - 4},${y + cellSize} L${x},${y + cellSize} Z" />`;
               break;
             case 'diamond':
-              bodyPaths += `<polygon points="${cx},${y} ${x + cellSize},${cy} ${cx},${y + cellSize} ${x},${cy}" />`;
+              shape += `<polygon points="${cx},${y} ${x + cellSize},${cy} ${cx},${y + cellSize} ${x},${cy}" />`;
               break;
             case 'star':
-              bodyPaths += `<polygon points="${cx},${y} ${cx + 1.8},${cy - 1.8} ${x + cellSize},${cy} ${cx + 1.8},${cy + 1.8} ${cx},${y + cellSize} ${cx - 1.8},${cy + 1.8} ${x},${cy} ${cx - 1.8},${cy - 1.8}" />`;
+              shape += `<polygon points="${cx},${y} ${cx + 1.8},${cy - 1.8} ${x + cellSize},${cy} ${cx + 1.8},${cy + 1.8} ${cx},${y + cellSize} ${cx - 1.8},${cy + 1.8} ${x},${cy} ${cx - 1.8},${cy - 1.8}" />`;
               break;
             case 'heart':
-              bodyPaths += `<path d="M${cx},${y + cellSize * 0.88} C${x + 1},${cy + 1} ${x},${y + 2.5} ${cx - 2.3},${y + 2} C${cx - 0.5},${y + 1.8} ${cx},${y + 3.2} ${cx},${y + 3.5} C${cx},${y + 3.2} ${cx + 0.5},${y + 1.8} ${cx + 2.3},${y + 2} C${x + cellSize},${y + 2.5} ${x + cellSize - 1},${cy + 1} ${cx},${y + cellSize * 0.88} Z" />`;
+              shape += `<path d="M${cx},${y + cellSize * 0.88} C${x + 1},${cy + 1} ${x},${y + 2.5} ${cx - 2.3},${y + 2} C${cx - 0.5},${y + 1.8} ${cx},${y + 3.2} ${cx},${y + 3.5} C${cx},${y + 3.2} ${cx + 0.5},${y + 1.8} ${cx + 2.3},${y + 2} C${x + cellSize},${y + 2.5} ${x + cellSize - 1},${cy + 1} ${cx},${y + cellSize * 0.88} Z" />`;
               break;
             case 'cross':
-              bodyPaths += `<path d="M${x + 3},${y + 0.8} H${x + 7} V${y + 3} H${x + 9.2} V${y + 7} H${x + 7} V${y + 9.2} H${x + 3} V${y + 7} H${x + 0.8} V${y + 3} H${x + 3} Z" />`;
+              shape += `<path d="M${x + 3},${y + 0.8} H${x + 7} V${y + 3} H${x + 9.2} V${y + 7} H${x + 7} V${y + 9.2} H${x + 3} V${y + 7} H${x + 0.8} V${y + 3} H${x + 3} Z" />`;
               break;
             case 'v-bars':
-              bodyPaths += `<rect x="${x + 1.3}" y="${y}" width="${cellSize - 2.6}" height="${cellSize}" rx="3.2" />`;
+              shape += `<rect x="${x + 1.3}" y="${y}" width="${cellSize - 2.6}" height="${cellSize}" rx="3.2" />`;
               break;
             case 'h-bars':
-              bodyPaths += `<rect x="${x}" y="${y + 1.3}" width="${cellSize}" height="${cellSize - 2.6}" rx="3.2" />`;
+              shape += `<rect x="${x}" y="${y + 1.3}" width="${cellSize}" height="${cellSize - 2.6}" rx="3.2" />`;
               break;
             default:
-              bodyPaths += `<rect x="${x}" y="${y}" width="${cellSize + 0.25}" height="${cellSize + 0.25}" />`;
+              shape += `<rect x="${x}" y="${y}" width="${cellSize + 0.25}" height="${cellSize + 0.25}" />`;
+          }
+          bodyPaths += shape;
+          if (fx?.wrapModules && fxEffect?.module) {
+            bodyModules += wrapModule(shape, moduleDelay(fxEffect.module.delay, r, c, count));
           }
         }
       }
@@ -2091,6 +2647,8 @@ export default function QRStudio() {
           </clipPath>
           ${artPatternDef}
           ${glowFilterDef}
+          ${fx ? fx.defs : ''}
+          ${fx?.clipId ? `<clipPath id="${fx.clipId}">${bodyPaths}</clipPath>` : ''}
         </defs>
       `;
 
@@ -2309,7 +2867,7 @@ export default function QRStudio() {
         `;
       } else if (artworkUrl && artPlacement === 'qr-fill') {
         artDotsOverlay = `
-          <g fill="url(#${artPatId})" opacity="${defArtOpacity}">${bodyPaths}</g>
+          <g fill="url(#${artPatId})" opacity="${defArtOpacity}" ${fx?.wrapModules ? `class="${fx.bodyClass}"` : ''}>${fx?.wrapModules ? bodyModules : bodyPaths}</g>
         `;
       }
 
@@ -2355,12 +2913,14 @@ export default function QRStudio() {
         isNeonCutout && defArtGlow > 0 ? `filter="url(#${glowFilterId})"` : '';
 
       return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${totalW} ${totalH}" width="100%" height="100%">
+        ${fx ? fx.style : ''}
         ${defs}
         ${bgSvg}
         ${artBackLayer}
         ${contrastHalos}
-        <g fill="${mainFill}" ${bodyFilterAttr}>${bodyPaths}</g>
+        <g fill="${fx?.bodyFill ?? mainFill}" ${fx ? `class="${fx.bodyClass}"` : ''} ${bodyFilterAttr}>${fx?.wrapModules ? bodyModules : bodyPaths}</g>
         ${artDotsOverlay}
+        ${fx ? fx.overlay : ''}
         ${eyesSvg}
         ${neonForegroundArt}
         ${centerLogoSvg}
@@ -2374,11 +2934,87 @@ export default function QRStudio() {
       defGrad2, gradientType, defBgColor, defBgColor2, bgGradientType, transparentBg,
       selectedPresetLogo, customLogoUrl, logoScale, logoShape,
       artworkUrl, artCutoutUrl, artPlacement, defArtOpacity, defArtScale, defArtScanDots, defArtGlow,
+      defAnimEffectId, defAnimSpeed,
     ]
   );
 
-  const svgMobile = useMemo(() => getSvgMarkup('mob'), [getSvgMarkup]);
-  const svgDesktop = useMemo(() => getSvgMarkup('desk'), [getSvgMarkup]);
+  // Wraps the QR in the selected card layout (if any). Empty fields fall back to the card's sample text.
+  const activeCard = cardId !== 'none' ? CARD_MAP[cardId] : undefined;
+  const getFinalMarkup = useCallback(
+    (uid: string, animate = true) => {
+      const qr = getSvgMarkup(uid, animate);
+      const design = activeCard
+        ? renderCardSvg(
+            activeCard,
+            {
+              name: defCardName.trim() || activeCard.defaults.name,
+              title: defCardTitle.trim() || activeCard.defaults.title,
+              extra: defCardExtra.trim() || activeCard.defaults.extra,
+            },
+            qr,
+            uid
+          )
+        : qr;
+      return design;
+    },
+    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra]
+  );
+
+  const isAnimated = animEffectId !== 'none';
+  const loopSeconds = useMemo(() => {
+    const fxEffect = ANIMATED_EFFECT_MAP[animEffectId];
+    const longest = fxEffect ? effectLoopSeconds(fxEffect, animSpeed) : 0;
+    return Math.min(6, Math.max(1.5, Number(longest.toFixed(2)) || 3));
+  }, [animEffectId, animSpeed]);
+
+  const runExport = async (format: 'gif' | 'mp4') => {
+    if (!isAnimated || exportState) return;
+    setExportError(null);
+    setExportState({ format, progress: 0, label: 'Preparing…' });
+    try {
+      const svg = getFinalMarkup('vid', true);
+      const onProgress = (progress: number, label: string) => setExportState({ format, progress, label });
+      const background = transparentBg ? '#ffffff' : defBgColor || '#ffffff';
+      const base = activeCard ? `qr-generato-${activeCard.id}` : `qr-generato-${qrType}`;
+      if (format === 'gif') {
+        const blob = await exportGif(svg, { seconds: loopSeconds, fps: 20, longest: activeCard ? 600 : 480, background, onProgress });
+        downloadBlob(blob, `${base}-animated.gif`);
+      } else {
+        const blob = await exportMp4(svg, { seconds: loopSeconds, fps: 30, longest: 1080, background, minSeconds: 6, onProgress });
+        downloadBlob(blob, `${base}-animated.mp4`);
+      }
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed. Please try again.');
+    } finally {
+      setExportState(null);
+    }
+  };
+
+  const svgMobile = useMemo(() => getFinalMarkup('mob'), [getFinalMarkup]);
+  const svgDesktop = useMemo(() => getFinalMarkup('desk'), [getFinalMarkup]);
+
+  // Effect thumbnails are static strings; only the visible group is mounted, so at most 10 animate at once.
+  const effectThumbs = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const e of ANIMATED_EFFECTS) map[e.id] = renderEffectThumb(e);
+    return map;
+  }, []);
+
+  const cardThumbs = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of CARD_DESIGNS) map[c.id] = renderCardSvg(c, c.defaults, SAMPLE_QR_SVG, 'th');
+    return map;
+  }, []);
+
+  const selectCard = (id: string) => {
+    if (id !== cardId) {
+      // New layout: clear custom text so the card shows its own sample until the user types.
+      setCardName('');
+      setCardTitle('');
+      setCardExtra('');
+    }
+    setCardId(id);
+  };
 
   const templateThumbs = useMemo(() => {
     const map: Record<string, string> = {};
@@ -2388,22 +3024,33 @@ export default function QRStudio() {
     return map;
   }, []);
 
+  /** Raster size for an SVG string: longest side = `longest`, aspect ratio taken from its viewBox. */
+  const rasterSize = (svg: string, longest: number) => {
+    const m = /viewBox="[\d.-]+ [\d.-]+ ([\d.]+) ([\d.]+)"/.exec(svg);
+    const vw = m ? parseFloat(m[1]) : 1;
+    const vh = m ? parseFloat(m[2]) : 1;
+    return vw >= vh
+      ? { w: longest, h: Math.round((longest * vh) / vw) }
+      : { w: Math.round((longest * vw) / vh), h: longest };
+  };
+
   const handleDownloadPng = () => {
-    const svgExport = getSvgMarkup('exp');
+    const svgExport = getFinalMarkup('exp', false);
     const svgBlob = new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
     const img = new Image();
     img.onload = () => {
+      const { w, h } = rasterSize(svgExport, activeCard ? 2000 : 1400);
       const canvas = document.createElement('canvas');
-      canvas.width = 1400;
-      canvas.height = 1400;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(img, 0, 0, 1400, 1400);
+        ctx.drawImage(img, 0, 0, w, h);
         const pngUrl = canvas.toDataURL('image/png');
         const a = document.createElement('a');
         a.href = pngUrl;
-        a.download = `qr-generato-${qrType}.png`;
+        a.download = activeCard ? `qr-generato-${activeCard.id}-card.png` : `qr-generato-${qrType}.png`;
         a.click();
       }
       URL.revokeObjectURL(url);
@@ -2412,28 +3059,29 @@ export default function QRStudio() {
   };
 
   const handleDownloadSvg = () => {
-    const svgExport = getSvgMarkup('exp');
+    const svgExport = getFinalMarkup('exp');
     const blob = new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `qr-generato-${qrType}.svg`;
+    a.download = isAnimated ? `qr-generato-${qrType}-animated.svg` : `qr-generato-${qrType}.svg`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const handleCopyImage = () => {
-    const svgExport = getSvgMarkup('exp');
+    const svgExport = getFinalMarkup('exp', false);
     const svgBlob = new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
     const img = new Image();
     img.onload = () => {
+      const { w, h } = rasterSize(svgExport, 1000);
       const canvas = document.createElement('canvas');
-      canvas.width = 1000;
-      canvas.height = 1000;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(img, 0, 0, 1000, 1000);
+        ctx.drawImage(img, 0, 0, w, h);
         canvas.toBlob((blob) => {
           if (blob && navigator.clipboard && window.ClipboardItem) {
             navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
@@ -2685,7 +3333,8 @@ export default function QRStudio() {
             )}
           >
             {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            <span>{isDark ? 'Light' : 'Dark'}</span>
+            <span className="hidden min-[380px]:inline">{isDark ? 'Light' : 'Dark'}</span>
+            <span className="sr-only min-[380px]:hidden">{isDark ? 'Switch to light mode' : 'Switch to dark mode'}</span>
           </button>
         </div>
       </div>
@@ -2699,21 +3348,21 @@ export default function QRStudio() {
             <div className="block lg:hidden sticky top-[58px] z-30">
               <div
                 className={clsx(
-                  'p-3 rounded-2xl border shadow-2xl backdrop-blur-md',
+                  'p-2.5 rounded-2xl border shadow-2xl backdrop-blur-md',
                   isDark
                     ? 'bg-[#111116]/95 border-zinc-800 shadow-black/80'
                     : 'bg-white/95 border-slate-200 shadow-slate-300/70'
                 )}
               >
                 {!mobileZoomed ? (
-                  <div className="space-y-2.5">
+                  <div>
                     {/* Top Split Row: Crisp QR Preview + Status & Primary Export Actions */}
                     <div className="flex items-center gap-3">
                       <div
                         onClick={() => setMobileZoomed(true)}
                         title="Tap to expand QR"
                         className={clsx(
-                          'relative w-[96px] h-[96px] rounded-xl p-1.5 flex items-center justify-center border shrink-0 overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
+                          'relative w-[72px] h-[72px] rounded-xl p-1 flex items-center justify-center border shrink-0 overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
                           isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
                         )}
                       >
@@ -2723,7 +3372,7 @@ export default function QRStudio() {
                         </span>
                       </div>
 
-                      <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                      <div className="flex-1 min-w-0 flex flex-col justify-between space-y-1.5">
                         {/* Scannability Status + Expand */}
                         <div className="flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1.5 min-w-0">
@@ -2765,7 +3414,7 @@ export default function QRStudio() {
                             type="button"
                             onClick={handleDownloadPng}
                             className={clsx(
-                              'col-span-2 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
+                              'col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
                               isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
                             )}
                           >
@@ -2775,7 +3424,7 @@ export default function QRStudio() {
                             type="button"
                             onClick={handleDownloadSvg}
                             className={clsx(
-                              'col-span-1 py-2.5 px-2 rounded-xl text-xs font-bold border text-center cursor-pointer',
+                              'col-span-1 py-2 px-2 rounded-xl text-xs font-bold border text-center cursor-pointer',
                               inactivePillClass
                             )}
                           >
@@ -2785,7 +3434,7 @@ export default function QRStudio() {
                             type="button"
                             onClick={handleCopyImage}
                             className={clsx(
-                              'col-span-1 py-2.5 px-2 rounded-xl text-xs font-bold border text-center cursor-pointer',
+                              'col-span-1 py-2 px-2 rounded-xl text-xs font-bold border text-center cursor-pointer',
                               inactivePillClass
                             )}
                           >
@@ -2795,53 +3444,6 @@ export default function QRStudio() {
                       </div>
                     </div>
 
-                    {/* Bottom Single-Line Scrollable Strip: Color Swatches + Quick Presets */}
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-zinc-800/80 overflow-x-auto no-scrollbar">
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {COLOR_THEMES.map((t) => (
-                          <button
-                            key={t.name}
-                            type="button"
-                            title={t.name}
-                            onClick={() => {
-                              setSelectedArtId('none');
-                              setArtworkUrl(null);
-                              setArtCutoutUrl(null);
-                              setFgColor(t.fg);
-                              setGradientColor2(t.g2);
-                              setGradientType('linear');
-                              setBgColor(t.bg);
-                              setBgColor2(t.bg2);
-                              setBgGradientType(t.bgGrad);
-                              setFrameColor(t.fg === '#ffffff' ? t.bg : t.fg);
-                              setTransparentBg(false);
-                            }}
-                            className={`w-5 h-5 rounded-full bg-gradient-to-br ${t.from} ${t.to} border border-white/40 shadow-sm cursor-pointer active:scale-90 transition-transform`}
-                          />
-                        ))}
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        {[
-                          { id: 'classic', label: 'Classic' },
-                          { id: 'upi', label: 'UPI' },
-                          { id: 'cafe', label: 'Cafe' },
-                          { id: 'cyber', label: '⚡ Neon' },
-                        ].map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => applyQuickPreset(p.id as 'classic' | 'upi' | 'cafe' | 'cyber')}
-                            className={clsx(
-                              'py-1 px-2 rounded-lg border text-[10px] font-semibold cursor-pointer whitespace-nowrap',
-                              inactivePillClass
-                            )}
-                          >
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 ) : (
                   /* EXPANDED FULL-SIZE MOBILE MODE */
@@ -2870,9 +3472,11 @@ export default function QRStudio() {
                     <div
                       onClick={() => setMobileZoomed(false)}
                       className={clsx(
-                        'w-56 h-56 rounded-2xl p-2 flex items-center justify-center border overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
+                        'rounded-2xl p-2 flex items-center justify-center border overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
+                        activeCard ? (activeCard.w > activeCard.h ? 'w-full max-w-[340px]' : 'w-64') : 'w-56 h-56',
                         isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
                       )}
+                      style={activeCard ? { aspectRatio: `${activeCard.w + 16} / ${activeCard.h + 16}` } : undefined}
                       dangerouslySetInnerHTML={{ __html: svgMobile }}
                     />
 
@@ -2928,7 +3532,7 @@ export default function QRStudio() {
                         type="button"
                         onClick={handleDownloadPng}
                         className={clsx(
-                          'col-span-2 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
+                          'col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
                           isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
                         )}
                       >
@@ -3307,40 +3911,51 @@ export default function QRStudio() {
               </div>
             </div>
 
-            {/* STEP 2: Clean Segmented Customization Card (3x2 Grid on Mobile, 6 Cols on Desktop!) */}
-            <div className={clsx('p-3.5 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
+            {/* STEP 2: Design tabs — icon-over-label tiles (4×2 on mobile, 8 in a row on desktop), never truncated */}
+            <div className={clsx('p-3 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
               <div
+                role="tablist"
+                aria-label="Design options"
                 className={clsx(
-                  'grid grid-cols-3 sm:grid-cols-6 gap-1 p-1 rounded-xl border',
+                  'grid grid-cols-4 md:grid-cols-8 gap-1 p-1 rounded-xl border',
                   isDark ? 'bg-zinc-950/90 border-zinc-800/80' : 'bg-slate-100 border-slate-200/80'
                 )}
               >
                 {[
                   { id: 'templates', label: 'Templates', icon: LayoutGrid },
-                  { id: 'shapes', label: 'Shapes', icon: Eye },
                   { id: 'colors', label: 'Colors', icon: Palette },
+                  { id: 'shapes', label: 'Shapes', icon: Eye },
                   { id: 'logo', label: 'Logos', icon: ImageIcon },
                   { id: 'frames', label: 'Frames', icon: Frame },
                   { id: 'artwork', label: 'QR Art', icon: Sparkles },
+                  { id: 'cards', label: 'Cards', icon: CreditCard },
+                  { id: 'animate', label: 'Animate', icon: Play },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   const active = designTab === tab.id;
+                  const badge =
+                    (tab.id === 'animate' && isAnimated) || (tab.id === 'cards' && cardId !== 'none');
                   return (
                     <button
                       key={tab.id}
                       type="button"
+                      role="tab"
+                      aria-selected={active}
                       onClick={() => setDesignTab(tab.id as DesignTab)}
                       className={clsx(
-                        'flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-colors cursor-pointer',
+                        'relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg text-[11px] font-bold leading-none transition-colors cursor-pointer min-h-[52px]',
                         active
                           ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25'
                           : isDark
-                          ? 'text-zinc-400 hover:text-zinc-200'
-                          : 'text-slate-600 hover:text-slate-900'
+                          ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                       )}
                     >
-                      <Icon className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{tab.label}</span>
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="whitespace-nowrap">{tab.label}</span>
+                      {badge && !active && (
+                        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-fuchsia-400" aria-label="active" />
+                      )}
                     </button>
                   );
                 })}
@@ -3481,7 +4096,17 @@ export default function QRStudio() {
                   )}
 
                   {/* Full-Bleed Illustrated Poster Cards Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-[260px] overflow-y-auto pr-1">
+                  <div className={clsx('grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-2', !showAll['art'] && 'max-sm:[&>*:nth-child(n+11)]:hidden')}>
+                    {ART_PRESETS.length > 9 && (
+                      <button
+                        data-more
+                        type="button"
+                        onClick={() => toggleMore('art')}
+                        className={clsx('col-span-full order-last sm:hidden py-2 rounded-xl border text-xs font-bold cursor-pointer', inactivePillClass)}
+                      >
+                        {showAll['art'] ? 'Show less' : `Show all ${ART_PRESETS.length}`}
+                      </button>
+                    )}
                     {ART_PRESETS.map((art) => {
                       const active = selectedArtId === art.id;
                       return (
@@ -3508,45 +4133,362 @@ export default function QRStudio() {
                 </div>
               )}
 
-              {/* TAB: 32 NORMAL, PAYMENT & BRAND TEMPLATES */}
-              {designTab === 'templates' && (
+              {/* TAB: ANIMATION STUDIO — QR module effects + whole-design card motion + GIF/MP4 export */}
+              {designTab === 'animate' && (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" /> Normal Scanner, UPI &amp; Brand Templates (32)
+                      <Play className="w-3.5 h-3.5" /> Animated QR Effects ({ANIMATED_EFFECTS.length})
                     </span>
-                    <span className={clsx('text-[11px]', isDark ? 'text-zinc-400' : 'text-slate-500')}>
-                      1-Click Ready Styles
-                    </span>
+                    {isAnimated && (
+                      <button
+                        type="button"
+                        onClick={() => setAnimEffectId('none')}
+                        className={clsx('flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer', secondaryActionBtnClass)}
+                      >
+                        <RotateCcw className="w-3 h-3" /> Turn Off
+                      </button>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
-                    {BRAND_TEMPLATES.map((t) => {
+                  <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                    Animate the code’s modules. Works with any template, colour, logo or card.
+                  </p>
+
+                  {artworkUrl && artPlacement === 'qr-fill' && (() => {
+                    const e = ANIMATED_EFFECT_MAP[animEffectId];
+                    return Boolean(e && (e.flow || e.pattern || e.module?.anim === 'cycle'));
+                  })() && (
+                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-500">
+                      <p className="text-[11px] font-semibold leading-snug">
+                        QR Art is painting over the modules, so this colour effect is hidden.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedArtId('none');
+                          setArtworkUrl(null);
+                          setArtCutoutUrl(null);
+                        }}
+                        className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500 text-black cursor-pointer"
+                      >
+                        Remove art
+                      </button>
+                    </div>
+                  )}
+                  {/* Effect groups */}
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="Effect groups">
+                    {FX_GROUPS.map((g) => {
+                      const active = fxGroup === g.id;
+                      const hasSelected =
+                        g.id === 'popular'
+                          ? POPULAR_FX.some((p) => p.id === animEffectId)
+                          : ANIMATED_EFFECT_MAP[animEffectId]?.group === g.id;
+                      return (
+                        <button
+                          key={g.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => setFxGroup(g.id)}
+                          className={clsx(
+                            'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer',
+                            active ? activePillClass : inactivePillClass
+                          )}
+                        >
+                          {g.label}
+                          {hasSelected && <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400" aria-label="contains selected effect" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    {(fxGroup === 'popular'
+                      ? POPULAR_FX.map((p) => ({ ...ANIMATED_EFFECT_MAP[p.id], name: p.label }))
+                      : ANIMATED_EFFECTS.filter((e) => e.group === fxGroup)
+                    ).map((e) => {
+                      const active = animEffectId === e.id;
+                      return (
+                        <button
+                          key={e.id}
+                          type="button"
+                          onClick={() => setAnimEffectId(e.id)}
+                          aria-pressed={active}
+                          title={e.name}
+                          className={clsx(
+                            'p-1.5 rounded-xl border transition-colors cursor-pointer flex flex-col items-center gap-1',
+                            active ? activePillClass : inactivePillClass
+                          )}
+                        >
+                          <div
+                            className="w-full aspect-square rounded-lg overflow-hidden"
+                            dangerouslySetInnerHTML={{ __html: effectThumbs[e.id] }}
+                          />
+                          <span className="w-full text-[10px] font-bold leading-tight text-center line-clamp-2 min-h-[2.2em]">{e.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Speed + tips */}
+                  <div className={clsx('p-3 rounded-xl border space-y-2', subCardClass)}>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="fx-speed" className="text-[11px] font-bold">
+                        Animation Speed
+                      </label>
+                      <span className="text-[11px] font-mono text-indigo-400">{animSpeed.toFixed(2)}×</span>
+                    </div>
+                    <input
+                      id="fx-speed"
+                      type="range"
+                      min={0.5}
+                      max={2}
+                      step={0.25}
+                      value={animSpeed}
+                      onChange={(e) => setAnimSpeed(Number(e.target.value))}
+                      disabled={!isAnimated}
+                      className="w-full accent-indigo-500 disabled:opacity-40"
+                    />
+                  </div>
+
+                  {/* Animated export */}
+                  <div className={clsx('p-3 rounded-xl border space-y-2.5', subCardClass)}>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-bold">Export Animation</p>
+                      <span className={clsx('text-[10px] font-mono', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                        loop {loopSeconds.toFixed(1)}s
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(
+                        [
+                          { id: 'gif', label: 'GIF', hint: 'Loops forever · WhatsApp, web' },
+                          { id: 'mp4', label: 'MP4 Video', hint: '1080p · Instagram, Reels, ads' },
+                        ] as const
+                      ).map((f) => {
+                        const busy = exportState?.format === f.id;
+                        return (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => runExport(f.id)}
+                            disabled={!isAnimated || Boolean(exportState)}
+                            className={clsx(
+                              'relative overflow-hidden px-3 py-2.5 rounded-xl text-left border transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50',
+                              f.id === 'gif'
+                                ? 'bg-gradient-to-r from-fuchsia-600 to-indigo-600 border-transparent text-white'
+                                : secondaryActionBtnClass
+                            )}
+                          >
+                            {busy && (
+                              <span
+                                className="absolute inset-y-0 left-0 bg-white/20 transition-[width]"
+                                style={{ width: `${Math.round((exportState?.progress ?? 0) * 100)}%` }}
+                                aria-hidden="true"
+                              />
+                            )}
+                            <span className="relative flex items-center gap-1.5 text-xs font-bold">
+                              <Download className="w-3.5 h-3.5" /> {busy ? `${Math.round((exportState?.progress ?? 0) * 100)}%` : `Download ${f.label}`}
+                            </span>
+                            <span className="relative block text-[9.5px] opacity-80 mt-0.5 truncate">{busy ? exportState?.label : f.hint}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-400' : 'text-slate-500')} aria-live="polite">
+                      {exportError ? (
+                        <span className="text-rose-500 font-semibold">{exportError}</span>
+                      ) : !isAnimated ? (
+                        'Pick an effect to enable GIF & MP4 export.'
+                      ) : (
+                        <>
+                          Eyes and quiet zone stay still so animated codes keep scanning. <b>SVG</b> also keeps the animation for
+                          websites; PNG saves a still frame for print.
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: PRINTABLE CARDS (ANIME + BUSINESS) */}
+              {designTab === 'cards' && (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className={clsx('inline-flex p-0.5 rounded-lg border', subCardClass)} role="tablist" aria-label="Card type">
+                      {(
+                        [
+                          { id: 'anime', label: `Anime Cards (${CARD_DESIGNS.filter((c) => c.kind === 'anime').length})` },
+                          { id: 'business', label: `Business & Events (${CARD_DESIGNS.filter((c) => c.kind === 'business').length})` },
+                        ] as const
+                      ).map((k) => (
+                        <button
+                          key={k.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={cardKind === k.id}
+                          onClick={() => setCardKind(k.id)}
+                          className={clsx(
+                            'px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer',
+                            cardKind === k.id
+                              ? 'bg-indigo-600 text-white'
+                              : isDark
+                              ? 'text-zinc-400 hover:text-zinc-200'
+                              : 'text-slate-600 hover:text-slate-900'
+                          )}
+                        >
+                          {k.label}
+                        </button>
+                      ))}
+                    </div>
+                    {cardId !== 'none' && (
+                      <button
+                        type="button"
+                        onClick={() => setCardId('none')}
+                        className={clsx('flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer', secondaryActionBtnClass)}
+                      >
+                        <RotateCcw className="w-3 h-3" /> QR Only
+                      </button>
+                    )}
+                  </div>
+
+                  {activeCard ? (
+                    <div className={clsx('p-3 rounded-xl border space-y-2', subCardClass)}>
+                      <p className="text-[11px] font-bold">Card Text — {activeCard.name}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {(
+                          [
+                            { label: 'Name / Heading', value: cardName, set: setCardName, ph: activeCard.defaults.name },
+                            { label: 'Title / Subtitle', value: cardTitle, set: setCardTitle, ph: activeCard.defaults.title },
+                            { label: 'Extra Line', value: cardExtra, set: setCardExtra, ph: activeCard.defaults.extra },
+                          ] as const
+                        ).map((fld) => (
+                          <label key={fld.label} className="space-y-1">
+                            <span className={clsx('block text-[10px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>{fld.label}</span>
+                            <input
+                              type="text"
+                              value={fld.value}
+                              maxLength={40}
+                              onChange={(e) => fld.set(e.target.value)}
+                              placeholder={fld.ph}
+                              className={inputClass}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                        Your QR design, colours and animation are placed on the card. PNG downloads at print resolution (2000px).
+                      </p>
+                    </div>
+                  ) : null}
+
+                  <div className={clsx('grid grid-cols-3 sm:grid-cols-4 gap-2', !showAll['cards'] && 'max-sm:[&>*:nth-child(n+11)]:hidden')}>
+                    {CARD_DESIGNS.filter((c) => c.kind === cardKind).length > 9 && (
+                      <button
+                        data-more
+                        type="button"
+                        onClick={() => toggleMore('cards')}
+                        className={clsx('col-span-full order-last sm:hidden py-2 rounded-xl border text-xs font-bold cursor-pointer', inactivePillClass)}
+                      >
+                        {showAll['cards'] ? 'Show less' : `Show all ${CARD_DESIGNS.filter((c) => c.kind === cardKind).length}`}
+                      </button>
+                    )}
+                    {CARD_DESIGNS.filter((c) => c.kind === cardKind).map((c) => {
+                      const active = cardId === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => selectCard(c.id)}
+                          aria-pressed={active}
+                          title={c.desc}
+                          className={clsx(
+                            'p-2 rounded-xl border transition-colors cursor-pointer flex flex-col items-center gap-1.5',
+                            active ? activePillClass : inactivePillClass
+                          )}
+                        >
+                          <div
+                            className="w-full h-20 sm:h-24 flex items-center justify-center [&>svg]:max-h-full [&>svg]:w-auto"
+                            dangerouslySetInnerHTML={{ __html: cardThumbs[c.id] }}
+                          />
+                          <div className="w-full text-center">
+                            <p className="text-[11px] font-bold truncate">{c.name}</p>
+                            <p className="hidden sm:block text-[9px] opacity-75 truncate">{c.desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB: NORMAL, PAYMENT & BRAND TEMPLATES — category chips + compact tiles */}
+              {designTab === 'templates' && (() => {
+                const list = templateCat === 'all' ? BRAND_TEMPLATES : BRAND_TEMPLATES.filter((t) => templateCategory(t.id) === templateCat);
+                const collapsed = templateCat === 'all' && !showAll['templates'] && list.length > 12;
+                return (
+                <div className="space-y-3">
+                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1" role="tablist" aria-label="Template categories">
+                    {TEMPLATE_CATEGORIES.map((c) => {
+                      const count = c.id === 'all' ? BRAND_TEMPLATES.length : BRAND_TEMPLATES.filter((t) => templateCategory(t.id) === c.id).length;
+                      const active = templateCat === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => setTemplateCat(c.id)}
+                          className={clsx(
+                            'shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer',
+                            active ? activePillClass : inactivePillClass
+                          )}
+                        >
+                          {c.label} <span className="opacity-60 font-semibold">{count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {(collapsed ? list.slice(0, 12) : list).map((t) => {
                       const active = activeTemplateId === t.id;
                       return (
                         <button
                           key={t.id}
                           type="button"
                           onClick={() => applyBrandTemplate(t)}
+                          aria-pressed={active}
+                          title={`${t.name} — ${t.badge}`}
                           className={clsx(
-                            'group p-2.5 rounded-2xl border text-left transition-colors cursor-pointer flex flex-col items-center gap-1.5',
+                            'group p-1.5 rounded-xl border transition-colors cursor-pointer flex flex-col items-center gap-1 min-w-0',
                             active ? activePillClass : inactivePillClass
                           )}
                         >
                           <div
-                            className="w-full aspect-square max-w-[92px] rounded-xl overflow-hidden shadow-sm"
+                            className="w-full aspect-square rounded-lg overflow-hidden transition-transform group-hover:scale-[1.03]"
                             dangerouslySetInnerHTML={{ __html: templateThumbs[t.id] }}
                           />
-                          <div className="w-full text-center">
-                            <p className="text-[11px] font-bold truncate">{t.name}</p>
-                            <p className="text-[9px] opacity-75 truncate">{t.badge}</p>
-                          </div>
+                          <span className="w-full text-[10px] font-semibold leading-tight text-center truncate">{t.name}</span>
                         </button>
                       );
                     })}
                   </div>
+
+                  {templateCat === 'all' && list.length > 12 && (
+                    <button
+                      type="button"
+                      onClick={() => toggleMore('templates')}
+                      className={clsx('w-full py-2 rounded-xl border text-xs font-bold cursor-pointer', inactivePillClass)}
+                    >
+                      {showAll['templates'] ? 'Show less' : `Show all ${list.length} templates`}
+                    </button>
+                  )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* TAB: ORGANIZED SHAPES & EYES */}
               {designTab === 'shapes' && (
@@ -3661,7 +4603,17 @@ export default function QRStudio() {
               {/* TAB: 20 ILLUSTRATED FRAMES */}
               {designTab === 'frames' && (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-1">
+                  <div className={clsx('grid grid-cols-3 sm:grid-cols-4 gap-2', !showAll['frames'] && 'max-sm:[&>*:nth-child(n+11)]:hidden')}>
+                    {FRAME_STYLES.length > 9 && (
+                      <button
+                        data-more
+                        type="button"
+                        onClick={() => toggleMore('frames')}
+                        className={clsx('col-span-full order-last sm:hidden py-2 rounded-xl border text-xs font-bold cursor-pointer', inactivePillClass)}
+                      >
+                        {showAll['frames'] ? 'Show less' : `Show all ${FRAME_STYLES.length}`}
+                      </button>
+                    )}
                     {FRAME_STYLES.map((f) => (
                       <button
                         key={f.id}
@@ -3833,7 +4785,17 @@ export default function QRStudio() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 max-h-[240px] overflow-y-auto pr-1">
+                  <div className={clsx('grid grid-cols-4 sm:grid-cols-6 gap-2', !showAll['logos'] && 'max-sm:[&>*:nth-child(n+14)]:hidden')}>
+                    {PRESET_LOGOS.length > 12 && (
+                      <button
+                        data-more
+                        type="button"
+                        onClick={() => toggleMore('logos')}
+                        className={clsx('col-span-full order-last sm:hidden py-2 rounded-xl border text-xs font-bold cursor-pointer', inactivePillClass)}
+                      >
+                        {showAll['logos'] ? 'Show less' : `Show all ${PRESET_LOGOS.length}`}
+                      </button>
+                    )}
                     {PRESET_LOGOS.map((l) => (
                       <button
                         key={l.id}
@@ -3891,7 +4853,13 @@ export default function QRStudio() {
               </div>
 
               {/* HERO QR STAGE WITH AMBIENT GLOW */}
-              <div className="relative w-full max-w-[275px] aspect-square flex items-center justify-center my-1">
+              <div
+                className={clsx(
+                  'relative w-full flex items-center justify-center my-1 transition-[max-width] duration-300',
+                  activeCard ? (activeCard.w > activeCard.h ? 'max-w-[400px]' : 'max-w-[300px]') : 'max-w-[275px] aspect-square'
+                )}
+                style={activeCard ? { aspectRatio: `${activeCard.w + 24} / ${activeCard.h + 24}` } : undefined}
+              >
                 <div
                   className="absolute inset-3 rounded-3xl blur-2xl opacity-25 pointer-events-none"
                   style={{
@@ -3905,6 +4873,20 @@ export default function QRStudio() {
                   )}
                   dangerouslySetInnerHTML={{ __html: svgDesktop }}
                 />
+
+                {isAnimated && (
+                  <button
+                    type="button"
+                    onClick={() => setDesignTab('animate')}
+                    title="Change animation"
+                    className="absolute -top-2 -right-2 z-10 max-w-[80%] inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white shadow-lg shadow-fuchsia-600/30 cursor-pointer"
+                  >
+                    <Play className="w-3 h-3 shrink-0" />
+                    <span className="truncate">
+                      {ANIMATED_EFFECT_MAP[animEffectId]?.name}
+                    </span>
+                  </button>
+                )}
 
                 {scannability.isRisky && (
                   <div

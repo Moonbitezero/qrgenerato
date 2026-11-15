@@ -1,11 +1,13 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import HomePage from '../page';
 
-export const metadata: Metadata = {
-  title: 'vCard QR Code Generator | Free Digital Business Card',
-  description: 'Generate a free vCard QR code. Instantly share your contact details, phone number, email, and company info directly to smartphones.',
-};
+export const metadata: Metadata = pageMetadata(
+  '/vcard',
+  'Free vCard QR Code Generator – Digital Business Card | QR Generato',
+  'Generate a free vCard QR code. Instantly share your contact details, phone number, email, and company info directly to smartphones.'
+);
 
 export default function VcardRoute() {
-  return <HomePage initialTab="studio" />;
+  return <HomePage initialTab="studio" heading="Free vCard QR Code Generator" />;
 }

@@ -1,13 +1,31 @@
 // app/layout.tsx
 import type { Metadata } from 'next';
 import { GoogleAnalytics } from '@next/third-parties/google';
+import { SITE_NAME, SITE_URL, pageMetadata } from '@/lib/seo';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'QR Generato | Free Online QR Code Generator With Logo, UPI & Global Payments',
-  description:
-    'Create custom QR codes with logo, Bharat UPI, Europe SEPA, PayPal, Pix, Wi-Fi, vCards, 20 illustrated frames, and 16 artwork presets 100% free and client-side.',
-  applicationName: 'QR Generato',
+  metadataBase: new URL(SITE_URL),
+  ...pageMetadata(
+    '/',
+    'Free QR Code Generator Online – Custom QR Codes With Logo | QR Generato',
+    'Free online QR code generator with logo, colors and frames. Create QR codes for URLs, Wi-Fi, UPI, PayPal, vCard and WhatsApp. No sign-up, no watermark, codes never expire. Download PNG or SVG.'
+  ),
+  applicationName: SITE_NAME,
+  keywords: [
+    'qr generator',
+    'qr code generator',
+    'free qr generator',
+    'qr generator free',
+    'online qr generator',
+    'qr code generator with logo',
+    'custom qr code',
+  ],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
+  },
 };
 
 export default function RootLayout({
