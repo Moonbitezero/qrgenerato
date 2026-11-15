@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
+import { LANDING_CONTENT } from '@/lib/landing-content';
 import HomePage from '../page';
 
 export const metadata: Metadata = pageMetadata(
@@ -9,5 +10,5 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default function UpiRoute() {
-  return <HomePage initialTab="studio" landing="upi" heading="Free UPI QR Code Generator" />;
+  return <HomePage initialTab="studio" landing={LANDING_CONTENT.upi} heading="Free UPI QR Code Generator" />;
 }

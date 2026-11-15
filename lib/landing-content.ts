@@ -17,7 +17,20 @@ export interface LandingContent {
   faqs: LandingFaq[];
 }
 
-export type LandingKey = 'wifi' | 'upi' | 'paypal' | 'whatsapp' | 'vcard' | 'pdf' | 'crypto';
+export type LandingKey =
+  | 'wifi'
+  | 'upi'
+  | 'paypal'
+  | 'whatsapp'
+  | 'vcard'
+  | 'pdf'
+  | 'crypto'
+  | 'animated'
+  | 'logo'
+  | 'businessCard'
+  | 'googleReview'
+  | 'instagram'
+  | 'youtube';
 
 export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
   wifi: {
@@ -169,6 +182,149 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     faqs: [
       { q: 'Which wallets can scan this code?', a: 'Most mobile wallets (Trust Wallet, MetaMask, Coinbase Wallet, Phantom and others) can read address QR codes.' },
       { q: 'Is it safe?', a: 'A receiving address is public by design. The code is created locally in your browser and nothing is uploaded.' },
+    ],
+  },
+
+  animated: {
+    title: 'How to Make an Animated QR Code (GIF & MP4)',
+    intro: [
+      'An animated QR code moves — light sweeps across it, dots ripple, colours shift — so it catches the eye on screens, social posts and digital signage far better than a flat black square.',
+      'QR Generato has 70 free animated effects. The three corner eyes always stay still and sharp, so the code keeps scanning while the rest of it moves. Download it as a GIF, MP4 video or animated SVG with no watermark.',
+    ],
+    steps: [
+      { title: 'Enter your content', text: 'Paste a link or pick any QR type — URL, WiFi, UPI, vCard, WhatsApp and more all work with animation.' },
+      { title: 'Pick an effect', text: 'Open the Animate tab and choose from light sweeps, radar, liquid fill, glitch, rainbow, scan lines and more. The preview plays live.' },
+      { title: 'Export GIF or MP4', text: 'Download a GIF for websites and chats, an MP4 for Instagram Reels, TikTok and YouTube, or an SVG for web pages.' },
+    ],
+    uses: ['Instagram Reels, Stories and TikTok', 'Digital signage and TV screens', 'Event slides and live streams', 'Website banners and email headers'],
+    tips: [
+      'Animated codes are for screens. For print, download a still PNG or SVG of the same design.',
+      'Keep strong contrast between the QR colour and the background — subtle effects scan best.',
+      'MP4 is smaller and sharper than GIF for long or detailed animations.',
+      'Combine an effect with a template or card from the other tabs for a fully branded look.',
+    ],
+    faqs: [
+      { q: 'Do animated QR codes still scan?', a: 'Yes. The finder eyes stay static, and light, colour and shimmer effects keep the full pattern visible the whole time. Reveal-style effects (drop-in, build-up) hide some dots for part of the loop, so phones scan once the code is complete. Test it once with your phone before sharing.' },
+      { q: 'Is the animated QR code generator free?', a: 'Yes. All 70 effects and GIF, MP4 and SVG downloads are free, with no sign-up and no watermark.' },
+      { q: 'Can I print an animated QR code?', a: 'Print is static, so download a PNG or SVG for print. Use the GIF or MP4 on screens, social media and websites.' },
+      { q: 'Which format should I use for Instagram or TikTok?', a: 'Use MP4. Social apps accept video uploads, and MP4 keeps colours and edges sharper than GIF.' },
+    ],
+  },
+
+  logo: {
+    title: 'How to Make a QR Code With Your Logo',
+    intro: [
+      'Adding your logo to the centre of a QR code makes it instantly recognisable and builds trust — people are more likely to scan a code that clearly belongs to your brand.',
+      'QR codes have built-in error correction, so part of the pattern can be covered by a logo and the code still scans. QR Generato always uses the highest error-correction level (H), which can recover up to 30% of the code.',
+    ],
+    steps: [
+      { title: 'Add your link or content', text: 'Paste your website URL or choose another QR type such as WiFi, vCard or a payment link.' },
+      { title: 'Upload your logo', text: 'Open the Logos tab, upload a PNG, JPG or SVG, or pick a ready-made Instagram, WhatsApp, YouTube, Facebook, X or UPI logo.' },
+      { title: 'Match your brand colours', text: 'Set the dot colour, gradient, eye shape and frame to match your brand, then download a PNG or SVG.' },
+    ],
+    uses: ['Product packaging and labels', 'Business cards and flyers', 'Restaurant menus and table tents', 'Posters, banners and trade-show booths'],
+    tips: [
+      'A square logo with a transparent or white background looks cleanest in the centre.',
+      'Keep the logo small — around 20–25% of the QR width scans most reliably.',
+      'Use a dark QR colour on a light background; inverted codes are harder for some phones.',
+      'Always scan the final download with two different phones before printing.',
+    ],
+    faqs: [
+      { q: 'Will adding a logo stop the QR code from working?', a: 'No, as long as the logo is not too large. High error correction lets the code recover the area under the logo. Test the download with your phone after resizing the logo.' },
+      { q: 'Can I add a logo to a QR code for free?', a: 'Yes. Uploading your own logo and downloading high-resolution PNG or SVG files is free, with no watermark.' },
+      { q: 'What logo file format works best?', a: 'A PNG with a transparent background or an SVG gives the sharpest result. JPG works too.' },
+    ],
+  },
+
+  businessCard: {
+    title: 'Create a Business Card With a QR Code',
+    intro: [
+      'A QR code on your business card lets people save your contact, visit your website or connect on LinkedIn in one scan — no typing your details into their phone.',
+      'QR Generato includes printable business card layouts with your QR code built in. Add your name, title and contact details, then download a print-ready 2000px PNG.',
+    ],
+    steps: [
+      { title: 'Choose what the QR opens', text: 'Use vCard to save your contact directly, or switch to URL for your website, portfolio or LinkedIn profile.' },
+      { title: 'Pick a card layout', text: 'Open the Cards tab and choose a business, ID, ticket or invitation design. Type your name and details into the card fields.' },
+      { title: 'Download and print', text: 'Download the card as a high-resolution PNG and send it to your printer or print shop.' },
+    ],
+    uses: ['Business and networking cards', 'Conference and staff ID badges', 'Freelancer and creator cards', 'Real estate and sales cards'],
+    tips: [
+      'Keep the QR code at least 2 × 2 cm on the printed card.',
+      'A vCard with just name, phone and email scans faster than one with every field filled.',
+      'Add a short call to action near the code, such as “Scan to save my contact”.',
+    ],
+    faqs: [
+      { q: 'What should my business card QR code link to?', a: 'A vCard saves your details straight into contacts. A URL is better if you want to send people to a website, portfolio or LinkedIn page you can update later.' },
+      { q: 'Are the business card templates free?', a: 'Yes. All card layouts and high-resolution downloads are free with no watermark.' },
+      { q: 'Will the QR code on my card expire?', a: 'No. The codes are static, so they work for as long as the card exists.' },
+    ],
+  },
+
+  googleReview: {
+    title: 'Make a Google Review QR Code',
+    intro: [
+      'A Google review QR code takes customers straight to your “Write a review” box, so leaving a review takes seconds instead of searching for your business on Maps.',
+      'More reviews improve your local ranking on Google Maps and Search — and a printed code at the counter is one of the easiest ways to get them.',
+    ],
+    steps: [
+      { title: 'Get your review link', text: 'In Google Business Profile, choose “Ask for reviews” (or “Get more reviews”) and copy the short link.' },
+      { title: 'Paste it here', text: 'Paste the link into the Google Review field and add the “5-Star Review” frame, which reads “Rate us on Google”.' },
+      { title: 'Print and display', text: 'Download a PNG and place it on the counter, receipts, table tents, packaging or thank-you cards.' },
+    ],
+    uses: ['Restaurants and cafés', 'Salons, clinics and gyms', 'Hotels and guesthouses', 'Shops and local services'],
+    tips: [
+      'Ask for the review at the moment the customer is happiest — right after payment or delivery.',
+      'Google does not allow offering rewards in exchange for reviews, so keep the request simple.',
+      'Put the code where people wait: the till, the table or the waiting room.',
+    ],
+    faqs: [
+      { q: 'Where do I find my Google review link?', a: 'Open your Google Business Profile (search your business name on Google while signed in), click “Ask for reviews” and copy the link shown.' },
+      { q: 'Does the QR code open the review form directly?', a: 'Yes. The Google review link opens your business with the star-rating and review box ready.' },
+      { q: 'Is this free?', a: 'Yes. Creating and downloading the Google review QR code is free and it never expires.' },
+    ],
+  },
+
+  instagram: {
+    title: 'Create an Instagram QR Code',
+    intro: [
+      'An Instagram QR code opens your profile in the Instagram app the moment someone scans it, making it easy to turn real-world visitors into followers.',
+      'You can style it with your own colours, templates and the Instagram logo, and download it in high resolution for print.',
+    ],
+    steps: [
+      { title: 'Paste your profile link', text: 'Enter your profile URL, such as instagram.com/yourname. A link to a post or reel works too.' },
+      { title: 'Style it', text: 'Pick a template or add the Instagram logo from the Logos tab, then add a frame and change its text to something like “Follow us”.' },
+      { title: 'Share it', text: 'Download a PNG for print or an animated MP4 to post in your stories.' },
+    ],
+    uses: ['Shop windows and counters', 'Product packaging', 'Event banners and flyers', 'Creator and influencer business cards'],
+    tips: [
+      'Double-check the username spelling — a typo sends people to the wrong account.',
+      'Add a reason to follow near the code, such as “New drops every Friday”.',
+    ],
+    faqs: [
+      { q: 'Does the QR code open the Instagram app?', a: 'Yes. On phones with Instagram installed the link opens your profile in the app; otherwise it opens in the browser.' },
+      { q: 'Can I link to a specific post or reel?', a: 'Yes. Paste the post or reel link instead of your profile link.' },
+    ],
+  },
+
+  youtube: {
+    title: 'Create a YouTube QR Code',
+    intro: [
+      'A YouTube QR code sends people straight to your channel, a video or a playlist — perfect for tutorials on packaging, trailers on posters or your channel on merch.',
+      'Style the code with YouTube colours and logo, add a frame with your own text such as “Watch now”, and download it free in high resolution.',
+    ],
+    steps: [
+      { title: 'Copy your YouTube link', text: 'Copy the link to your channel (youtube.com/@yourname), a video or a playlist.' },
+      { title: 'Paste and style', text: 'Paste it here, then pick a template or add the YouTube logo from the Logos tab.' },
+      { title: 'Download', text: 'Download a PNG or SVG for print, or a GIF/MP4 version for screens.' },
+    ],
+    uses: ['Product manuals and how-to guides', 'Posters and event flyers', 'Merch and packaging', 'Classroom and training handouts'],
+    tips: [
+      'To start a video at a specific moment, add ?t=90 (seconds) to the video link before creating the code.',
+      'Channel links are better than video links if you want the code to stay useful as you upload more.',
+    ],
+    faqs: [
+      { q: 'Does it open the YouTube app?', a: 'Yes. On phones with YouTube installed, the link opens in the app automatically.' },
+      { q: 'Can I link to a playlist?', a: 'Yes. Any public YouTube link works — channel, video, short or playlist.' },
     ],
   },
 };

@@ -3,13 +3,13 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import clsx from 'clsx';
-import { LANDING_CONTENT, type LandingKey } from '@/lib/landing-content';
+import type { LandingContent } from '@/lib/landing-content';
 import {
   QrCode,
   Sparkles,
   ShieldCheck,
-  IndianRupee,
   Wifi,
   Utensils,
   Contact,
@@ -107,6 +107,23 @@ const USE_CASES = [
     title: 'vCard & WhatsApp Direct',
     desc: 'Save your phone number, company, email, and website straight into a client’s phone contacts.',
   },
+];
+
+const GENERATOR_LINKS: [href: string, label: string][] = [
+  ['/', 'Free QR Code Generator'],
+  ['/animated-qr-code', 'Animated QR Code'],
+  ['/qr-code-with-logo', 'QR Code With Logo'],
+  ['/business-card-qr', 'Business Card QR'],
+  ['/wifi', 'WiFi QR Code'],
+  ['/upi', 'UPI QR Code'],
+  ['/paypal', 'PayPal QR Code'],
+  ['/whatsapp', 'WhatsApp QR Code'],
+  ['/vcard', 'vCard QR Code'],
+  ['/google-review-qr', 'Google Review QR'],
+  ['/instagram-qr', 'Instagram QR Code'],
+  ['/youtube-qr', 'YouTube QR Code'],
+  ['/pdf', 'PDF & Menu QR Code'],
+  ['/crypto', 'Crypto Wallet QR Code'],
 ];
 
 const FAQS = [
@@ -209,9 +226,9 @@ export default function HomePage({
   initialTab?: ActiveSiteTab;
   heading?: string;
   /** Tool landing pages (/wifi, /upi…) get their own guide section + FAQ schema */
-  landing?: LandingKey;
+  landing?: LandingContent;
 }) {
-  const landingData = landing ? LANDING_CONTENT[landing] : null;
+  const landingData = landing ?? null;
   const [isDark, setIsDark] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveSiteTab>(() => {
     if (typeof window !== 'undefined') {
@@ -832,23 +849,21 @@ export default function HomePage({
               </p>
             </div>
 
-            <div className="space-y-3">
+            {/* Real links (not buttons) so search engines can discover every generator page */}
+            <nav className="space-y-3" aria-label="QR code generators">
               <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                 QR Code Generators
               </h3>
-              <ul className="space-y-2.5 text-xs">
-                <li>
-                  <button type="button" onClick={() => switchTab('studio')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-500" /> Free QR Code Generator Online
-                  </button>
-                </li>
-                <li>
-                  <button type="button" onClick={() => switchTab('studio')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
-                    <IndianRupee className="w-3.5 h-3.5 text-emerald-500" /> UPI &amp; Global Payment QR
-                  </button>
-                </li>
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                {GENERATOR_LINKS.map(([href, label]) => (
+                  <li key={href}>
+                    <Link href={href} className="hover:text-indigo-600 dark:hover:text-white transition-colors">
+                      {label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
-            </div>
+            </nav>
 
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-pink-600 dark:text-pink-400">

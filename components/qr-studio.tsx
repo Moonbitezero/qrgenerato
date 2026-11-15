@@ -446,7 +446,7 @@ const PRESET_LOGOS: PresetLogoItem[] = [
 const BRAND_TEMPLATES: BrandTemplate[] = [
   {
     id: 'normal-classic',
-    name: 'Normal QR Scanner',
+    name: 'Classic QR',
     badge: 'Standard B&W',
     fg: '#000000',
     g2: '#000000',
@@ -482,7 +482,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'normal-dots',
-    name: 'Minimal Dot Scanner',
+    name: 'Minimal Dots',
     badge: 'Circle Dots',
     fg: '#18181b',
     g2: '#18181b',
@@ -500,7 +500,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'normal-liquid',
-    name: 'Smooth Liquid B&W',
+    name: 'Liquid B&W',
     badge: 'Fluid Standard',
     fg: '#09090b',
     g2: '#09090b',
@@ -518,7 +518,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'bharat-upi-green',
-    name: 'Bharat UPI Official',
+    name: 'UPI Official',
     badge: 'Emerald & Orange',
     fg: '#059669',
     g2: '#047857',
@@ -536,7 +536,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'phonepe-purple',
-    name: 'UPI Royal Purple',
+    name: 'UPI Purple',
     badge: 'Merchant Pay',
     fg: '#5b21b6',
     g2: '#7c3aed',
@@ -572,7 +572,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'wifi-guest-clean',
-    name: 'Guest WiFi Portal',
+    name: 'Guest WiFi',
     badge: '1-Scan Connect',
     fg: '#0284c7',
     g2: '#2563eb',
@@ -590,7 +590,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'ig-sunset-card',
-    name: 'Instagram Sunset Card',
+    name: 'Insta Sunset',
     badge: 'Inverted Gradient',
     fg: '#ffffff',
     g2: '#ffffff',
@@ -608,7 +608,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'ig-clean-grad',
-    name: 'Instagram Gradient Dots',
+    name: 'Insta Gradient',
     badge: 'White Card',
     fg: '#833ab4',
     g2: '#fd1d1d',
@@ -626,7 +626,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'yt-red-card',
-    name: 'YouTube Crimson Card',
+    name: 'YouTube Red',
     badge: 'Bold Red',
     fg: '#ffffff',
     g2: '#ffffff',
@@ -644,7 +644,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'yt-dark-grid',
-    name: 'YouTube Dark Matrix',
+    name: 'YouTube Dark',
     badge: 'Red & Black',
     fg: '#09090b',
     g2: '#18181b',
@@ -662,7 +662,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'wa-neon-card',
-    name: 'WhatsApp Emerald Card',
+    name: 'WhatsApp Green',
     badge: 'Green Card',
     fg: '#ffffff',
     g2: '#ffffff',
@@ -680,7 +680,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'wa-heart-clean',
-    name: 'WhatsApp Heart Eyes',
+    name: 'WhatsApp Hearts',
     badge: 'Clean Green',
     fg: '#16a34a',
     g2: '#10b981',
@@ -698,7 +698,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'fb-royal-card',
-    name: 'Facebook Royal Card',
+    name: 'Facebook Blue',
     badge: 'Blue Card',
     fg: '#ffffff',
     g2: '#ffffff',
@@ -716,7 +716,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'fb-heart-white',
-    name: 'Facebook Heart Dots',
+    name: 'FB Hearts',
     badge: 'Heart Eyes',
     fg: '#1d4ed8',
     g2: '#2563eb',
@@ -752,7 +752,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'tg-sky-card',
-    name: 'Telegram Sky Card',
+    name: 'Telegram Sky',
     badge: 'Sky Gradient',
     fg: '#ffffff',
     g2: '#ffffff',
@@ -770,7 +770,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'snap-yellow-black',
-    name: 'Snapchat Cyber Yellow',
+    name: 'Snap Yellow',
     badge: 'High Contrast',
     fg: '#09090b',
     g2: '#18181b',
@@ -788,7 +788,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'snap-dark-gold',
-    name: 'Snapchat Dark Neon',
+    name: 'Snap Neon',
     badge: 'Black & Yellow',
     fg: '#fffc00',
     g2: '#facc15',
@@ -806,7 +806,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'spotify-dark-green',
-    name: 'Spotify Studio Dark',
+    name: 'Spotify Dark',
     badge: 'Music Green',
     fg: '#1db954',
     g2: '#4ade80',
@@ -824,7 +824,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'linkedin-pro-blue',
-    name: 'LinkedIn Executive',
+    name: 'LinkedIn Pro',
     badge: 'vCard & Career',
     fg: '#0a66c2',
     g2: '#1d4ed8',
@@ -842,7 +842,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'discord-purple-card',
-    name: 'Discord Blurple Card',
+    name: 'Discord',
     badge: 'Gamer Purple',
     fg: '#ffffff',
     g2: '#ffffff',
@@ -860,7 +860,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'twitch-dark-violet',
-    name: 'Twitch Abyss Purple',
+    name: 'Twitch Purple',
     badge: 'Dark Violet',
     fg: '#a855f7',
     g2: '#7c3aed',
@@ -878,7 +878,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'google-review-violet',
-    name: 'Google Review Violet',
+    name: 'Review Violet',
     badge: '5★ Business',
     fg: '#ffffff',
     g2: '#ffffff',
@@ -896,7 +896,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'google-review-blue',
-    name: 'Google Review Blue',
+    name: 'Review Blue',
     badge: '5★ Classic',
     fg: '#1d4ed8',
     g2: '#2563eb',
@@ -914,7 +914,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'gmaps-mint',
-    name: 'Google Maps Mint',
+    name: 'Maps Mint',
     badge: 'Location Pin',
     fg: '#059669',
     g2: '#10b981',
@@ -932,7 +932,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'gdrive-gold-navy',
-    name: 'Drive Royal Gold',
+    name: 'Drive Gold',
     badge: '2-Tone Contrast',
     fg: '#1e3a8a',
     g2: '#1d4ed8',
@@ -950,7 +950,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'docs-sky-card',
-    name: 'Docs Cornflower Card',
+    name: 'Docs Blue',
     badge: 'Soft Blue',
     fg: '#ffffff',
     g2: '#ffffff',
@@ -968,7 +968,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'slides-amber-dark',
-    name: 'Slides Midnight Gold',
+    name: 'Slides Gold',
     badge: 'Black & Amber',
     fg: '#f59e0b',
     g2: '#fbbf24',
@@ -986,7 +986,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'forms-violet-card',
-    name: 'Forms Lavender Card',
+    name: 'Forms Lavender',
     badge: 'Purple Pop',
     fg: '#ffffff',
     g2: '#ffffff',
@@ -1004,7 +1004,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = [
   },
   {
     id: 'cafe-roast-warm',
-    name: 'Cafe Espresso Menu',
+    name: 'Cafe Espresso',
     badge: 'Bistro Table',
     fg: '#78350f',
     g2: '#d97706',
@@ -1826,6 +1826,23 @@ function renderTemplateThumbSvg(t: BrandTemplate): string {
   </svg>`;
 }
 
+/**
+ * Thumbnail SVG strings are static, so they are built once per set — and only when a tab that shows
+ * them first renders, instead of building all ~150 on page load.
+ */
+const THUMB_CACHE: Partial<Record<'fx' | 'card' | 'tpl', Record<string, string>>> = {};
+function thumb(set: 'fx' | 'card' | 'tpl', id: string): string {
+  let map = THUMB_CACHE[set];
+  if (!map) {
+    map = {};
+    if (set === 'fx') for (const e of ANIMATED_EFFECTS) map[e.id] = renderEffectThumb(e);
+    else if (set === 'card') for (const c of CARD_DESIGNS) map[c.id] = renderCardSvg(c, c.defaults, SAMPLE_QR_SVG, 'th');
+    else for (const t of BRAND_TEMPLATES) map[t.id] = renderTemplateThumbSvg(t);
+    THUMB_CACHE[set] = map;
+  }
+  return map[id] ?? '';
+}
+
 export default function QRStudio() {
   // 1. Initialize strictly with server-safe default values to prevent React Error #418
   const [isDark, setIsDark] = useState(true);
@@ -1977,7 +1994,19 @@ export default function QRStudio() {
     setIsDark(prefersDark);
     document.documentElement.classList.toggle('dark', prefersDark);
 
-    const path = window.location.pathname.replace('/', '');
+    // Keyword landing pages map to a QR type and the design tab that matches the page's topic.
+    const LANDING_PATHS: Record<string, [type: string, tab: DesignTab]> = {
+      'animated-qr-code': ['url', 'animate'],
+      'qr-code-with-logo': ['url', 'logo'],
+      'business-card-qr': ['vcard', 'cards'],
+      'google-review-qr': ['review', 'frames'],
+      'instagram-qr': ['instagram', 'templates'],
+      'youtube-qr': ['youtube', 'templates'],
+    };
+    const rawPath = window.location.pathname.replace(/^\/|\/$/g, '');
+    const landingPath = LANDING_PATHS[rawPath];
+    if (landingPath) setDesignTab(landingPath[1]);
+    const path = landingPath ? landingPath[0] : rawPath;
     if (['upi', 'sepa', 'paypal', 'cashapp', 'revolut', 'pix', 'paynow', 'crypto', 'stripe', 'bank'].includes(path)) {
       setActiveCategory('payments');
     } else if (['vcard', 'whatsapp', 'telegram', 'instagram', 'youtube', 'twitter', 'linkedin', 'facebook'].includes(path)) {
@@ -3012,19 +3041,6 @@ export default function QRStudio() {
   const svgMobile = useMemo(() => getFinalMarkup('mob'), [getFinalMarkup]);
   const svgDesktop = useMemo(() => getFinalMarkup('desk'), [getFinalMarkup]);
 
-  // Effect thumbnails are static strings; only the visible group is mounted, so at most 10 animate at once.
-  const effectThumbs = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const e of ANIMATED_EFFECTS) map[e.id] = renderEffectThumb(e);
-    return map;
-  }, []);
-
-  const cardThumbs = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const c of CARD_DESIGNS) map[c.id] = renderCardSvg(c, c.defaults, SAMPLE_QR_SVG, 'th');
-    return map;
-  }, []);
-
   const selectCard = (id: string) => {
     if (id !== cardId) {
       // New layout: clear custom text so the card shows its own sample until the user types.
@@ -3034,14 +3050,6 @@ export default function QRStudio() {
     }
     setCardId(id);
   };
-
-  const templateThumbs = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const t of BRAND_TEMPLATES) {
-      map[t.id] = renderTemplateThumbSvg(t);
-    }
-    return map;
-  }, []);
 
   /** Raster size for an SVG string: longest side = `longest`, aspect ratio taken from its viewBox. */
   const rasterSize = (svg: string, longest: number) => {
@@ -3357,6 +3365,30 @@ export default function QRStudio() {
           </button>
         </div>
       </div>
+
+      {/* Quick styles on mobile: one scrollable chip row (the desktop bar shows them inline) */}
+      {studioMode === 'create' && (
+        <div className="md:hidden -mx-1 px-1 mb-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <span className={clsx('shrink-0 text-[10px] font-bold uppercase tracking-wider', isDark ? 'text-zinc-500' : 'text-slate-400')}>
+            Quick
+          </span>
+          {[
+            { id: 'classic', label: 'Classic' },
+            { id: 'upi', label: 'UPI Stand' },
+            { id: 'cafe', label: 'Cafe Menu' },
+            { id: 'cyber', label: '⚡ Neon Art' },
+          ].map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => applyQuickPreset(p.id as 'classic' | 'upi' | 'cafe' | 'cyber')}
+              className={clsx('shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-semibold cursor-pointer whitespace-nowrap', inactivePillClass)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* MODE 1: CREATE QR STUDIO */}
       {studioMode === 'create' && (
@@ -4242,7 +4274,7 @@ export default function QRStudio() {
                         >
                           <div
                             className="w-full aspect-square rounded-lg overflow-hidden"
-                            dangerouslySetInnerHTML={{ __html: effectThumbs[e.id] }}
+                            dangerouslySetInnerHTML={{ __html: thumb('fx', e.id) }}
                           />
                           <span className="w-full text-[10px] font-bold leading-tight text-center line-clamp-2 min-h-[2.2em]">{e.name}</span>
                         </button>
@@ -4429,7 +4461,7 @@ export default function QRStudio() {
                         >
                           <div
                             className="w-full h-20 sm:h-24 flex items-center justify-center [&>svg]:max-h-full [&>svg]:w-auto"
-                            dangerouslySetInnerHTML={{ __html: cardThumbs[c.id] }}
+                            dangerouslySetInnerHTML={{ __html: thumb('card', c.id) }}
                           />
                           <div className="w-full text-center">
                             <p className="text-[11px] font-bold truncate">{c.name}</p>
@@ -4488,9 +4520,9 @@ export default function QRStudio() {
                         >
                           <div
                             className="w-full aspect-square rounded-lg overflow-hidden transition-transform group-hover:scale-[1.03]"
-                            dangerouslySetInnerHTML={{ __html: templateThumbs[t.id] }}
+                            dangerouslySetInnerHTML={{ __html: thumb('tpl', t.id) }}
                           />
-                          <span className="w-full text-[10px] font-semibold leading-tight text-center truncate">{t.name}</span>
+                          <span className="w-full text-[10px] font-semibold leading-tight text-center line-clamp-2 break-words">{t.name}</span>
                         </button>
                       );
                     })}

@@ -38,3 +38,10 @@ html.dark {
       radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   }
 }
+/* Hide scrollbars on horizontally scrolling chip rows (still scrollable by touch / trackpad) */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
