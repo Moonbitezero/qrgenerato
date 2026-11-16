@@ -35,6 +35,8 @@ export interface CardDesign {
   radius?: number;
   /** Cards whose artwork follows the QR (frame, text layout) can move it; `stack` = QR centred under the text */
   movable?: { stack: QrBox };
+  /** The card's signature colour; the studio derives scan-safe "match card" QR colours from it */
+  accent?: string;
   /** Returns markup drawn behind and in front of the QR. Movable cards receive the resolved placement. */
   draw: (f: CardFields, id: (name: string) => string, place: CardPlacement) => { back: string; front?: string };
 }
@@ -57,6 +59,8 @@ export interface CardPlacement {
 export interface CardQrOption {
   layout: CardLayout;
   free?: { cx: number; cy: number; size: number };
+  /** Overrides the colour of the backing plate drawn behind the QR */
+  plate?: string;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -445,7 +449,8 @@ export function renderCardSvg(design: CardDesign, fields: CardFields, qrSvg: str
   const id = (n: string) => `card_${uid}_${design.id.replace(/[^a-z0-9]/gi, '')}_${n}`;
   const place = resolveCardPlacement(design, qrOpt);
   const { back, front = '' } = design.draw(fields, id, place);
-  const { plate = '#ffffff', radius = 8 } = design.qr;
+  const { radius = 8 } = design.qr;
+  const plate = qrOpt?.plate ?? design.qr.plate ?? '#ffffff';
   const { x, y, size } = place.qr;
   const clip = id('outline');
   const cardR = design.radius ?? 14;

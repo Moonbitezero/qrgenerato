@@ -27,6 +27,25 @@ import {
 import { downloadBlob, exportGif, exportMp4 } from '@/lib/qr-export';
 import { EXTRA_ART_PRESETS } from '@/lib/qr-art-extra';
 import { DECO_FRAMES, DECO_FRAME_MAP, DECO_GROUPS, DECO_SIDE_PAD, isDecoFrame, renderDecoFrame, renderDecoFrameThumb, type DecoGroup } from '@/lib/qr-frames-deco';
+import {
+  BODY_STYLES,
+  EYE_RING_STYLES,
+  EYE_CENTER_STYLES,
+  STYLE_PRESETS,
+  DOT_SIZES,
+  DOT_SPACINGS,
+  EYE_THICKNESS,
+  EYE_SIZES,
+  bodyModule,
+  finderEye,
+  alignmentCenters,
+  alignmentPatternSvg,
+  shapePreview,
+  type DotSize,
+  type DotSpacing,
+  type EyeThickness,
+  type EyeSize,
+} from '@/lib/qr-shapes';
 import { CARD_MOTIONS, CARD_MOTION_GROUPS, CARD_MOTION_LOOP, CARD_MOTION_MAP, renderCardMotionThumb, type CardMotionGroup } from '@/lib/qr-card-motion';
 import { CARD_DESIGNS, CARD_MAP, SAMPLE_QR_SVG, defaultFreeQr, renderCardSvg, type CardKind, type CardLayout } from '@/lib/qr-cards';
 import {
@@ -60,9 +79,14 @@ import {
   Mail,
   MessageSquare,
   Phone,
-  Eye,
   Frame,
   Palette,
+  ArrowUpLeft,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowDownRight,
+  CircleDot,
+  ChevronDown,
   Image as ImageIcon,
   Upload,
   Gift,
@@ -85,7 +109,7 @@ import {
 
 type StudioMode = 'create' | 'scanner' | 'batch';
 type CategoryId = 'links' | 'payments' | 'social' | 'business' | 'access';
-type DesignTab = 'templates' | 'animate' | 'cards' | 'shapes' | 'colors' | 'logo' | 'frames' | 'artwork';
+type DesignTab = 'templates' | 'animate' | 'cards' | 'style' | 'logo' | 'frames' | 'artwork';
 type ArtPlacement = 'qr-fill' | 'neon-cutout' | 'back-halo' | 'back-pure' | 'medallion';
 type LogoShape = 'rounded' | 'circle' | 'square';
 
@@ -195,6 +219,22 @@ function getContrastRatio(hex1: string, hex2: string): number {
   return (brightest + 0.05) / (darkest + 0.05);
 }
 
+/**
+ * Darkens `hex` (mixing toward black, keeping its hue) until it reaches `target` contrast against `against`.
+ * Used for "Match card colours" so a pastel accent still gives a QR that scans.
+ */
+function shadeForContrast(hex: string, against: string, target: number): string {
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean.padEnd(6, '0').slice(0, 6);
+  const rgb = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
+  const toHex = (k: number) => '#' + rgb.map((v) => Math.round(v * k).toString(16).padStart(2, '0')).join('');
+  for (let k = 1; k > 0; k -= 0.04) {
+    const c = toHex(k);
+    if (getContrastRatio(c, against) >= target) return c;
+  }
+  return '#000000';
+}
+
 const QR_TYPES: QRTypeOption[] = [
   { id: 'url', label: 'URL / Web', category: 'links', icon: LinkIcon, placeholder: 'https://qrgenerato.com' },
   { id: 'text', label: 'Plain Text', category: 'links', icon: Type, placeholder: 'Enter any text, note, or serial code...' },
@@ -238,46 +278,6 @@ const QR_TYPES: QRTypeOption[] = [
   { id: 'phone', label: 'Phone Call', category: 'access', icon: Phone, placeholder: '+919876543210' },
   { id: 'drive', label: 'Google Drive', category: 'access', icon: Layers, placeholder: 'https://drive.google.com/file/d/...' },
   { id: 'coffee', label: 'Table Ordering', category: 'access', icon: Coffee, placeholder: 'https://order.cafe.com/table-5' },
-];
-
-const BODY_SHAPES = [
-  { id: 'square', label: '■ Normal Square' },
-  { id: 'rounded', label: '▢ Rounded' },
-  { id: 'liquid', label: '💧 Liquid Connected' },
-  { id: 'dots', label: '● Mini Dots' },
-  { id: 'extra-round', label: '◯ Extra Round' },
-  { id: 'classy', label: '◆ Classy' },
-  { id: 'diamond', label: '❖ Diamond' },
-  { id: 'star', label: '★ Star' },
-  { id: 'heart', label: '♥ Heart' },
-  { id: 'cross', label: '✚ Cross / Plus' },
-  { id: 'v-bars', label: '▮ V-Bars' },
-  { id: 'h-bars', label: '▬ H-Bars' },
-];
-
-const EYE_BORDER_SHAPES = [
-  { id: 'square', label: '■ Normal Square' },
-  { id: 'rounded', label: '▢ Rounded' },
-  { id: 'circle', label: '◯ Circle' },
-  { id: 'leaf-tl', label: '🍃 Leaf TL' },
-  { id: 'leaf-tr', label: '🍃 Leaf TR' },
-  { id: 'leaf-bl', label: '🍃 Leaf BL' },
-  { id: 'leaf-br', label: '🍃 Leaf BR' },
-  { id: 'cut', label: '⬡ Cut Corner' },
-  { id: 'dotted', label: '∷ Dotted' },
-];
-
-const EYE_CENTER_SHAPES = [
-  { id: 'square', label: '■ Normal Square' },
-  { id: 'rounded', label: '▢ Rounded' },
-  { id: 'circle', label: '● Circle' },
-  { id: 'cross', label: '✚ Plus' },
-  { id: 'heart', label: '♥ Heart' },
-  { id: 'grid', label: '⊞ 3×3 Grid' },
-  { id: 'diamond', label: '◆ Diamond' },
-  { id: 'star', label: '★ Star' },
-  { id: 'leaf', label: '🍃 Leaf' },
-  { id: 'sunburst', label: '☀ Sunburst' },
 ];
 
 const FRAME_STYLES = [
@@ -2100,6 +2100,21 @@ export default function QRStudio() {
   const [dotStyle, setDotStyle] = useState('rounded');
   const [finderShape, setFinderShape] = useState('rounded');
   const [finderCenterShape, setFinderCenterShape] = useState('circle');
+  // QR Style Studio fine-tuning
+  const [dotSize, setDotSize] = useState<DotSize>('medium');
+  const [dotSpacing, setDotSpacing] = useState<DotSpacing>('normal');
+  const [cornerRadius, setCornerRadius] = useState(55); // % for rounded bodies, rings and centres
+  const [eyeThickness, setEyeThickness] = useState<EyeThickness>('medium');
+  const [eyeSize, setEyeSize] = useState<EyeSize>('medium');
+  const [bodyOpacity, setBodyOpacity] = useState(100); // %
+  const [qrBorder, setQrBorder] = useState<'none' | 'thin' | 'medium' | 'thick'>('none');
+  const [qrBorderColor, setQrBorderColor] = useState('#1e1b4b');
+  const [ecLevel, setEcLevel] = useState<'L' | 'M' | 'Q' | 'H'>('H');
+  const [density, setDensity] = useState<'auto' | 'dense' | 'extra'>('auto');
+  const [gradientDir, setGradientDir] = useState<'horizontal' | 'vertical' | 'diagonal'>('diagonal');
+  const [bgGradientDir, setBgGradientDir] = useState<'horizontal' | 'vertical' | 'diagonal'>('diagonal');
+  const [useGrad3, setUseGrad3] = useState(false);
+  const [gradientColor3, setGradientColor3] = useState('#7c3aed');
   const [customEyeColors, setCustomEyeColors] = useState(false);
   const [eyeBorderColor, setEyeBorderColor] = useState('#ec4899');
   const [eyeCenterColor, setEyeCenterColor] = useState('#facc15');
@@ -2151,6 +2166,8 @@ export default function QRStudio() {
   // Where the QR sits on movable (artwork) cards. `cardQrFree` is normalised to the card size.
   const [cardQrLayout, setCardQrLayout] = useState<CardLayout>('corner');
   const [cardQrFree, setCardQrFree] = useState<{ cx: number; cy: number; size: number } | null>(null);
+  // Backing plate behind the QR on a card: the card's own colour, plain white, or the QR's background colour.
+  const [cardPlate, setCardPlate] = useState<'card' | 'white' | 'qr-bg'>('card');
   const [cardTitle, setCardTitle] = useState('');
   const [cardExtra, setCardExtra] = useState('');
 
@@ -2434,6 +2451,10 @@ export default function QRStudio() {
   const defGrad2 = useDeferredValue(gradientColor2);
   const defBgColor = useDeferredValue(bgColor);
   const defBgColor2 = useDeferredValue(bgColor2);
+  const defGrad3 = useDeferredValue(gradientColor3);
+  const defQrBorderColor = useDeferredValue(qrBorderColor);
+  const defCornerRadius = useDeferredValue(cornerRadius);
+  const defBodyOpacity = useDeferredValue(bodyOpacity);
   const defFrameColor = useDeferredValue(frameColor);
   const defEyeBorderColor = useDeferredValue(eyeBorderColor);
   const defEyeCenterColor = useDeferredValue(eyeCenterColor);
@@ -2513,9 +2534,13 @@ export default function QRStudio() {
   // 2. Cached QR Matrix
   const qrMatrix = useMemo(() => {
     try {
-      const qr = QRCode.create(payloadString || 'https://qrgenerato.com', {
-        errorCorrectionLevel: 'H',
-      });
+      const text = payloadString || 'https://qrgenerato.com';
+      let qr = QRCode.create(text, { errorCorrectionLevel: ecLevel });
+      // Pattern density: step up from the smallest QR version that fits (more, finer modules).
+      if (density !== 'auto') {
+        const version = Math.min(40, qr.version + (density === 'dense' ? 3 : 6));
+        qr = QRCode.create(text, { errorCorrectionLevel: ecLevel, version });
+      }
       const size = qr.modules.size;
       const data = qr.modules.data;
       const matrix: boolean[][] = [];
@@ -2530,7 +2555,7 @@ export default function QRStudio() {
     } catch {
       return [[true]];
     }
-  }, [payloadString]);
+  }, [payloadString, ecLevel, density]);
 
   // 3. Complete Vector SVG Renderer (Supports BOTH Original Classic Art & Neon Cutout Art!)
   const getSvgMarkup = useCallback(
@@ -2641,6 +2666,12 @@ export default function QRStudio() {
           })
         : null;
 
+      const bodyScale = DOT_SIZES[dotSize] * DOT_SPACINGS[dotSpacing];
+      const alignCenters = alignmentCenters(count).filter(([ar, ac]) => !isCenterCutout(ar, ac));
+      const solidAlign = alignCenters.length > 0 && alignmentPatternSvg(dotStyle, 0, 0, 0, 0, cellSize) !== null;
+      const inAlignZone = (r: number, c: number) =>
+        solidAlign && alignCenters.some(([ar, ac]) => Math.abs(r - ar) <= 2 && Math.abs(c - ac) <= 2);
+
       let bodyPaths = '';
       let bodyModules = '';
       let contrastHalos = '';
@@ -2670,57 +2701,25 @@ export default function QRStudio() {
             contrastHalos += `<rect x="${x - 0.8}" y="${y - 0.8}" width="${cellSize + 1.6}" height="${cellSize + 1.6}" rx="2.5" fill="#ffffff" fill-opacity="0.92" />`;
           }
 
-          let shape = '';
-          switch (dotStyle) {
-            case 'liquid': {
-              const right = isActiveBodyModule(r, c + 1);
-              const bottom = isActiveBodyModule(r + 1, c);
-              shape += `<rect x="${x + 0.5}" y="${y + 0.5}" width="${cellSize - 1}" height="${cellSize - 1}" rx="3.8" />`;
-              if (right) {
-                shape += `<rect x="${x + cellSize * 0.45}" y="${y + 0.5}" width="${cellSize * 0.6}" height="${cellSize - 1}" />`;
-              }
-              if (bottom) {
-                shape += `<rect x="${x + 0.5}" y="${y + cellSize * 0.45}" width="${cellSize - 1}" height="${cellSize * 0.6}" />`;
-              }
-              break;
-            }
-            case 'dots':
-              shape += `<circle cx="${cx}" cy="${cy}" r="${cellSize * 0.44}" />`;
-              break;
-            case 'rounded':
-              shape += `<rect x="${x + 0.5}" y="${y + 0.5}" width="${cellSize - 1}" height="${cellSize - 1}" rx="3" />`;
-              break;
-            case 'extra-round':
-              shape += `<rect x="${x + 0.4}" y="${y + 0.4}" width="${cellSize - 0.8}" height="${cellSize - 0.8}" rx="4.5" />`;
-              break;
-            case 'classy':
-              shape += `<path d="M${x},${y + 4} Q${x},${y} ${x + 4},${y} L${x + cellSize},${y} L${x + cellSize},${y + cellSize - 4} Q${x + cellSize},${y + cellSize} ${x + cellSize - 4},${y + cellSize} L${x},${y + cellSize} Z" />`;
-              break;
-            case 'diamond':
-              shape += `<polygon points="${cx},${y} ${x + cellSize},${cy} ${cx},${y + cellSize} ${x},${cy}" />`;
-              break;
-            case 'star':
-              shape += `<polygon points="${cx},${y} ${cx + 1.8},${cy - 1.8} ${x + cellSize},${cy} ${cx + 1.8},${cy + 1.8} ${cx},${y + cellSize} ${cx - 1.8},${cy + 1.8} ${x},${cy} ${cx - 1.8},${cy - 1.8}" />`;
-              break;
-            case 'heart':
-              shape += `<path d="M${cx},${y + cellSize * 0.88} C${x + 1},${cy + 1} ${x},${y + 2.5} ${cx - 2.3},${y + 2} C${cx - 0.5},${y + 1.8} ${cx},${y + 3.2} ${cx},${y + 3.5} C${cx},${y + 3.2} ${cx + 0.5},${y + 1.8} ${cx + 2.3},${y + 2} C${x + cellSize},${y + 2.5} ${x + cellSize - 1},${cy + 1} ${cx},${y + cellSize * 0.88} Z" />`;
-              break;
-            case 'cross':
-              shape += `<path d="M${x + 3},${y + 0.8} H${x + 7} V${y + 3} H${x + 9.2} V${y + 7} H${x + 7} V${y + 9.2} H${x + 3} V${y + 7} H${x + 0.8} V${y + 3} H${x + 3} Z" />`;
-              break;
-            case 'v-bars':
-              shape += `<rect x="${x + 1.3}" y="${y}" width="${cellSize - 2.6}" height="${cellSize}" rx="3.2" />`;
-              break;
-            case 'h-bars':
-              shape += `<rect x="${x}" y="${y + 1.3}" width="${cellSize}" height="${cellSize - 2.6}" rx="3.2" />`;
-              break;
-            default:
-              shape += `<rect x="${x}" y="${y}" width="${cellSize + 0.25}" height="${cellSize + 0.25}" />`;
-          }
+          // Sparse styles draw each alignment pattern as one solid mini-eye (added after the loop).
+          if (inAlignZone(r, c)) continue;
+          const shape = bodyModule(dotStyle, x, y, cellSize, {
+            scale: bodyScale,
+            radius: defCornerRadius / 100,
+            right: isActiveBodyModule(r, c + 1),
+            bottom: isActiveBodyModule(r + 1, c),
+          });
           bodyPaths += shape;
           if (fx?.wrapModules && fxEffect?.module) {
             bodyModules += wrapModule(shape, moduleDelay(fxEffect.module.delay, r, c, count));
           }
+        }
+      }
+      if (solidAlign) {
+        for (const [ar, ac] of alignCenters) {
+          const shape = alignmentPatternSvg(dotStyle, ar, ac, offsetX, offsetY, cellSize) ?? '';
+          bodyPaths += shape;
+          if (fx?.wrapModules && fxEffect?.module) bodyModules += wrapModule(shape, moduleDelay(fxEffect.module.delay, ar, ac, count));
         }
       }
 
@@ -2730,8 +2729,6 @@ export default function QRStudio() {
         const outer = 7 * cellSize;
         const innerOffset = 2 * cellSize;
         const inner = 3 * cellSize;
-        const cx = x + outer / 2;
-        const cy = y + outer / 2;
 
         if (isNeonCutout) {
           const neonColors = [defEyeBorderColor || '#ec4899', '#fde047', '#22d3ee'];
@@ -2753,86 +2750,16 @@ export default function QRStudio() {
           eyeBgPlate = `<rect x="${x - 3}" y="${y - 3}" width="${outer + 6}" height="${outer + 6}" rx="12" fill="#ffffff" fill-opacity="0.92" />`;
         }
 
-        const sw = cellSize;
-        const half = sw / 2;
-        const bx = x + half;
-        const by = y + half;
-        const bw = outer - sw;
-        let outerSvg = '';
-
-        switch (finderShape) {
-          case 'circle':
-            outerSvg = `<circle cx="${cx}" cy="${cy}" r="${bw / 2}" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-            break;
-          case 'rounded':
-            outerSvg = `<rect x="${bx}" y="${by}" width="${bw}" height="${bw}" rx="16" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-            break;
-          case 'leaf-tl':
-            outerSvg = `<path d="M${bx + 22},${by} H${bx + bw} V${by + bw - 22} Q${bx + bw},${by + bw} ${bx + bw - 22},${by + bw} H${bx} V${by + 22} Q${bx},${by} ${bx + 22},${by} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-            break;
-          case 'leaf-tr':
-            outerSvg = `<path d="M${bx},${by} H${bx + bw - 22} Q${bx + bw},${by} ${bx + bw},${by + 22} V${by + bw} H${bx + 22} Q${bx},${by + bw} ${bx},${by + bw - 22} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-            break;
-          case 'leaf-bl':
-            outerSvg = `<path d="M${bx},${by} H${bx + bw} V${by + bw} H${bx + 22} Q${bx},${by + bw} ${bx},${by + bw - 22} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-            break;
-          case 'leaf-br':
-            outerSvg = `<path d="M${bx},${by} H${bx + bw} V${by + bw - 22} Q${bx + bw},${by + bw} ${bx + bw - 22},${by + bw} H${bx} Z" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-            break;
-          case 'cut':
-            outerSvg = `<polygon points="${bx + 12},${by} ${bx + bw - 12},${by} ${bx + bw},${by + 12} ${bx + bw},${by + bw - 12} ${bx + bw - 12},${by + bw} ${bx + 12},${by + bw} ${bx},${by + bw - 12} ${bx},${by + 12}" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-            break;
-          case 'dotted':
-            outerSvg = `<rect x="${bx}" y="${by}" width="${bw}" height="${bw}" rx="10" fill="none" stroke="${borderFill}" stroke-width="${sw}" stroke-dasharray="${cellSize * 0.9} ${cellSize * 0.45}" />`;
-            break;
-          default:
-            outerSvg = `<rect x="${bx}" y="${by}" width="${bw}" height="${bw}" fill="none" stroke="${borderFill}" stroke-width="${sw}" />`;
-        }
-
-        const ix = x + innerOffset;
-        const iy = y + innerOffset;
-        let innerSvg = '';
-
-        switch (finderCenterShape) {
-          case 'circle':
-            innerSvg = `<circle cx="${cx}" cy="${cy}" r="${inner / 2}" fill="${centerFill}" />`;
-            break;
-          case 'rounded':
-            innerSvg = `<rect x="${ix}" y="${iy}" width="${inner}" height="${inner}" rx="8" fill="${centerFill}" />`;
-            break;
-          case 'diamond':
-            innerSvg = `<polygon points="${cx},${iy} ${ix + inner},${cy} ${cx},${iy + inner} ${ix},${cy}" fill="${centerFill}" />`;
-            break;
-          case 'star':
-            innerSvg = `<polygon points="${cx},${iy} ${cx + 5},${cy - 5} ${ix + inner},${cy} ${cx + 5},${cy + 5} ${cx},${iy + inner} ${cx - 5},${cy + 5} ${ix},${cy} ${cx - 5},${cy - 5}" fill="${centerFill}" />`;
-            break;
-          case 'cross':
-            innerSvg = `<path d="M${cx - 4.5},${iy + 2} H${cx + 4.5} V${cy - 4.5} H${ix + inner - 2} V${cy + 4.5} H${cx + 4.5} V${iy + inner - 2} H${cx - 4.5} V${cy + 4.5} H${ix + 2} V${cy - 4.5} H${cx - 4.5} Z" fill="${centerFill}" />`;
-            break;
-          case 'heart':
-            innerSvg = `<path d="M${cx},${iy + inner - 2} C${ix + 2},${cy + 4} ${ix},${iy + 8} ${cx - 7},${iy + 4} C${cx - 2},${iy + 2} ${cx},${iy + 7} ${cx},${iy + 9} C${cx},${iy + 7} ${cx + 2},${iy + 2} ${cx + 7},${iy + 4} C${ix + inner},${iy + 8} ${ix + inner - 2},${cy + 4} ${cx},${iy + inner - 2} Z" fill="${centerFill}" />`;
-            break;
-          case 'grid': {
-            let gCells = '';
-            for (let gr = 0; gr < 3; gr++) {
-              for (let gc = 0; gc < 3; gc++) {
-                gCells += `<rect x="${ix + gc * cellSize + 1.2}" y="${iy + gr * cellSize + 1.2}" width="${cellSize - 2.4}" height="${cellSize - 2.4}" rx="1.8" fill="${centerFill}" />`;
-              }
-            }
-            innerSvg = gCells;
-            break;
-          }
-          case 'leaf':
-            innerSvg = `<path d="M${ix + 12},${iy} H${ix + inner} V${iy + inner - 12} Q${ix + inner},${iy + inner} ${ix + inner - 12},${iy + inner} H${ix} V${iy + 12} Q${ix},${iy} ${ix + 12},${iy} Z" fill="${centerFill}" />`;
-            break;
-          case 'sunburst':
-            innerSvg = `<circle cx="${cx}" cy="${cy}" r="${inner * 0.38}" fill="${centerFill}" /><circle cx="${cx}" cy="${cy}" r="${inner * 0.48}" fill="none" stroke="${centerFill}" stroke-width="3" stroke-dasharray="4 3" />`;
-            break;
-          default:
-            innerSvg = `<rect x="${ix}" y="${iy}" width="${inner}" height="${inner}" fill="${centerFill}" />`;
-        }
-
-        return `${eyeBgPlate}${outerSvg}${innerSvg}`;
+        const eyeSvg = finderEye(finderShape, finderCenterShape, x, y, {
+          cell: cellSize,
+          ringFill: borderFill,
+          centerFill,
+          index: eyeIdx,
+          thickness: EYE_THICKNESS[eyeThickness],
+          size: EYE_SIZES[eyeSize],
+          radius: defCornerRadius / 100,
+        });
+        return `${eyeBgPlate}${eyeSvg}`;
       };
 
       const bSize = qrSize * effectiveBadgeScale;
@@ -2853,15 +2780,26 @@ export default function QRStudio() {
             </filter>`
           : '';
 
+      // Gradient direction across the whole QR, and 2 or 3 dot colours.
+      const gradAxis = (dir: 'horizontal' | 'vertical' | 'diagonal') =>
+        dir === 'horizontal'
+          ? `x1="0" y1="0" x2="${totalW}" y2="0"`
+          : dir === 'vertical'
+          ? `x1="0" y1="0" x2="0" y2="${totalH}"`
+          : `x1="0" y1="0" x2="${totalW}" y2="${totalH}"`;
+      const dotColors = useGrad3 ? [safeFg, defGrad3 || safeGrad2, safeGrad2] : [safeFg, safeGrad2];
+      const stopsOf = (cols: string[]) =>
+        cols.map((col, i) => `<stop offset="${Math.round((i / (cols.length - 1)) * 100)}%" stop-color="${col}" />`).join('');
+      const dotStops = stopsOf(dotColors);
+      const dotStopsRadial = stopsOf([...dotColors].reverse());
+
       const defs = `
         <defs>
-          <linearGradient id="${linId}" x1="0" y1="0" x2="${totalW}" y2="${totalH}" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="${safeFg}" />
-            <stop offset="100%" stop-color="${safeGrad2}" />
+          <linearGradient id="${linId}" ${gradAxis(gradientDir)} gradientUnits="userSpaceOnUse">
+            ${dotStops}
           </linearGradient>
           <radialGradient id="${radId}" cx="${totalW / 2}" cy="${totalH / 2}" r="${totalW * 0.6}" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="${safeGrad2}" />
-            <stop offset="100%" stop-color="${safeFg}" />
+            ${dotStopsRadial}
           </radialGradient>
           <linearGradient id="${neonId}" x1="0" y1="0" x2="${totalW}" y2="${totalH}" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#a855f7" />
@@ -2869,7 +2807,7 @@ export default function QRStudio() {
             <stop offset="70%" stop-color="#4ade80" />
             <stop offset="100%" stop-color="#facc15" />
           </linearGradient>
-          <linearGradient id="${bgLinId}" x1="0" y1="0" x2="${totalW}" y2="${totalH}" gradientUnits="userSpaceOnUse">
+          <linearGradient id="${bgLinId}" ${gradAxis(bgGradientDir)} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="${safeBg}" />
             <stop offset="100%" stop-color="${safeBg2}" />
           </linearGradient>
@@ -3166,6 +3104,13 @@ export default function QRStudio() {
         renderFinderEye(0, count - 7, 1) +
         renderFinderEye(count - 7, 0, 2);
 
+      // Optional border around the QR, sitting in the outer part of the quiet zone.
+      const borderW = { none: 0, thin: 3, medium: 6, thick: 10 }[qrBorder];
+      const qrBorderSvg = borderW
+        ? `<rect x="${offsetX - margin * 0.85}" y="${offsetY - margin * 0.85}" width="${qrSize + margin * 1.7}" height="${qrSize + margin * 1.7}" rx="18" fill="none" stroke="${defQrBorderColor}" stroke-width="${borderW}" />`
+        : '';
+      const bodyOpacityAttr = defBodyOpacity < 100 ? `opacity="${defBodyOpacity / 100}"` : '';
+
       const bodyFilterAttr =
         isNeonCutout && defArtGlow > 0 ? `filter="url(#${glowFilterId})"` : '';
 
@@ -3175,7 +3120,8 @@ export default function QRStudio() {
         ${bgSvg}
         ${artBackLayer}
         ${contrastHalos}
-        <g fill="${fx?.bodyFill ?? mainFill}" ${fx ? `class="${fx.bodyClass}"` : ''} ${bodyFilterAttr}>${fx?.wrapModules ? bodyModules : bodyPaths}</g>
+        ${qrBorderSvg}
+        <g fill="${fx?.bodyFill ?? mainFill}" ${fx ? `class="${fx.bodyClass}"` : ''} ${bodyFilterAttr} ${bodyOpacityAttr}>${fx?.wrapModules ? bodyModules : bodyPaths}</g>
         ${artDotsOverlay}
         ${fx ? fx.overlay : ''}
         ${eyesSvg}
@@ -3186,6 +3132,8 @@ export default function QRStudio() {
     },
     [
       qrMatrix, dotStyle, finderShape, finderCenterShape,
+      dotSize, dotSpacing, defCornerRadius, eyeThickness, eyeSize, defBodyOpacity, qrBorder, defQrBorderColor,
+      gradientDir, bgGradientDir, useGrad3, defGrad3,
       customEyeColors, defEyeBorderColor, defEyeCenterColor,
       defFrameStyle, defFrameText, defFrameColor, defFgColor,
       defGrad2, gradientType, defBgColor, defBgColor2, bgGradientType, transparentBg,
@@ -3241,13 +3189,17 @@ export default function QRStudio() {
             },
             qr,
             uid,
-            { layout: cardQrLayout, free: defCardQrFree ?? undefined },
+            {
+              layout: cardQrLayout,
+              free: defCardQrFree ?? undefined,
+              plate: cardPlate === 'white' ? '#ffffff' : cardPlate === 'qr-bg' && !transparentBg ? defBgColor : undefined,
+            },
             animate && cardMotionId !== 'none' ? { id: cardMotionId, speed: animSpeed } : undefined
           )
         : qr;
       return design;
     },
-    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra, cardArtData, cardQrLayout, defCardQrFree, cardMotionId, animSpeed]
+    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra, cardArtData, cardQrLayout, defCardQrFree, cardPlate, transparentBg, defBgColor, cardMotionId, animSpeed]
   );
 
   const hasCardMotion = Boolean(activeCard) && cardMotionId !== 'none';
@@ -3292,11 +3244,90 @@ export default function QRStudio() {
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
   }, []);
+  // Mouse users can't scroll sideways strips (frame groups, card types…) with a normal wheel.
+  // When the pointer enters such a strip, give it a wheel handler that turns vertical wheel into
+  // horizontal scroll. Attached per strip on demand, so page scrolling never waits on a global listener.
+  useEffect(() => {
+    const wired = new WeakSet<Element>();
+    const onWheel = (e: WheelEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // trackpad sideways / zoom: leave alone
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 1) return;
+      const next = Math.max(0, Math.min(max, el.scrollLeft + e.deltaY));
+      if (next === el.scrollLeft) return; // at either end: let the page scroll
+      el.scrollLeft = next;
+      e.preventDefault();
+    };
+    const onOver = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
+      const el = (e.target as Element | null)?.closest?.('.overflow-x-auto');
+      if (!el || wired.has(el)) return;
+      wired.add(el);
+      el.addEventListener('wheel', onWheel as EventListener, { passive: false });
+    };
+    document.addEventListener('pointerover', onOver, { passive: true });
+    return () => document.removeEventListener('pointerover', onOver);
+  }, []);
+
   // Rasterise frame tiles in idle time shortly after load, so the Frames tab opens instantly.
   useEffect(() => {
     const t = window.setTimeout(() => queueDecoRaster(), 3000);
     return () => window.clearTimeout(t);
   }, []);
+  // ── Card QR: drag on the preview (Custom position) ──
+  const canDragCardQr = Boolean(activeCard?.movable) && cardQrLayout === 'free' && cardQrFree !== null;
+  const qrDragging = useRef(false);
+  const qrDragFrame = useRef(0);
+  const moveCardQrTo = (el: HTMLElement, clientX: number, clientY: number) => {
+    const svg = el.querySelector('svg');
+    if (!svg || !activeCard) return;
+    // The card SVG is drawn with preserveAspectRatio "meet": map the pointer into card units.
+    const r = svg.getBoundingClientRect();
+    const scale = Math.min(r.width / activeCard.w, r.height / activeCard.h);
+    const ox = r.left + (r.width - activeCard.w * scale) / 2;
+    const oy = r.top + (r.height - activeCard.h * scale) / 2;
+    const cx = Math.min(1, Math.max(0, (clientX - ox) / scale / activeCard.w));
+    const cy = Math.min(1, Math.max(0, (clientY - oy) / scale / activeCard.h));
+    cancelAnimationFrame(qrDragFrame.current);
+    qrDragFrame.current = requestAnimationFrame(() => setCardQrFree((f) => (f ? { ...f, cx, cy } : f)));
+  };
+  const cardQrDragProps = canDragCardQr
+    ? {
+        onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          qrDragging.current = true;
+          moveCardQrTo(e.currentTarget, e.clientX, e.clientY);
+        },
+        onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+          if (qrDragging.current) moveCardQrTo(e.currentTarget, e.clientX, e.clientY);
+        },
+        onPointerUp: () => {
+          qrDragging.current = false;
+        },
+        onPointerCancel: () => {
+          qrDragging.current = false;
+        },
+        title: 'Drag to move the QR',
+        style: { touchAction: 'none' as const, cursor: 'move' },
+      }
+    : {};
+
+  /** One click: QR dots in the card's colour (darkened enough to scan), eyes in its accent. */
+  const matchCardColours = () => {
+    const accent = activeCard?.accent;
+    if (!accent) return;
+    const against = transparentBg ? '#ffffff' : bgColor;
+    setGradientType('linear');
+    setFgColor(shadeForContrast(accent, against, 7));
+    setGradientColor2(shadeForContrast(accent, against, 4.5));
+    setCustomEyeColors(true);
+    setEyeBorderColor(shadeForContrast(accent, against, 3.5));
+    setEyeCenterColor(shadeForContrast(accent, against, 7));
+  };
+
   const svgMobile = useMemo(() => (isDesktop === true ? '' : getFinalMarkup('mob')), [getFinalMarkup, isDesktop]);
   const svgDesktop = useMemo(() => (isDesktop === false ? '' : getFinalMarkup('desk')), [getFinalMarkup, isDesktop]);
 
@@ -3522,6 +3553,76 @@ export default function QRStudio() {
   const inactivePillClass = isDark
     ? 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
     : 'bg-white border-slate-200 text-slate-700 hover:text-indigo-600 hover:border-indigo-300';
+
+  /** Ready-made combination: shapes plus a matching colour set (dots, gradient, eye ring, eye centre). */
+  const applyStylePreset = (id: string) => {
+    const p = STYLE_PRESETS.find((x) => x.id === id);
+    if (!p) return;
+    setDotStyle(p.body);
+    setFinderShape(p.ring);
+    setFinderCenterShape(p.center);
+    setFgColor(p.colors[0]);
+    setGradientColor2(p.colors[1]);
+    setGradientType('linear');
+    setCustomEyeColors(true);
+    setEyeBorderColor(p.colors[2]);
+    setEyeCenterColor(p.colors[3]);
+  };
+
+  /** Small segmented control used across the Style tab. `labels` renames options; `hideLabel` keeps it for screen readers only. */
+  const renderSeg = <T extends string>(
+    label: string,
+    options: readonly T[],
+    value: T,
+    onChange: (v: T) => void,
+    labels?: Partial<Record<T, string>>,
+    hideLabel = false
+  ) => (
+    <div className="space-y-1 min-w-0">
+      <span className={clsx(hideLabel ? 'sr-only' : 'block text-[11px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>{label}</span>
+      <div className={clsx('grid p-0.5 rounded-lg border', subCardClass)} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }} role="radiogroup" aria-label={label}>
+        {options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            role="radio"
+            aria-checked={value === o}
+            onClick={() => onChange(o)}
+            className={clsx(
+              'px-1 py-1.5 sm:py-1 rounded-md text-[11px] font-bold capitalize whitespace-nowrap overflow-hidden text-ellipsis transition-colors cursor-pointer',
+              value === o ? 'bg-indigo-600 text-white' : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-slate-600 hover:text-slate-900'
+            )}
+          >
+            {labels?.[o] ?? o}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  /** Compact colour field: swatch picker + editable hex, sized to sit two per row on phones. */
+  const renderColor = (label: string, value: string, onChange: (v: string) => void) => (
+    <div className={clsx('flex items-center gap-2 p-1.5 pr-2 rounded-xl border min-w-0', subCardClass)}>
+      <input
+        type="color"
+        value={/^#[0-9a-f]{6}$/i.test(value) ? value : '#000000'}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className="w-9 h-9 shrink-0 rounded-lg cursor-pointer border-0 bg-transparent p-0"
+      />
+      <span className="min-w-0 flex-1">
+        <span className={clsx('block text-[10px] font-semibold leading-tight', isDark ? 'text-zinc-400' : 'text-slate-500')}>{label}</span>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={`${label} hex code`}
+          spellCheck={false}
+          className="w-full bg-transparent text-xs font-mono font-semibold outline-none uppercase"
+        />
+      </span>
+    </div>
+  );
 
   // Stable callback so the memoized DecoFramePicker doesn't re-render on unrelated studio changes.
   const pickDecoFrame = useCallback((id: string) => {
@@ -3791,15 +3892,21 @@ export default function QRStudio() {
                     </div>
 
                     <div
-                      onClick={() => setMobileZoomed(false)}
+                      {...cardQrDragProps}
+                      // While the QR can be dragged, a tap moves it; "Minimize" above still closes the view.
+                      onClick={canDragCardQr ? undefined : () => setMobileZoomed(false)}
                       className={clsx(
                         'rounded-2xl p-2 flex items-center justify-center border overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
                         activeCard ? (activeCard.w > activeCard.h ? 'w-full max-w-[340px]' : 'w-64') : 'w-56 h-56',
                         isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
                       )}
-                      style={activeCard ? { aspectRatio: `${activeCard.w + 16} / ${activeCard.h + 16}` } : undefined}
+                      style={{
+                        ...(activeCard ? { aspectRatio: `${activeCard.w + 16} / ${activeCard.h + 16}` } : {}),
+                        ...(canDragCardQr ? { touchAction: 'none' as const, cursor: 'move' } : {}),
+                      }}
                       dangerouslySetInnerHTML={{ __html: svgMobile }}
                     />
+                    {canDragCardQr && <p className={clsx('text-[11px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>Drag on the card to move the QR</p>}
 
                     <div className="w-full flex items-center justify-between gap-2 overflow-x-auto no-scrollbar pt-1">
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -4232,20 +4339,19 @@ export default function QRStudio() {
               </div>
             </div>
 
-            {/* STEP 2: Design tabs — icon-over-label tiles (4×2 on mobile, 8 in a row on desktop), never truncated */}
+            {/* STEP 2: Design tabs — icon-over-label tiles (4 + 3 on mobile, 7 in a row on desktop), never truncated */}
             <div className={clsx('p-3 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
               <div
                 role="tablist"
                 aria-label="Design options"
                 className={clsx(
-                  'grid grid-cols-4 md:grid-cols-8 gap-1 p-1 rounded-xl border',
+                  'grid grid-cols-4 md:grid-cols-7 gap-1 p-1 rounded-xl border',
                   isDark ? 'bg-zinc-950/90 border-zinc-800/80' : 'bg-slate-100 border-slate-200/80'
                 )}
               >
                 {[
                   { id: 'templates', label: 'Templates', icon: LayoutGrid },
-                  { id: 'colors', label: 'Colors', icon: Palette },
-                  { id: 'shapes', label: 'Shapes', icon: Eye },
+                  { id: 'style', label: 'Style', icon: Palette },
                   { id: 'logo', label: 'Logos', icon: ImageIcon },
                   { id: 'frames', label: 'Frames', icon: Frame },
                   { id: 'artwork', label: 'QR Art', icon: Sparkles },
@@ -4816,6 +4922,32 @@ export default function QRStudio() {
                             )}
                           </div>
                           {cardQrLayout === 'free' && cardQrFree && (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className={clsx('text-[10px] font-semibold mr-0.5', isDark ? 'text-zinc-400' : 'text-slate-500')}>Quick spot</span>
+                              {(
+                                [
+                                  { Icon: ArrowUpLeft, title: 'Top left', cx: 0, cy: 0 },
+                                  { Icon: ArrowUpRight, title: 'Top right', cx: 1, cy: 0 },
+                                  { Icon: CircleDot, title: 'Centre', cx: 0.5, cy: 0.5 },
+                                  { Icon: ArrowDownLeft, title: 'Bottom left', cx: 0, cy: 1 },
+                                  { Icon: ArrowDownRight, title: 'Bottom right', cx: 1, cy: 1 },
+                                ] as const
+                              ).map((p) => (
+                                <button
+                                  key={p.title}
+                                  type="button"
+                                  title={p.title}
+                                  aria-label={`Move QR to ${p.title.toLowerCase()}`}
+                                  onClick={() => setCardQrFree({ ...cardQrFree, cx: p.cx, cy: p.cy })}
+                                  className={clsx('w-8 h-7 rounded-md border flex items-center justify-center cursor-pointer transition-colors', inactivePillClass)}
+                                >
+                                  <p.Icon className="w-3.5 h-3.5" />
+                                </button>
+                              ))}
+                              <span className={clsx('text-[10.5px] ml-1', isDark ? 'text-zinc-500' : 'text-slate-500')}>or drag the QR on the preview</span>
+                            </div>
+                          )}
+                          {cardQrLayout === 'free' && cardQrFree && (
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-3 gap-y-1.5">
                               {(
                                 [
@@ -4841,6 +4973,43 @@ export default function QRStudio() {
                           )}
                         </div>
                       )}
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <span className={clsx('text-[10px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>QR plate</span>
+                        <div className={clsx('inline-flex p-0.5 rounded-lg border', subCardClass)} role="radiogroup" aria-label="QR plate colour">
+                          {(
+                            [
+                              { id: 'card', label: 'Card style' },
+                              { id: 'white', label: 'White' },
+                              { id: 'qr-bg', label: 'Match QR background' },
+                            ] as const
+                          ).map((pl) => (
+                            <button
+                              key={pl.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={cardPlate === pl.id}
+                              onClick={() => setCardPlate(pl.id)}
+                              className={clsx(
+                                'px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap',
+                                cardPlate === pl.id ? 'bg-indigo-600 text-white' : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-slate-600 hover:text-slate-900'
+                              )}
+                            >
+                              {pl.label}
+                            </button>
+                          ))}
+                        </div>
+                        {activeCard.accent && (
+                          <button
+                            type="button"
+                            onClick={matchCardColours}
+                            className={clsx('flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border cursor-pointer transition-colors', inactivePillClass)}
+                            title="Colour the QR to match this card (kept dark enough to scan)"
+                          >
+                            <span className="w-3 h-3 rounded-full border border-black/20" style={{ background: activeCard.accent }} />
+                            Match card colours
+                          </button>
+                        )}
+                      </div>
                       <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-400' : 'text-slate-500')}>
                         Your QR design, colours and animation are placed on the card. PNG downloads in high resolution (3000px) with clean rounded corners.
                       </p>
@@ -4958,112 +5127,152 @@ export default function QRStudio() {
               })()}
 
               {/* TAB: ORGANIZED SHAPES & EYES */}
-              {designTab === 'shapes' && (
-                <div className="space-y-3.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2.5">
-                    <div className={clsx('grid grid-cols-3 sm:inline-flex w-full sm:w-auto p-1 rounded-xl border', subCardClass)}>
-                      {[
-                        { id: 'dots', label: '1. Body Dots' },
-                        { id: 'ring', label: '2. Eye Ring' },
-                        { id: 'center', label: '3. Eye Dot' },
-                      ].map((sub) => (
+              {/* TAB: STYLE — QR Style Studio (presets, shapes, fine-tune), then colours */}
+              {designTab === 'style' && (
+                <div className="space-y-4">
+                  {/* Ready-made combinations */}
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-extrabold flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-fuchsia-400" /> Ready-made Styles
+                    </h3>
+                    {/* 5 × 2 grid: everything visible at once, no sideways scrolling */}
+                    <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                      {STYLE_PRESETS.map((p) => {
+                        const active = dotStyle === p.body && finderShape === p.ring && finderCenterShape === p.center;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => applyStylePreset(p.id)}
+                            className={clsx(
+                              'min-w-0 p-1 sm:p-1.5 rounded-xl border flex flex-col items-center gap-1 cursor-pointer transition-colors',
+                              active ? activePillClass : inactivePillClass
+                            )}
+                          >
+                            {/* mini QR: eye in the corner over a patch of body dots, on a white card */}
+                            <span className="relative w-full max-w-14 aspect-square rounded-lg bg-white overflow-hidden">
+                              <span className="absolute right-[4%] bottom-[4%] w-[64%] h-[64%]" style={{ color: p.colors[0] }} dangerouslySetInnerHTML={{ __html: shapePreview('body', p.body) }} />
+                              <span className="absolute left-0 top-0 w-[58%] h-[58%]" style={{ color: p.colors[2] }} dangerouslySetInnerHTML={{ __html: shapePreview('ring', p.ring) }} />
+                            </span>
+                            <span className="w-full text-[9px] sm:text-[10px] font-bold leading-tight text-center line-clamp-2 min-h-[2.2em]">{p.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Shape pickers */}
+                  <div className="space-y-2.5 pt-3 border-t border-slate-200/70 dark:border-zinc-800/80">
+                    <div className="flex flex-wrap items-center justify-between gap-2.5">
+                      <h3 className="text-sm font-extrabold">Shapes</h3>
+                      <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                        <input type="checkbox" checked={customEyeColors} onChange={(e) => setCustomEyeColors(e.target.checked)} className="w-4 h-4 rounded accent-indigo-600" />
+                        Custom Eye Colors
+                      </label>
+                    </div>
+                    <div className={clsx('grid grid-cols-3 w-full p-1 rounded-xl border', subCardClass)} role="tablist" aria-label="Shape part">
+                      {(
+                        [
+                          { id: 'dots', label: 'Body', n: BODY_STYLES.length },
+                          { id: 'ring', label: 'Eye Ring', n: EYE_RING_STYLES.length },
+                          { id: 'center', label: 'Eye Centre', n: EYE_CENTER_STYLES.length },
+                        ] as const
+                      ).map((sub) => (
                         <button
                           key={sub.id}
                           type="button"
-                          onClick={() => setShapeSubTab(sub.id as 'dots' | 'ring' | 'center')}
+                          role="tab"
+                          aria-selected={shapeSubTab === sub.id}
+                          onClick={() => setShapeSubTab(sub.id)}
                           className={clsx(
-                            'px-2.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-colors cursor-pointer text-center',
-                            shapeSubTab === sub.id
-                              ? 'bg-indigo-600 text-white shadow-sm'
-                              : isDark
-                              ? 'text-zinc-400 hover:text-white'
-                              : 'text-slate-600 hover:text-slate-900'
+                            'px-2 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition-colors cursor-pointer text-center',
+                            shapeSubTab === sub.id ? 'bg-indigo-600 text-white shadow-sm' : isDark ? 'text-zinc-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
                           )}
                         >
-                          {sub.label}
+                          {sub.label} <span className="opacity-70">({sub.n})</span>
                         </button>
                       ))}
                     </div>
 
-                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={customEyeColors}
-                        onChange={(e) => setCustomEyeColors(e.target.checked)}
-                        className="w-4 h-4 rounded accent-indigo-600"
-                      />
-                      Custom Eye Colors
-                    </label>
-                  </div>
+                    {(() => {
+                      const kind = shapeSubTab === 'dots' ? 'body' : shapeSubTab === 'ring' ? 'ring' : 'center';
+                      const list = kind === 'body' ? BODY_STYLES : kind === 'ring' ? EYE_RING_STYLES : EYE_CENTER_STYLES;
+                      const current = kind === 'body' ? dotStyle : kind === 'ring' ? finderShape : finderCenterShape;
+                      const set = kind === 'body' ? setDotStyle : kind === 'ring' ? setFinderShape : setFinderCenterShape;
+                      return (
+                        <div className="grid grid-cols-5 sm:grid-cols-6 gap-1 sm:gap-1.5">
+                          {list.map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              aria-pressed={current === s.id}
+                              title={s.label}
+                              onClick={() => set(s.id)}
+                              className={clsx(
+                                'min-w-0 px-0.5 py-1 sm:p-1.5 rounded-lg sm:rounded-xl border flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer transition-colors',
+                                current === s.id ? activePillClass : inactivePillClass
+                              )}
+                            >
+                              <span className="w-7 h-7 sm:w-9 sm:h-9 block" dangerouslySetInnerHTML={{ __html: shapePreview(kind, s.id) }} />
+                              <span className="w-full text-[9px] sm:text-[10px] font-semibold leading-tight text-center truncate">{s.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
 
-                  <div>
-                    {shapeSubTab === 'dots' && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {BODY_SHAPES.map((s) => (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => setDotStyle(s.id)}
-                            className={clsx(
-                              'py-2.5 px-3 rounded-xl border text-xs font-semibold transition-colors cursor-pointer truncate',
-                              dotStyle === s.id ? activePillClass : inactivePillClass
-                            )}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {shapeSubTab === 'ring' && (
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                        {EYE_BORDER_SHAPES.map((s) => (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => setFinderShape(s.id)}
-                            className={clsx(
-                              'py-2.5 px-3 rounded-xl border text-xs font-semibold transition-colors cursor-pointer truncate',
-                              finderShape === s.id ? activePillClass : inactivePillClass
-                            )}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {shapeSubTab === 'center' && (
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                        {EYE_CENTER_SHAPES.map((s) => (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => setFinderCenterShape(s.id)}
-                            className={clsx(
-                              'py-2.5 px-3 rounded-xl border text-xs font-semibold transition-colors cursor-pointer truncate',
-                              finderCenterShape === s.id ? activePillClass : inactivePillClass
-                            )}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
+                    {customEyeColors && (
+                      <div className={clsx('p-3 rounded-xl border flex flex-wrap items-center gap-4', subCardClass)}>
+                        <label className="flex items-center gap-2 text-xs font-medium">
+                          <span>Eye Ring:</span>
+                          <input type="color" value={eyeBorderColor} onChange={(e) => setEyeBorderColor(e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-medium">
+                          <span>Eye Centre:</span>
+                          <input type="color" value={eyeCenterColor} onChange={(e) => setEyeCenterColor(e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
+                        </label>
                       </div>
                     )}
                   </div>
 
-                  {customEyeColors && (
-                    <div className={clsx('p-3 rounded-xl border flex flex-wrap items-center gap-4', subCardClass)}>
-                      <label className="flex items-center gap-2 text-xs font-medium">
-                        <span>Outer Ring:</span>
-                        <input type="color" value={eyeBorderColor} onChange={(e) => setEyeBorderColor(e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
-                      </label>
-                      <label className="flex items-center gap-2 text-xs font-medium">
-                        <span>Inner Dot:</span>
-                        <input type="color" value={eyeCenterColor} onChange={(e) => setEyeCenterColor(e.target.value)} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
-                      </label>
+                  {/* Fine-tune (folded away; the summary shows the current settings) */}
+                  <details className={clsx('group rounded-xl border', subCardClass)}>
+                    <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none">
+                      <span className="text-xs font-extrabold">Fine-tune</span>
+                      <span className={clsx('flex items-center gap-1.5 text-[10.5px] font-semibold capitalize min-w-0', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                        <span className="truncate">
+                          {dotSize} dots · {eyeThickness} eyes · {cornerRadius}%{bodyOpacity < 100 ? ` · ${bodyOpacity}% opacity` : ''}
+                        </span>
+                        <ChevronDown className="w-4 h-4 shrink-0 transition-transform group-open:rotate-180" />
+                      </span>
+                    </summary>
+                    <div className="px-3 pb-3 space-y-3">
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+                        {renderSeg('Dot size', ['tiny', 'small', 'medium', 'large'] as const, dotSize, setDotSize, { medium: 'Med' })}
+                        {renderSeg('Dot spacing', ['compact', 'normal', 'wide'] as const, dotSpacing, setDotSpacing, { compact: 'Tight' })}
+                        {renderSeg('Eye thickness', ['thin', 'medium', 'thick'] as const, eyeThickness, setEyeThickness, { medium: 'Med' })}
+                        {renderSeg('Eye centre size', ['small', 'medium', 'large'] as const, eyeSize, setEyeSize, { small: 'S', medium: 'M', large: 'L' })}
+                        <label className="space-y-1">
+                          <span className={clsx('flex justify-between text-[11px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                            <span>Corner radius</span>
+                            <span>{cornerRadius}%</span>
+                          </span>
+                          <input type="range" min={0} max={100} step={5} value={cornerRadius} onChange={(e) => setCornerRadius(Number(e.target.value))} className="w-full accent-indigo-600 cursor-pointer" />
+                        </label>
+                        <label className="space-y-1">
+                          <span className={clsx('flex justify-between text-[11px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                            <span>Dots opacity</span>
+                            <span>{bodyOpacity}%</span>
+                          </span>
+                          <input type="range" min={50} max={100} step={5} value={bodyOpacity} onChange={(e) => setBodyOpacity(Number(e.target.value))} className="w-full accent-indigo-600 cursor-pointer" />
+                        </label>
+                      </div>
+                      <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-500' : 'text-slate-500')}>
+                        Corner radius shapes Rounded Square dots, rings and centres. Every style keeps the eye geometry phones look for, so decorative shapes still scan.
+                      </p>
                     </div>
-                  )}
+                  </details>
                 </div>
               )}
 
@@ -5120,105 +5329,80 @@ export default function QRStudio() {
                 </div>
               )}
 
-              {/* TAB: COLORS & BACKGROUND GRADIENTS */}
-              {designTab === 'colors' && (
-                <div className="space-y-4">
+              {/* TAB: STYLE (part 2) — colours, border & advanced */}
+              {designTab === 'style' && (
+                <div className="space-y-3 mt-4 pt-4 border-t border-slate-200/70 dark:border-zinc-800/80">
+                  <h3 className="text-sm font-extrabold">Colors</h3>
+
+                  {/* Dots */}
                   <div className="space-y-2">
-                    <span className="text-xs font-bold text-indigo-400">1. QR Dots Color / Gradient</span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {[
-                        { id: 'none', label: 'Solid Dots' },
-                        { id: 'linear', label: 'Linear Gradient' },
-                        { id: 'radial', label: 'Radial Gradient' },
-                      ].map((g) => (
-                        <button
-                          key={g.id}
-                          type="button"
-                          onClick={() => setGradientType(g.id as 'none' | 'linear' | 'radial')}
-                          className={clsx(
-                            'px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer',
-                            gradientType === g.id ? activePillClass : inactivePillClass
-                          )}
-                        >
-                          {g.label}
-                        </button>
-                      ))}
+                    {renderSeg('QR dots', ['none', 'linear', 'radial'] as const, gradientType, setGradientType, { none: 'Solid', linear: 'Gradient', radial: 'Radial' })}
+                    <div className="grid grid-cols-2 gap-2">
+                      {renderColor(gradientType === 'none' ? 'Dot colour' : 'Start', fgColor, setFgColor)}
+                      {gradientType !== 'none' && useGrad3 && renderColor('Middle', gradientColor3, setGradientColor3)}
+                      {gradientType !== 'none' && renderColor('End', gradientColor2, setGradientColor2)}
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className={clsx('p-3 rounded-xl border', subCardClass)}>
-                        <label className={labelClass}>Primary Dot Color</label>
-                        <div className="flex items-center gap-2">
-                          <input type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent" />
-                          <input type="text" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className={inputClass} />
-                        </div>
+                    {gradientType !== 'none' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:items-end">
+                        {gradientType === 'linear' && renderSeg('Direction', ['horizontal', 'vertical', 'diagonal'] as const, gradientDir, setGradientDir, { horizontal: '↔ Across', vertical: '↕ Down', diagonal: '⤡ Diagonal' })}
+                        <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer py-1">
+                          <input type="checkbox" checked={useGrad3} onChange={(e) => setUseGrad3(e.target.checked)} className="w-4 h-4 rounded accent-indigo-600" />
+                          Use three colours
+                        </label>
                       </div>
-
-                      {gradientType !== 'none' && (
-                        <div className={clsx('p-3 rounded-xl border', subCardClass)}>
-                          <label className={labelClass}>Second Dot Color</label>
-                          <div className="flex items-center gap-2">
-                            <input type="color" value={gradientColor2} onChange={(e) => setGradientColor2(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent" />
-                            <input type="text" value={gradientColor2} onChange={(e) => setGradientColor2(e.target.value)} className={inputClass} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
 
-                  <div className="space-y-2 pt-2 border-t border-slate-200/70 dark:border-zinc-800/80">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-pink-400">2. Card Background Color / Gradient</span>
+                  {/* Background */}
+                  <div className="space-y-2 pt-3 border-t border-slate-200/70 dark:border-zinc-800/80">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={clsx('text-[11px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>Background</span>
                       <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
-                        <input type="checkbox" checked={transparentBg} onChange={(e) => setTransparentBg(e.target.checked)} className="rounded accent-indigo-600" />
-                        Transparent PNG/SVG
+                        <input type="checkbox" checked={transparentBg} onChange={(e) => setTransparentBg(e.target.checked)} className="w-4 h-4 rounded accent-indigo-600" />
+                        Transparent
                       </label>
                     </div>
-
                     {!transparentBg && (
                       <>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {[
-                            { id: 'none', label: 'Solid Background' },
-                            { id: 'linear', label: 'Gradient Background' },
-                            { id: 'radial', label: 'Radial Glow' },
-                          ].map((g) => (
-                            <button
-                              key={g.id}
-                              type="button"
-                              onClick={() => setBgGradientType(g.id as 'none' | 'linear' | 'radial')}
-                              className={clsx(
-                                'px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer',
-                                bgGradientType === g.id ? activePillClass : inactivePillClass
-                              )}
-                            >
-                              {g.label}
-                            </button>
-                          ))}
+                        {renderSeg('Background style', ['none', 'linear', 'radial'] as const, bgGradientType, setBgGradientType, { none: 'Solid', linear: 'Gradient', radial: 'Glow' }, true)}
+                        <div className="grid grid-cols-2 gap-2">
+                          {renderColor(bgGradientType === 'none' ? 'Background' : 'Colour 1', bgColor, setBgColor)}
+                          {bgGradientType !== 'none' && renderColor('Colour 2', bgColor2, setBgColor2)}
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className={clsx('p-3 rounded-xl border', subCardClass)}>
-                            <label className={labelClass}>Background Color 1</label>
-                            <div className="flex items-center gap-2">
-                              <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent" />
-                              <input type="text" value={bgColor} onChange={(e) => setBgColor(e.target.value)} className={inputClass} />
-                            </div>
-                          </div>
-
-                          {bgGradientType !== 'none' && (
-                            <div className={clsx('p-3 rounded-xl border', subCardClass)}>
-                              <label className={labelClass}>Background Color 2</label>
-                              <div className="flex items-center gap-2">
-                                <input type="color" value={bgColor2} onChange={(e) => setBgColor2(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent" />
-                                <input type="text" value={bgColor2} onChange={(e) => setBgColor2(e.target.value)} className={inputClass} />
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        {bgGradientType === 'linear' &&
+                          renderSeg('Background direction', ['horizontal', 'vertical', 'diagonal'] as const, bgGradientDir, setBgGradientDir, { horizontal: '↔ Across', vertical: '↕ Down', diagonal: '⤡ Diagonal' })}
                       </>
                     )}
                   </div>
+
+                  {/* Border & advanced (folded away) */}
+                  <details className={clsx('group rounded-xl border', subCardClass)}>
+                    <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none">
+                      <span className="text-xs font-extrabold">Border &amp; Advanced</span>
+                      <span className={clsx('flex items-center gap-1.5 text-[10.5px] font-semibold min-w-0', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                        <span className="truncate">
+                          Border {qrBorder} · EC {ecLevel} · {density}
+                        </span>
+                        <ChevronDown className="w-4 h-4 shrink-0 transition-transform group-open:rotate-180" />
+                      </span>
+                    </summary>
+                    <div className="px-3 pb-3 space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:items-end">
+                        {renderSeg('Border', ['none', 'thin', 'medium', 'thick'] as const, qrBorder, setQrBorder)}
+                        {qrBorder !== 'none' && renderColor('Border colour', qrBorderColor, setQrBorderColor)}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {renderSeg('Error correction', ['L', 'M', 'Q', 'H'] as const, ecLevel, setEcLevel)}
+                        {renderSeg('Pattern density', ['auto', 'dense', 'extra'] as const, density, setDensity)}
+                      </div>
+                      <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-500' : 'text-slate-500')}>
+                        Error correction: L 7% · M 15% · Q 25% · H 30% of the code can be covered and still scan. H is best with a logo or artwork. Higher density adds more, smaller modules.
+                      </p>
+                      {ecLevel !== 'H' && ecLevel !== 'Q' && (customLogoUrl || selectedPresetLogo !== 'none' || artworkUrl) && (
+                        <p className="text-[11px] font-semibold text-amber-400">A logo or artwork covers part of the code — use Q or H so it still scans.</p>
+                      )}
+                    </div>
+                  </details>
                 </div>
               )}
 
@@ -5337,6 +5521,7 @@ export default function QRStudio() {
                   }}
                 />
                 <div
+                  {...cardQrDragProps}
                   className={clsx(
                     'relative w-full h-full rounded-2xl p-2.5 flex items-center justify-center border overflow-hidden transition-colors [&>svg]:w-full [&>svg]:h-full',
                     isDark ? 'bg-zinc-950/95 border-zinc-800/90' : 'bg-slate-100 border-slate-200/90'

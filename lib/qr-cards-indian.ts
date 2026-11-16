@@ -144,5 +144,6 @@ export const INDIAN_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
   defaults: { name: 'Your Name', title: e.title, extra: `INDIA SERIES · No. ${String(i + 1).padStart(2, '0')}` },
   qr: QR,
   movable: { stack: { x: 117, y: 340, size: 66 } },
+  accent: e.accent,
   draw: indianCard(e),
 }));

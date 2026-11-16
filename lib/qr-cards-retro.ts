@@ -29,6 +29,8 @@ function pixelRect(x: number, y: number, w: number, h: number, s: number): strin
 
 interface RetroOpts {
   slug: string;
+  /** Display name shown in the window title bar */
+  name: string;
   /** Accent used for buttons, QR frame and the extra line */
   accent: string;
   /** Dark tone of the bottom fade, sampled from the artwork */
@@ -72,7 +74,7 @@ function retroCard(o: RetroOpts) {
       <rect x="22" y="21" width="8" height="8" fill="#ef4444" stroke="#1c1917" stroke-width="1.5"/>
       <rect x="34" y="21" width="8" height="8" fill="#facc15" stroke="#1c1917" stroke-width="1.5"/>
       <rect x="46" y="21" width="8" height="8" fill="#22c55e" stroke="#1c1917" stroke-width="1.5"/>
-      ${txt(W / 2 + 14, 29, `${o.slug.replace(/-/g, '_')}.png`, { size: 9, fill: '#1c1917', anchor: 'middle', spacing: 0.5 })}
+      ${txt(W / 2 + 14, 29, o.name, { size: 9, fill: '#1c1917', anchor: 'middle', spacing: 0.5 })}
       <path d="M${W - 40},20 h10 v10 h-10 Z M${W - 36},24 h2 v2 h-2 Z" fill="none" stroke="#1c1917" stroke-width="1.5"/>
 
       <!-- outer frame: outer edge sits exactly on the card's 14px rounded corner -->
@@ -118,6 +120,7 @@ const ENTRIES: RetroEntry[] = [
   { slug: 'window-cat', name: 'Window Cat', desc: 'Cat watching the rain', title: 'Cozy rainy day', accent: '#fda4af', shade: '#1f2937', frame: '#ffe4e6' },
   { slug: 'lake-cabin', name: 'Lake Cabin', desc: 'Mountain lake and pine forest', title: 'Off-grid weekend', accent: '#5eead4', shade: '#0b2a24', frame: '#ccfbf1' },
   { slug: 'quiet-alley', name: 'Quiet Alley', desc: 'Retro street, bike and vending machine', title: 'Neighbourhood walk', accent: '#f87171', shade: '#1f2a2a', frame: '#e7e5e4' },
+  { slug: 'sakura-bridge', name: 'Sakura Bridge', desc: 'Stone bridge over a blossom river', title: 'Riverside stroll', accent: '#f9a8d4', shade: '#1e2a3a', frame: '#fce7f3' },
 ];
 
 export const RETRO_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
@@ -132,5 +135,6 @@ export const RETRO_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
   defaults: { name: 'Your Name', title: e.title, extra: `RETRO · No. ${String(i + 1).padStart(2, '0')}` },
   qr: QR,
   movable: { stack: { x: 115, y: 352, size: 70 } },
+  accent: e.accent,
   draw: retroCard(e),
 }));

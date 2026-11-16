@@ -142,5 +142,6 @@ export const GIRL_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
   defaults: { name: 'Your Name', title: e.title, extra: `PLAYER 1 · STAGE ${String(i + 1).padStart(2, '0')}` },
   qr: QR,
   movable: { stack: { x: 118, y: 282, size: 64 } },
+  accent: e.accent,
   draw: girlCard({ ...e, level: (i * 7) % 90 + 7 }),
 }));

@@ -144,6 +144,7 @@ export const VINTAGE_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => {
     defaults: { name: 'Your Name', title: e.title, extra: `CAT. No. ${no} · EST. 1974` },
     qr: QR,
     movable: { stack: { x: 117, y: 340, size: 64 } },
+    accent: e.accent,
     draw: vintageCard(e, `ARCHIVE ${no}`),
   };
 });

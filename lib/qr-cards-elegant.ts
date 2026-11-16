@@ -146,5 +146,6 @@ export const ELEGANT_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
   defaults: { name: 'Your Name', title: e.title, extra: `ELEGANT SERIES · ${ROMAN[i]}` },
   qr: QR,
   movable: { stack: { x: 115, y: 334, size: 70 } },
+  accent: e.gold,
   draw: elegantCard({ ...e, numeral: ROMAN[i] }),
 }));
