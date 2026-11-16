@@ -26,7 +26,9 @@ import {
 } from '@/lib/qr-animations';
 import { downloadBlob, exportGif, exportMp4 } from '@/lib/qr-export';
 import { EXTRA_ART_PRESETS } from '@/lib/qr-art-extra';
-import { CARD_DESIGNS, CARD_MAP, SAMPLE_QR_SVG, renderCardSvg, type CardKind } from '@/lib/qr-cards';
+import { DECO_FRAMES, DECO_FRAME_MAP, DECO_GROUPS, DECO_SIDE_PAD, isDecoFrame, renderDecoFrame, renderDecoFrameThumb, type DecoGroup } from '@/lib/qr-frames-deco';
+import { CARD_MOTIONS, CARD_MOTION_GROUPS, CARD_MOTION_LOOP, CARD_MOTION_MAP, renderCardMotionThumb, type CardMotionGroup } from '@/lib/qr-card-motion';
+import { CARD_DESIGNS, CARD_MAP, SAMPLE_QR_SVG, defaultFreeQr, renderCardSvg, type CardKind, type CardLayout } from '@/lib/qr-cards';
 import {
   QrCode,
   Camera,
@@ -1830,18 +1832,191 @@ function renderTemplateThumbSvg(t: BrandTemplate): string {
  * Thumbnail SVG strings are static, so they are built once per set — and only when a tab that shows
  * them first renders, instead of building all ~150 on page load.
  */
-const THUMB_CACHE: Partial<Record<'fx' | 'card' | 'tpl', Record<string, string>>> = {};
-function thumb(set: 'fx' | 'card' | 'tpl', id: string): string {
+const THUMB_CACHE: Partial<Record<'fx' | 'card' | 'tpl' | 'cm' | 'df', Record<string, string>>> = {};
+function thumb(set: 'fx' | 'card' | 'tpl' | 'cm' | 'df', id: string): string {
   let map = THUMB_CACHE[set];
   if (!map) {
     map = {};
     if (set === 'fx') for (const e of ANIMATED_EFFECTS) map[e.id] = renderEffectThumb(e);
     else if (set === 'card') for (const c of CARD_DESIGNS) map[c.id] = renderCardSvg(c, c.defaults, SAMPLE_QR_SVG, 'th');
+    else if (set === 'cm') for (const m of CARD_MOTIONS) map[m.id] = renderCardMotionThumb(m.id);
+    else if (set === 'df') for (const d of DECO_FRAMES) map[d.id] = renderDecoFrameThumb(d.id);
     else for (const t of BRAND_TEMPLATES) map[t.id] = renderTemplateThumbSvg(t);
     THUMB_CACHE[set] = map;
   }
   return map[id] ?? '';
 }
+
+/**
+ * Same thumbnail as an <img> data URL. An image is one DOM node whose pixels the browser caches,
+ * instead of hundreds of live SVG nodes that must be parsed, styled and repainted on every change.
+ * Only safe for sets whose SVGs use no external images or web fonts (an SVG inside <img> can't load them).
+ */
+const THUMB_SRC_CACHE: Record<string, string> = {};
+function thumbSrc(set: 'df', id: string): string {
+  // Built one at a time, so opening the Frames tab only renders the visible group's 10 tiles.
+  return (THUMB_SRC_CACHE[`${set}:${id}`] ??= `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderDecoFrameThumb(id))}`);
+}
+
+/**
+ * Background rasteriser for the decorative-frame tiles. An SVG <img> is still parsed and painted as vector
+ * on the main thread each time it is inserted (~10–20 ms per tile on a mid-range phone), which made switching
+ * frame groups stutter. During idle time each tile is drawn once to a canvas and kept as a WebP blob URL;
+ * bitmaps decode off the main thread, so swapping groups is then nearly free. Until a tile is ready it falls
+ * back to the SVG data URL, so nothing ever shows blank.
+ */
+const DECO_RASTER: Record<string, string> = {};
+const decoRasterQueue: string[] = [];
+const decoRasterListeners = new Set<(id: string) => void>();
+let decoRasterRunning = false;
+const DECO_RASTER_W = 360;
+const DECO_RASTER_H = 479; // thumbnail viewBox is 266×354
+
+function onIdle(cb: () => void) {
+  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(() => cb(), { timeout: 1500 });
+  else window.setTimeout(cb, 30);
+}
+
+function pumpDecoRaster() {
+  const id = decoRasterQueue.shift();
+  if (!id) {
+    decoRasterRunning = false;
+    return;
+  }
+  if (DECO_RASTER[id]) return onIdle(pumpDecoRaster);
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = thumbSrc('df', id);
+  img
+    .decode()
+    .then(
+      () =>
+        new Promise<void>((resolve) =>
+          onIdle(() => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = DECO_RASTER_W;
+              canvas.height = DECO_RASTER_H;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return resolve();
+              ctx.drawImage(img, 0, 0, DECO_RASTER_W, DECO_RASTER_H);
+              canvas.toBlob(
+                (blob) => {
+                  if (blob) {
+                    DECO_RASTER[id] = URL.createObjectURL(blob);
+                    decoRasterListeners.forEach((fn) => fn(id));
+                  }
+                  resolve();
+                },
+                'image/webp',
+                0.92
+              );
+            } catch {
+              resolve(); // e.g. a browser that taints SVG canvases: keep the SVG fallback
+            }
+          })
+        )
+    )
+    .catch(() => {})
+    .finally(() => onIdle(pumpDecoRaster));
+}
+
+/** Queue tiles for rasterising; `ids` jump to the front (the group on screen goes first). */
+function queueDecoRaster(ids: string[] = DECO_FRAMES.map((d) => d.id)) {
+  if (typeof window === 'undefined') return;
+  const todo = ids.filter((id) => !DECO_RASTER[id]);
+  for (const id of todo) {
+    const i = decoRasterQueue.indexOf(id);
+    if (i >= 0) decoRasterQueue.splice(i, 1);
+  }
+  decoRasterQueue.unshift(...todo);
+  for (const d of DECO_FRAMES) if (!DECO_RASTER[d.id] && !decoRasterQueue.includes(d.id)) decoRasterQueue.push(d.id);
+  if (!decoRasterRunning && decoRasterQueue.length) {
+    decoRasterRunning = true;
+    onIdle(pumpDecoRaster);
+  }
+}
+
+/**
+ * Decorative frame picker. Kept as its own memoized component with its own group state, so switching
+ * groups re-renders only this panel instead of the whole studio.
+ */
+const DecoFramePicker = React.memo(function DecoFramePicker({
+  frameStyle,
+  onPick,
+  subCardClass,
+  activePillClass,
+  inactivePillClass,
+}: {
+  frameStyle: string;
+  onPick: (id: string) => void;
+  subCardClass: string;
+  activePillClass: string;
+  inactivePillClass: string;
+}) {
+  const [group, setGroup] = useState<DecoGroup>(() => DECO_FRAME_MAP[frameStyle]?.group ?? 'luxury');
+  const selectedGroup = DECO_FRAME_MAP[frameStyle]?.group;
+  // Re-render (this panel only) when a tile of the visible group finishes rasterising.
+  const [, bumpRaster] = useState(0);
+  useEffect(() => {
+    const visible = DECO_FRAMES.filter((d) => d.group === group).map((d) => d.id);
+    queueDecoRaster(visible);
+    const onReady = (id: string) => {
+      if (visible.includes(id)) bumpRaster((n) => n + 1);
+    };
+    decoRasterListeners.add(onReady);
+    return () => {
+      decoRasterListeners.delete(onReady);
+    };
+  }, [group]);
+  return (
+    <div className={clsx('p-3 rounded-xl border space-y-2.5', subCardClass)}>
+      <span className="text-xs font-bold text-fuchsia-400 flex items-center gap-1.5">
+        <Sparkles className="w-3.5 h-3.5" /> Decorative Frames ({DECO_FRAMES.length})
+      </span>
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="Decorative frame groups">
+        {DECO_GROUPS.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            role="tab"
+            aria-selected={group === g.id}
+            onClick={() => setGroup(g.id)}
+            className={clsx(
+              'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer',
+              group === g.id ? activePillClass : inactivePillClass
+            )}
+          >
+            {g.label}
+            {selectedGroup === g.id && <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400" aria-label="contains selected frame" />}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        {DECO_FRAMES.filter((d) => d.group === group).map((d) => {
+          const active = frameStyle === d.id;
+          return (
+            <button
+              key={d.id}
+              type="button"
+              aria-pressed={active}
+              title={d.label}
+              onClick={() => onPick(d.id)}
+              className={clsx(
+                'p-1.5 rounded-xl border transition-colors cursor-pointer flex flex-col items-center gap-1',
+                active ? activePillClass : inactivePillClass
+              )}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- inline SVG data URL, nothing for next/image to optimise */}
+              <img src={DECO_RASTER[d.id] ?? thumbSrc('df', d.id)} alt="" width={180} height={240} decoding="async" draggable={false} className="w-full h-auto aspect-[3/4] rounded-lg object-cover" />
+              <span className="w-full text-[10px] font-bold leading-tight text-center line-clamp-2 min-h-[2.2em]">{d.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
 
 export default function QRStudio() {
   // 1. Initialize strictly with server-safe default values to prevent React Error #418
@@ -1956,9 +2131,12 @@ export default function QRStudio() {
 
   // Animated QR effects
   const [animEffectId, setAnimEffectId] = useState<string>('none');
+  // Ambient motion over the whole card (petals, light sweep...); only applies while a card is selected.
+  const [cardMotionId, setCardMotionId] = useState<string>('none');
+  const [cardMotionGroup, setCardMotionGroup] = useState<CardMotionGroup>('universal');
   const [animSpeed, setAnimSpeed] = useState(1);
   const [fxGroup, setFxGroup] = useState<FxGroupId>('popular');
-  // Printable card layouts (anime collectibles, business & event cards)
+  // Printable card layouts (business, membership & event cards)
   const [cardId, setCardId] = useState<string>('none');
   // Mobile grids show the first rows only until "Show all" is tapped.
   const [showAll, setShowAll] = useState<Record<string, boolean>>({});
@@ -1966,15 +2144,15 @@ export default function QRStudio() {
   const toggleMore = (key: string) => setShowAll((prev) => ({ ...prev, [key]: !prev[key] }));
   const [exportState, setExportState] = useState<{ format: 'gif' | 'mp4'; progress: number; label: string } | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [cardKind, setCardKind] = useState<CardKind>('holo');
+  const [cardKind, setCardKind] = useState<CardKind>('retro');
+  /** Full-resolution artwork of the selected image card, inlined as a data URL so PNG/GIF/MP4 exports include it */
+  const [cardArtData, setCardArtData] = useState<{ src: string; data: string } | null>(null);
   const [cardName, setCardName] = useState('');
+  // Where the QR sits on movable (artwork) cards. `cardQrFree` is normalised to the card size.
+  const [cardQrLayout, setCardQrLayout] = useState<CardLayout>('corner');
+  const [cardQrFree, setCardQrFree] = useState<{ cx: number; cy: number; size: number } | null>(null);
   const [cardTitle, setCardTitle] = useState('');
   const [cardExtra, setCardExtra] = useState('');
-  /** User-uploaded character art for anime / holo cards (downscaled data URL) */
-  const [cardArt, setCardArt] = useState<string | null>(null);
-  const [cardArtFit, setCardArtFit] = useState<'fill' | 'cutout'>('fill');
-  const [cardArtBusy, setCardArtBusy] = useState(false);
-  const cardArtInputRef = useRef<HTMLInputElement>(null);
 
   // Scanner & Batch States
   const [copied, setCopied] = useState(false);
@@ -2266,8 +2444,12 @@ export default function QRStudio() {
   const defAnimEffectId = useDeferredValue(animEffectId);
   const defAnimSpeed = useDeferredValue(animSpeed);
   const defCardName = useDeferredValue(cardName);
+  const defCardQrFree = useDeferredValue(cardQrFree);
   const defCardTitle = useDeferredValue(cardTitle);
   const defCardExtra = useDeferredValue(cardExtra);
+  // Frame picks and label typing update the button/input immediately; the heavy SVG rebuild follows at low priority.
+  const defFrameStyle = useDeferredValue(frameStyle);
+  const defFrameText = useDeferredValue(frameText);
 
   // Live Scannability Score (0 to 100)
   const scannability = useMemo(() => {
@@ -2373,15 +2555,17 @@ export default function QRStudio() {
         'wifi-card',
         'clipboard-pad',
         'upi-stand',
-      ].includes(frameStyle);
+      ].includes(defFrameStyle) || isDecoFrame(defFrameStyle);
+      // Decorative frames get extra side room so ornaments never crowd the quiet zone.
+      const sidePad = isDecoFrame(defFrameStyle) ? DECO_SIDE_PAD : 0;
 
-      const needsBottomSpace = frameStyle !== 'none' && frameStyle !== 'top-tag';
+      const needsBottomSpace = defFrameStyle !== 'none' && defFrameStyle !== 'top-tag';
       const topSpace = needsTopSpace ? 58 : 0;
       const bottomSpace = needsBottomSpace ? 82 : 0;
 
-      const totalW = qrSize + margin * 2;
+      const totalW = qrSize + margin * 2 + sidePad * 2;
       const totalH = qrSize + margin * 2 + topSpace + bottomSpace;
-      const offsetX = margin;
+      const offsetX = margin + sidePad;
       const offsetY = margin + topSpace;
 
       const linId = `qrLin_${uid}`;
@@ -2708,45 +2892,62 @@ export default function QRStudio() {
 
       let bgSvg = '';
       let frameSvg = '';
-      const safeLabel = escapeXml(frameText || 'SCAN ME');
+      const safeLabel = escapeXml(defFrameText || 'SCAN ME');
       const midX = totalW / 2;
 
-      if (!transparentBg) {
-        if (frameStyle === 'ticket-stub') {
+      const deco = isDecoFrame(defFrameStyle)
+        ? renderDecoFrame(defFrameStyle, {
+            uid,
+            W: totalW,
+            H: totalH,
+            qx: offsetX,
+            qy: offsetY,
+            qs: qrSize,
+            accent: defFrameColor,
+            label: safeLabel,
+            cardFill: cardBgFill,
+            transparent: transparentBg,
+          })
+        : null;
+
+      if (deco) {
+        bgSvg = deco.back;
+      } else if (!transparentBg) {
+        if (defFrameStyle === 'ticket-stub') {
           bgSvg = `
             <rect x="6" y="6" width="${totalW - 12}" height="${totalH - 12}" rx="24" fill="${cardBgFill}" stroke="${defFrameColor}" stroke-width="6" />
             <circle cx="6" cy="${totalH - 82}" r="16" fill="#09090b" />
             <circle cx="${totalW - 6}" cy="${totalH - 82}" r="16" fill="#09090b" />
             <line x1="26" y1="${totalH - 82}" x2="${totalW - 26}" y2="${totalH - 82}" stroke="${defFrameColor}" stroke-width="3" stroke-dasharray="8 6" />
           `;
-        } else if (frameStyle === 'coupon-cut') {
+        } else if (defFrameStyle === 'coupon-cut') {
           bgSvg = `<rect x="8" y="8" width="${totalW - 16}" height="${totalH - 16}" rx="24" fill="${cardBgFill}" stroke="${defFrameColor}" stroke-width="5" stroke-dasharray="14 8" />`;
-        } else if (frameStyle === 'smartphone') {
+        } else if (defFrameStyle === 'smartphone') {
           bgSvg = `
             <rect x="8" y="6" width="${totalW - 16}" height="${totalH - 12}" rx="42" fill="${cardBgFill}" stroke="${defFrameColor}" stroke-width="10" />
             <rect x="${midX - 45}" y="18" width="90" height="14" rx="7" fill="${defFrameColor}" />
             <rect x="${midX - 50}" y="${totalH - 20}" width="100" height="6" rx="3" fill="${defFrameColor}" opacity="0.5" />
           `;
-        } else if (frameStyle === 'polaroid') {
+        } else if (defFrameStyle === 'polaroid') {
           bgSvg = `
             <rect x="6" y="6" width="${totalW - 12}" height="${totalH - 12}" rx="16" fill="${cardBgFill}" stroke="#cbd5e1" stroke-width="3" />
             <rect x="22" y="22" width="${totalW - 44}" height="${qrSize + 36}" rx="8" fill="none" stroke="rgba(15,23,42,0.12)" stroke-width="2" />
           `;
         } else {
           bgSvg = `<rect x="4" y="4" width="${totalW - 8}" height="${totalH - 8}" rx="28" fill="${cardBgFill}" stroke="${
-            frameStyle !== 'none'
+            defFrameStyle !== 'none'
               ? defFrameColor
               : isNeonCutout
               ? defEyeBorderColor || '#a855f7'
               : 'rgba(148,163,184,0.28)'
-          }" stroke-width="${frameStyle !== 'none' ? 6 : 2}" />`;
+          }" stroke-width="${defFrameStyle !== 'none' ? 6 : 2}" />`;
         }
       }
 
       const bannerY = totalH - 72;
       const bannerH = 54;
 
-      switch (frameStyle) {
+      switch (defFrameStyle) {
         case 'pill':
           frameSvg = `
             <rect x="${totalW * 0.16}" y="${totalH - 66}" width="${totalW * 0.68}" height="46" rx="23" fill="${defFrameColor}" />
@@ -2894,6 +3095,8 @@ export default function QRStudio() {
           break;
       }
 
+      if (deco) frameSvg = deco.front;
+
       let artBackLayer = '';
       let artDotsOverlay = '';
       let neonForegroundArt = '';
@@ -2984,7 +3187,7 @@ export default function QRStudio() {
     [
       qrMatrix, dotStyle, finderShape, finderCenterShape,
       customEyeColors, defEyeBorderColor, defEyeCenterColor,
-      frameStyle, frameText, defFrameColor, defFgColor,
+      defFrameStyle, defFrameText, defFrameColor, defFgColor,
       defGrad2, gradientType, defBgColor, defBgColor2, bgGradientType, transparentBg,
       selectedPresetLogo, customLogoUrl, logoScale, logoShape,
       artworkUrl, artCutoutUrl, artPlacement, defArtOpacity, defArtScale, defArtScanDots, defArtGlow,
@@ -2992,41 +3195,34 @@ export default function QRStudio() {
     ]
   );
 
-  /**
-   * Loads a character image for anime / holo cards. It is downscaled to 1000px in the browser (nothing
-   * is uploaded) so the card SVG stays light; PNG/WebP keep transparency for cut-out characters.
-   */
-  const handleCardArtUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !file.type.startsWith('image/')) return;
-    setCardArtBusy(true);
-    try {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Could not read image'));
-        img.src = url;
-      });
-      const scale = Math.min(1, 1000 / Math.max(img.naturalWidth, img.naturalHeight));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-      canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      const keepAlpha = /png|webp|gif|svg/.test(file.type);
-      setCardArt(keepAlpha ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.9));
-      if (keepAlpha) setCardArtFit('cutout');
-    } catch {
-      setCardArt(null);
-    } finally {
-      setCardArtBusy(false);
-    }
-  };
-
   // Wraps the QR in the selected card layout (if any). Empty fields fall back to the card's sample text.
   const activeCard = cardId !== 'none' ? CARD_MAP[cardId] : undefined;
+  // Image cards: an SVG drawn onto a canvas cannot load linked files, so the selected card's artwork
+  // is fetched once and embedded as a data URL. The preview uses the plain URL until it is ready.
+  const activeArtSrc = activeCard?.artSrc;
+  useEffect(() => {
+    if (!activeArtSrc || cardArtData?.src === activeArtSrc) return;
+    let cancelled = false;
+    fetch(activeArtSrc)
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+      .then(
+        (blob) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+          })
+      )
+      .then((data) => {
+        if (!cancelled) setCardArtData({ src: activeArtSrc, data });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeArtSrc, cardArtData?.src]);
+
   const getFinalMarkup = useCallback(
     (uid: string, animate = true) => {
       const qr = getSvgMarkup(uid, animate);
@@ -3037,24 +3233,30 @@ export default function QRStudio() {
               name: defCardName.trim() || activeCard.defaults.name,
               title: defCardTitle.trim() || activeCard.defaults.title,
               extra: defCardExtra.trim() || activeCard.defaults.extra,
-              art: activeCard.kind !== 'business' && cardArt ? cardArt : undefined,
-              artFit: cardArtFit,
+              art: activeCard.artSrc
+                ? cardArtData?.src === activeCard.artSrc
+                  ? cardArtData.data
+                  : activeCard.artSrc
+                : undefined,
             },
             qr,
-            uid
+            uid,
+            { layout: cardQrLayout, free: defCardQrFree ?? undefined },
+            animate && cardMotionId !== 'none' ? { id: cardMotionId, speed: animSpeed } : undefined
           )
         : qr;
       return design;
     },
-    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra, cardArt, cardArtFit]
+    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra, cardArtData, cardQrLayout, defCardQrFree, cardMotionId, animSpeed]
   );
 
-  const isAnimated = animEffectId !== 'none';
+  const hasCardMotion = Boolean(activeCard) && cardMotionId !== 'none';
+  const isAnimated = animEffectId !== 'none' || hasCardMotion;
   const loopSeconds = useMemo(() => {
     const fxEffect = ANIMATED_EFFECT_MAP[animEffectId];
-    const longest = fxEffect ? effectLoopSeconds(fxEffect, animSpeed) : 0;
+    const longest = Math.max(fxEffect ? effectLoopSeconds(fxEffect, animSpeed) : 0, hasCardMotion ? CARD_MOTION_LOOP / animSpeed : 0);
     return Math.min(6, Math.max(1.5, Number(longest.toFixed(2)) || 3));
-  }, [animEffectId, animSpeed]);
+  }, [animEffectId, animSpeed, hasCardMotion]);
 
   const runExport = async (format: 'gif' | 'mp4') => {
     if (!isAnimated || exportState) return;
@@ -3079,8 +3281,24 @@ export default function QRStudio() {
     }
   };
 
-  const svgMobile = useMemo(() => getFinalMarkup('mob'), [getFinalMarkup]);
-  const svgDesktop = useMemo(() => getFinalMarkup('desk'), [getFinalMarkup]);
+  // Only the layout that is on screen gets the live SVG (the other is display:none at this width).
+  // Building and parsing a hidden copy on every change doubled the work behind each click/keystroke.
+  // null = not measured yet (first client render), so both are filled once to stay safe.
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  // Rasterise frame tiles in idle time shortly after load, so the Frames tab opens instantly.
+  useEffect(() => {
+    const t = window.setTimeout(() => queueDecoRaster(), 3000);
+    return () => window.clearTimeout(t);
+  }, []);
+  const svgMobile = useMemo(() => (isDesktop === true ? '' : getFinalMarkup('mob')), [getFinalMarkup, isDesktop]);
+  const svgDesktop = useMemo(() => (isDesktop === false ? '' : getFinalMarkup('desk')), [getFinalMarkup, isDesktop]);
 
   const selectCard = (id: string) => {
     if (id !== cardId) {
@@ -3108,12 +3326,14 @@ export default function QRStudio() {
     const url = URL.createObjectURL(svgBlob);
     const img = new Image();
     img.onload = () => {
-      const { w, h } = rasterSize(svgExport, activeCard ? 2000 : 1400);
+      const { w, h } = rasterSize(svgExport, activeCard ? 3000 : 1400);
       const canvas = document.createElement('canvas');
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, w, h);
         const pngUrl = canvas.toDataURL('image/png');
         const a = document.createElement('a');
@@ -3302,6 +3522,15 @@ export default function QRStudio() {
   const inactivePillClass = isDark
     ? 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
     : 'bg-white border-slate-200 text-slate-700 hover:text-indigo-600 hover:border-indigo-300';
+
+  // Stable callback so the memoized DecoFramePicker doesn't re-render on unrelated studio changes.
+  const pickDecoFrame = useCallback((id: string) => {
+    const d = DECO_FRAME_MAP[id];
+    if (!d) return;
+    setFrameStyle(id);
+    setFrameText(d.defaultText);
+    setFrameColor(d.accent);
+  }, []);
 
   const secondaryActionBtnClass = isDark
     ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/25 hover:border-indigo-400'
@@ -4021,7 +4250,7 @@ export default function QRStudio() {
                   { id: 'frames', label: 'Frames', icon: Frame },
                   { id: 'artwork', label: 'QR Art', icon: Sparkles },
                   { id: 'cards', label: 'Cards', icon: CreditCard },
-                  { id: 'animate', label: 'Animate', icon: Play },
+                  { id: 'animate', label: 'Motion', icon: Play },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   const active = designTab === tab.id;
@@ -4228,6 +4457,83 @@ export default function QRStudio() {
               {/* TAB: ANIMATION STUDIO — QR module effects + whole-design card motion + GIF/MP4 export */}
               {designTab === 'animate' && (
                 <div className="space-y-3">
+                  {/* Card motion: ambient overlays over the whole card */}
+                  <div className={clsx('p-3 rounded-xl border space-y-2.5', subCardClass)}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-fuchsia-400 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" /> Card Motion ({CARD_MOTIONS.length})
+                      </span>
+                      {cardMotionId !== 'none' && (
+                        <button
+                          type="button"
+                          onClick={() => setCardMotionId('none')}
+                          className={clsx('flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer', secondaryActionBtnClass)}
+                        >
+                          <RotateCcw className="w-3 h-3" /> Turn Off
+                        </button>
+                      )}
+                    </div>
+                    {!activeCard ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                          Petals, light sweeps, snow, film grain and more move over the whole card. Pick a card first.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setDesignTab('cards')}
+                          className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-600 text-white cursor-pointer"
+                        >
+                          Choose a card
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+                          Moves over the whole card but never over the QR, so it keeps scanning. You can combine it with a QR effect below.
+                        </p>
+                        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="Card motion groups">
+                          {CARD_MOTION_GROUPS.map((g) => (
+                            <button
+                              key={g.id}
+                              type="button"
+                              role="tab"
+                              aria-selected={cardMotionGroup === g.id}
+                              onClick={() => setCardMotionGroup(g.id)}
+                              className={clsx(
+                                'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer',
+                                cardMotionGroup === g.id ? activePillClass : inactivePillClass
+                              )}
+                            >
+                              {g.label}
+                              {CARD_MOTION_MAP[cardMotionId]?.group === g.id && <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400" aria-label="contains selected motion" />}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-5 gap-2">
+                          {CARD_MOTIONS.filter((m) => m.group === cardMotionGroup).map((m) => {
+                            const active = cardMotionId === m.id;
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => setCardMotionId(active ? 'none' : m.id)}
+                                aria-pressed={active}
+                                title={m.desc}
+                                className={clsx(
+                                  'p-1.5 rounded-xl border transition-colors cursor-pointer flex flex-col items-center gap-1',
+                                  active ? activePillClass : inactivePillClass
+                                )}
+                              >
+                                <div className="w-full aspect-[3/4] rounded-lg overflow-hidden" dangerouslySetInnerHTML={{ __html: thumb('cm', m.id) }} />
+                                <span className="w-full text-[10px] font-bold leading-tight text-center line-clamp-2 min-h-[2.2em]">{m.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
                       <Play className="w-3.5 h-3.5" /> Animated QR Effects ({ANIMATED_EFFECTS.length})
@@ -4392,7 +4698,7 @@ export default function QRStudio() {
                       {exportError ? (
                         <span className="text-rose-500 font-semibold">{exportError}</span>
                       ) : !isAnimated ? (
-                        'Pick an effect to enable GIF & MP4 export.'
+                        'Pick a card motion or QR effect to enable GIF & MP4 export.'
                       ) : (
                         <>
                           Eyes and quiet zone stay still so animated codes keep scanning. <b>SVG</b> also keeps the animation for
@@ -4404,15 +4710,18 @@ export default function QRStudio() {
                 </div>
               )}
 
-              {/* TAB: PRINTABLE CARDS (ANIME + BUSINESS) */}
+              {/* TAB: PRINTABLE CARDS (BUSINESS, MEMBERSHIP & EVENTS) */}
               {designTab === 'cards' && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className={clsx('inline-flex p-0.5 rounded-lg border', subCardClass)} role="tablist" aria-label="Card type">
+                    <div className={clsx('inline-flex max-w-full overflow-x-auto no-scrollbar p-0.5 rounded-lg border', subCardClass)} role="tablist" aria-label="Card type">
                       {(
                         [
-                          { id: 'holo', label: `✦ Holo TCG (${CARD_DESIGNS.filter((c) => c.kind === 'holo').length})` },
-                          { id: 'anime', label: `Anime (${CARD_DESIGNS.filter((c) => c.kind === 'anime').length})` },
+                          { id: 'retro', label: `Retro Aesthetic (${CARD_DESIGNS.filter((c) => c.kind === 'retro').length})` },
+                          { id: 'girl', label: `Retro Girl (${CARD_DESIGNS.filter((c) => c.kind === 'girl').length})` },
+                          { id: 'elegant', label: `Elegant (${CARD_DESIGNS.filter((c) => c.kind === 'elegant').length})` },
+                          { id: 'indian', label: `Indian (${CARD_DESIGNS.filter((c) => c.kind === 'indian').length})` },
+                          { id: 'vintage', label: `Vintage (${CARD_DESIGNS.filter((c) => c.kind === 'vintage').length})` },
                           { id: 'business', label: `Business (${CARD_DESIGNS.filter((c) => c.kind === 'business').length})` },
                         ] as const
                       ).map((k) => (
@@ -4423,12 +4732,8 @@ export default function QRStudio() {
                           aria-selected={cardKind === k.id}
                           onClick={() => setCardKind(k.id)}
                           className={clsx(
-                            'px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer',
-                            cardKind === k.id
-                              ? 'bg-indigo-600 text-white'
-                              : isDark
-                              ? 'text-zinc-400 hover:text-zinc-200'
-                              : 'text-slate-600 hover:text-slate-900'
+                            'px-2.5 py-1 rounded-md text-[11px] font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer',
+                            cardKind === k.id ? 'bg-indigo-600 text-white' : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-slate-600 hover:text-slate-900'
                           )}
                         >
                           {k.label}
@@ -4470,60 +4775,74 @@ export default function QRStudio() {
                           </label>
                         ))}
                       </div>
-                      {activeCard.kind !== 'business' && (
-                        <div className={clsx('flex flex-wrap items-center gap-2 pt-1 border-t', isDark ? 'border-zinc-800' : 'border-slate-200')}>
-                          <span className={clsx('text-[10px] font-semibold mr-auto pt-1', isDark ? 'text-zinc-400' : 'text-slate-500')}>
-                            Character art {cardArt ? '· your image' : '· built-in character'}
-                          </span>
-                          <input ref={cardArtInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleCardArtUpload} className="hidden" />
-                          <button
-                            type="button"
-                            onClick={() => cardArtInputRef.current?.click()}
-                            disabled={cardArtBusy}
-                            className={clsx('flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer disabled:opacity-60', activePillClass)}
-                          >
-                            <Upload className="w-3.5 h-3.5" /> {cardArtBusy ? 'Loading…' : cardArt ? 'Change image' : 'Upload your character'}
-                          </button>
-                          {cardArt && (
-                            <>
-                              <div className={clsx('inline-flex p-0.5 rounded-lg border', subCardClass)} role="radiogroup" aria-label="Image fit">
-                                {(
-                                  [
-                                    { id: 'fill', label: 'Fill card' },
-                                    { id: 'cutout', label: 'Cut-out' },
-                                  ] as const
-                                ).map((opt) => (
-                                  <button
-                                    key={opt.id}
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={cardArtFit === opt.id}
-                                    onClick={() => setCardArtFit(opt.id)}
-                                    className={clsx(
-                                      'px-2 py-1 rounded-md text-[10.5px] font-bold cursor-pointer',
-                                      cardArtFit === opt.id ? 'bg-indigo-600 text-white' : isDark ? 'text-zinc-400' : 'text-slate-600'
-                                    )}
-                                  >
-                                    {opt.label}
-                                  </button>
-                                ))}
-                              </div>
+                      {activeCard.movable && (
+                        <div className="space-y-2 pt-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={clsx('text-[10px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>QR position</span>
+                            <div className={clsx('inline-flex p-0.5 rounded-lg border', subCardClass)} role="radiogroup" aria-label="QR position">
+                              {(
+                                [
+                                  { id: 'corner', label: 'Corner' },
+                                  { id: 'stack', label: 'Bottom centre' },
+                                  { id: 'free', label: 'Custom' },
+                                ] as const
+                              ).map((l) => (
+                                <button
+                                  key={l.id}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={cardQrLayout === l.id}
+                                  onClick={() => {
+                                    if (l.id === 'free' && !cardQrFree) setCardQrFree(defaultFreeQr(activeCard));
+                                    setCardQrLayout(l.id);
+                                  }}
+                                  className={clsx(
+                                    'px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer',
+                                    cardQrLayout === l.id ? 'bg-indigo-600 text-white' : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-slate-600 hover:text-slate-900'
+                                  )}
+                                >
+                                  {l.label}
+                                </button>
+                              ))}
+                            </div>
+                            {cardQrLayout === 'free' && (
                               <button
                                 type="button"
-                                onClick={() => setCardArt(null)}
-                                className={clsx('px-2.5 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer', inactivePillClass)}
+                                onClick={() => setCardQrFree(defaultFreeQr(activeCard))}
+                                className={clsx('text-[10.5px] font-semibold underline cursor-pointer', isDark ? 'text-zinc-400' : 'text-slate-500')}
                               >
-                                Remove
+                                Reset
                               </button>
-                            </>
+                            )}
+                          </div>
+                          {cardQrLayout === 'free' && cardQrFree && (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-3 gap-y-1.5">
+                              {(
+                                [
+                                  { key: 'cx', label: 'Left ↔ Right', min: 0, max: 1 },
+                                  { key: 'cy', label: 'Top ↕ Bottom', min: 0, max: 1 },
+                                  { key: 'size', label: 'QR size', min: 0.19, max: 0.55 },
+                                ] as const
+                              ).map((sl) => (
+                                <label key={sl.key} className="space-y-0.5">
+                                  <span className={clsx('block text-[10px] font-semibold', isDark ? 'text-zinc-400' : 'text-slate-500')}>{sl.label}</span>
+                                  <input
+                                    type="range"
+                                    min={sl.min}
+                                    max={sl.max}
+                                    step={0.005}
+                                    value={cardQrFree[sl.key]}
+                                    onChange={(e) => setCardQrFree({ ...cardQrFree, [sl.key]: Number(e.target.value) })}
+                                    className="w-full accent-indigo-600 cursor-pointer"
+                                  />
+                                </label>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}
                       <p className={clsx('text-[10.5px] leading-relaxed', isDark ? 'text-zinc-400' : 'text-slate-500')}>
-                        {activeCard.kind !== 'business'
-                          ? 'Upload your own artwork or photo (it stays on your device). Use “Cut-out” for transparent PNG characters to keep the card background. Only use images you have the right to use.'
-                          : 'Your QR design, colours and animation are placed on the card.'}{' '}
-                        PNG downloads at print resolution (2000px).
+                        Your QR design, colours and animation are placed on the card. PNG downloads in high resolution (3000px) with clean rounded corners.
                       </p>
                     </div>
                   ) : null}
@@ -4554,7 +4873,10 @@ export default function QRStudio() {
                           )}
                         >
                           <div
-                            className="w-full h-20 sm:h-24 flex items-center justify-center [&>svg]:max-h-full [&>svg]:w-auto"
+                            className={clsx(
+                              'w-full flex items-center justify-center [&>svg]:max-h-full [&>svg]:w-auto',
+                              c.h > c.w ? 'h-36 sm:h-44' : 'h-20 sm:h-24'
+                            )}
                             dangerouslySetInnerHTML={{ __html: thumb('card', c.id) }}
                           />
                           <div className="w-full text-center">
@@ -4745,7 +5067,7 @@ export default function QRStudio() {
                 </div>
               )}
 
-              {/* TAB: 20 ILLUSTRATED FRAMES */}
+              {/* TAB: FRAMES — 20 label frames + 50 decorative frames */}
               {designTab === 'frames' && (
                 <div className="space-y-3">
                   <div className={clsx('grid grid-cols-3 sm:grid-cols-4 gap-2', !showAll['frames'] && 'max-sm:[&>*:nth-child(n+11)]:hidden')}>
@@ -4776,6 +5098,9 @@ export default function QRStudio() {
                       </button>
                     ))}
                   </div>
+
+                  {/* Decorative frames */}
+                  <DecoFramePicker frameStyle={frameStyle} onPick={pickDecoFrame} subCardClass={subCardClass} activePillClass={activePillClass} inactivePillClass={inactivePillClass} />
 
                   {frameStyle !== 'none' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
@@ -5028,7 +5353,7 @@ export default function QRStudio() {
                   >
                     <Play className="w-3 h-3 shrink-0" />
                     <span className="truncate">
-                      {ANIMATED_EFFECT_MAP[animEffectId]?.name}
+                      {[ANIMATED_EFFECT_MAP[animEffectId]?.name, hasCardMotion ? CARD_MOTION_MAP[cardMotionId]?.name : null].filter(Boolean).join(' + ')}
                     </span>
                   </button>
                 )}

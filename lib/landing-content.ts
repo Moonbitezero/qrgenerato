@@ -131,7 +131,7 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     steps: [
       { title: 'Fill in your details', text: 'Add your name, phone, email and organisation. Only the fields you fill in are included.' },
       { title: 'Choose a design', text: 'Use a template, add your logo, or place the QR on a business card layout from the Cards tab.' },
-      { title: 'Print or share', text: 'Download a 2000px PNG for print or an SVG for professional printers.' },
+      { title: 'Print or share', text: 'Download a 3000px PNG for print or an SVG for professional printers.' },
     ],
     uses: ['Business cards', 'Conference badges', 'Email signatures', 'Reception desks and brochures'],
     tips: ['Fewer fields make a simpler code that scans faster from small cards.', 'Keep at least 2 cm of QR size on printed business cards.'],
@@ -193,7 +193,7 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     ],
     steps: [
       { title: 'Enter your content', text: 'Paste a link or pick any QR type — URL, WiFi, UPI, vCard, WhatsApp and more all work with animation.' },
-      { title: 'Pick an effect', text: 'Open the Animate tab and choose from light sweeps, radar, liquid fill, glitch, rainbow, scan lines and more. The preview plays live.' },
+      { title: 'Pick an effect', text: 'Open the Motion tab and choose from light sweeps, radar, liquid fill, glitch, rainbow, scan lines and more. The preview plays live.' },
       { title: 'Export GIF or MP4', text: 'Download a GIF for websites and chats, an MP4 for Instagram Reels, TikTok and YouTube, or an SVG for web pages.' },
     ],
     uses: ['Instagram Reels, Stories and TikTok', 'Digital signage and TV screens', 'Event slides and live streams', 'Website banners and email headers'],
@@ -240,7 +240,7 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     title: 'Create a Business Card With a QR Code',
     intro: [
       'A QR code on your business card lets people save your contact, visit your website or connect on LinkedIn in one scan — no typing your details into their phone.',
-      'QR Generato includes printable business card layouts with your QR code built in. Add your name, title and contact details, then download a print-ready 2000px PNG.',
+      'QR Generato includes printable business card layouts with your QR code built in. Add your name, title and contact details, then download a print-ready 3000px PNG.',
     ],
     steps: [
       { title: 'Choose what the QR opens', text: 'Use vCard to save your contact directly, or switch to URL for your website, portfolio or LinkedIn profile.' },

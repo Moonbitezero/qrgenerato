@@ -7,3 +7,6 @@ coverage/
 *.log
 .DS_Store
 *.tsbuildinfo
+
+# Original artwork (only optimised copies go in public/)
+/art-source/
