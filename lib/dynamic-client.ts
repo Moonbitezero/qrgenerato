@@ -41,12 +41,16 @@ export function loadOwnedLinks(): OwnedLink[] {
   }
 }
 
+/** Fired on window whenever the saved list changes, so other components on the page can refresh. */
+export const LINKS_CHANGED_EVENT = 'qrg-dynamic-links-changed';
+
 function saveOwnedLinks(list: OwnedLink[]) {
   try {
     localStorage.setItem(LINKS_KEY, JSON.stringify(list));
   } catch {
     // Private mode / storage blocked: the code still works, it just isn't remembered here.
   }
+  window.dispatchEvent(new Event(LINKS_CHANGED_EVENT));
 }
 
 function upsertOwned(link: OwnedLink) {

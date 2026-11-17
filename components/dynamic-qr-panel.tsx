@@ -15,10 +15,12 @@ interface Props {
   destination: string;
   /** Called with the short URL to encode, or null to go back to a static QR. */
   onEncodeUrl: (url: string | null) => void;
+  /** Start with the switch on (the /dynamic-qr landing page). */
+  defaultEnabled?: boolean;
 }
 
-export default function DynamicQrPanel({ isDark, destination, onEncodeUrl }: Props) {
-  const [enabled, setEnabled] = useState(false);
+export default function DynamicQrPanel({ isDark, destination, onEncodeUrl, defaultEnabled = false }: Props) {
+  const [enabled, setEnabled] = useState(defaultEnabled);
   const [link, setLink] = useState<OwnedLink | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -132,7 +134,7 @@ export default function DynamicQrPanel({ isDark, destination, onEncodeUrl }: Pro
             <button type="button" onClick={copyManage} className={btn}>
               {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copied' : 'Copy edit link'}
             </button>
-            <Link href="/dynamic-qr" className={btn}>
+            <Link href="/dynamic-qr#my-codes" className={btn}>
               <BarChart3 size={13} /> Manage codes
             </Link>
           </div>

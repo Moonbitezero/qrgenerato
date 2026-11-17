@@ -30,7 +30,10 @@ export type LandingKey =
   | 'businessCard'
   | 'googleReview'
   | 'instagram'
-  | 'youtube';
+  | 'youtube'
+  | 'dynamic'
+  | 'scanner'
+  | 'bulk';
 
 export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
   wifi: {
@@ -325,6 +328,105 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     faqs: [
       { q: 'Does it open the YouTube app?', a: 'Yes. On phones with YouTube installed, the link opens in the app automatically.' },
       { q: 'Can I link to a playlist?', a: 'Yes. Any public YouTube link works — channel, video, short or playlist.' },
+    ],
+  },
+
+  dynamic: {
+    title: 'How Dynamic QR Codes Work',
+    intro: [
+      'A dynamic QR code holds a short link (like q.qrgenerato.com/Ab3xY7k) instead of your final address. When someone scans it, the short link sends them on to wherever you choose, so you can change the destination at any time, even after the code is printed on menus, flyers or packaging.',
+      'Most QR sites charge a monthly fee for dynamic codes and switch them off when you stop paying. QR Generato makes them free with no sign-up. You also see how many people scanned each code, from which countries and on which devices.',
+    ],
+    steps: [
+      { title: 'Paste your link', text: 'Choose URL / Web, paste the address you want people to reach, and make sure the Dynamic QR switch is on.' },
+      { title: 'Create and style', text: 'Click “Create dynamic link”, then style the code with colours, a logo or a frame like any other QR.' },
+      { title: 'Print, then edit anytime', text: 'Download and print it. To change where it goes later, type a new address under “Your dynamic QR codes” and save. The printed code updates instantly.' },
+    ],
+    uses: [
+      'Restaurant menus and price lists that change often',
+      'Printed flyers, posters and business cards you can’t reprint',
+      'Product packaging that links to manuals or offers',
+      'Event signs that point to the current schedule',
+      'Measuring which poster or location gets the most scans',
+    ],
+    tips: [
+      'Save the edit link somewhere safe (email it to yourself). It is the only way to edit the code from another device or after clearing your browser.',
+      'Give each code a name so you can tell your menus, posters and flyers apart.',
+      'Use “Pause” to stop a code temporarily, for example when an offer ends, without deleting it.',
+      'Dynamic codes are shorter than codes that hold a long URL, so they stay easy to scan even at small print sizes.',
+    ],
+    faqs: [
+      { q: 'What is a dynamic QR code?', a: 'A QR code that holds a short redirect link instead of your final address. You can change where it points at any time and see scan statistics, without reprinting the code.' },
+      { q: 'Are dynamic QR codes really free here?', a: 'Yes. There is no sign-up, no subscription and no watermark. Each visitor can create up to 40 dynamic codes per day to prevent abuse.' },
+      { q: 'Can I change the link after printing?', a: 'Yes. Enter the new destination under “Your dynamic QR codes” and save. Everyone who scans the printed code is sent to the new address straight away.' },
+      { q: 'What scan statistics do I get?', a: 'Total scans, a chart of the last 7 days, the top countries and the device types (iPhone, Android, desktop). No personal data or IP addresses are stored.' },
+      { q: 'Do I need an account?', a: 'No. Your codes are saved in your browser together with a secret edit key. Use “Copy edit link” to open a code on another device.' },
+      { q: 'What happens if I clear my browser data?', a: 'The QR code keeps working, but you can no longer edit it unless you saved its edit link. Keep the edit link somewhere safe.' },
+      { q: 'Static or dynamic: which should I use?', a: 'Use dynamic when the destination might change or you want scan counts. Use static for Wi-Fi, contact cards and payment codes, which work offline and never depend on a server.' },
+    ],
+  },
+
+  scanner: {
+    title: 'How to Scan a QR Code Online',
+    intro: [
+      'This free online QR code scanner reads codes with your phone, tablet or laptop camera, or from a picture you already have, such as a screenshot or a photo of a poster.',
+      'Scanning happens entirely in your browser. The image is never uploaded, so it is safe for Wi-Fi passwords, payment codes and private links. You see exactly what the code contains before you open anything.',
+    ],
+    steps: [
+      { title: 'Choose camera or image', text: 'Allow camera access to scan live, or upload a screenshot or photo that contains a QR code.' },
+      { title: 'Point at the code', text: 'Hold the code steady inside the frame. It is read automatically in a moment.' },
+      { title: 'Check, then open', text: 'Read the decoded link or text first, then open, copy or reuse it to make your own styled QR code.' },
+    ],
+    uses: [
+      'Reading a QR code in a screenshot or image on your phone',
+      'Scanning on a laptop or PC with a webcam',
+      'Checking where a QR code leads before opening it',
+      'Testing your own printed QR codes before a print run',
+      'Copying the text or Wi-Fi details stored in a code',
+    ],
+    tips: [
+      'If a code won’t read, move closer, add light and avoid glare on glossy paper.',
+      'For screenshots, crop around the code so it fills most of the image.',
+      'Be careful with codes on stickers in public places: check the decoded address before opening it.',
+    ],
+    faqs: [
+      { q: 'Can I scan a QR code from a screenshot or picture?', a: 'Yes. Upload the image and the scanner finds and reads the QR code in it. This is handy when the code is on your own screen.' },
+      { q: 'Does the scanner work on a laptop or PC?', a: 'Yes. It works in any modern browser with a webcam, and image upload works on any device.' },
+      { q: 'Is my camera image uploaded?', a: 'No. Decoding happens on your device in the browser. Nothing from the camera or your images is sent to a server.' },
+      { q: 'Is it free?', a: 'Yes. There is no app to install, no sign-up and no limit on scans.' },
+      { q: 'Why won’t my QR code scan?', a: 'Common causes are low light, glare, blur, or a code that is too small or has too little contrast. Try more light, hold steadier, or upload a sharper image.' },
+    ],
+  },
+
+  bulk: {
+    title: 'How to Generate QR Codes in Bulk',
+    intro: [
+      'Make up to 200 QR codes at once: paste one link, UPI ID, Wi-Fi string or serial number per line, and download every code as a high-resolution PNG and SVG in a single ZIP file.',
+      'The ZIP includes an index.csv that matches each file to its content, which makes it easy to use with label printers, mail merge or product databases. Everything is generated in your browser, so your list is never uploaded.',
+    ],
+    steps: [
+      { title: 'Paste your list', text: 'Copy a column from Excel or Google Sheets and paste it, one item per line.' },
+      { title: 'Check the previews', text: 'Preview the codes. Tap any preview to style that code individually in the full studio.' },
+      { title: 'Download the ZIP', text: 'Click “Download ZIP” to get every code as PNG and SVG with an index.csv, or print them all on one sheet.' },
+    ],
+    uses: [
+      'Product labels, SKUs and serial numbers',
+      'Event tickets, badges and table numbers',
+      'Asset and inventory tags',
+      'Unique links for each store, flyer or salesperson',
+      'Classroom handouts with a different link per student',
+    ],
+    tips: [
+      'Keep each line short. Long text makes dense codes that are harder to scan at small sizes.',
+      'Use the SVG files for professional printing: they stay sharp at any size.',
+      'Number your items in the sheet first. Files are named in the same order (001, 002 …), so they are easy to match.',
+    ],
+    faqs: [
+      { q: 'How many QR codes can I make at once?', a: 'Up to 200 per batch. For more, split your list and run several batches.' },
+      { q: 'What do I get in the download?', a: 'A ZIP with a PNG (1024 × 1024) and an SVG for every line, plus an index.csv listing each code’s number, content and file names.' },
+      { q: 'Can I import from Excel or Google Sheets?', a: 'Yes. Select the column, copy it and paste it into the box: each cell becomes one line and one QR code.' },
+      { q: 'Is my list uploaded anywhere?', a: 'No. The codes are generated in your browser, so your data never leaves your device.' },
+      { q: 'Is bulk QR generation free?', a: 'Yes, with no sign-up and no watermark on any of the codes.' },
     ],
   },
 };

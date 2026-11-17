@@ -1,22 +1,19 @@
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
-import { SiteFooter, SiteHeader } from '@/components/site-chrome';
+import { LANDING_CONTENT } from '@/lib/landing-content';
 import DynamicQrManager from '@/components/dynamic-qr-manager';
+import HomePage from '../page';
 
 export const metadata: Metadata = pageMetadata(
   '/dynamic-qr',
-  'Free Dynamic QR Code Generator – Edit Link & Track Scans | QR Generato',
-  'Create a free dynamic QR code: change the destination after printing and see how many people scanned it. No sign-up needed.'
+  'Free Dynamic QR Code Generator – Edit Link Anytime & Track Scans | QR Generato',
+  'Create a free dynamic QR code: change the link after printing, pause it, and see scans by day, country and device. No sign-up, no subscription, no watermark.'
 );
 
 export default function DynamicQrRoute() {
   return (
-    <div className="min-h-screen bg-[#09090f] text-zinc-100 flex flex-col">
-      <SiteHeader />
-      <main className="flex-1">
-        <DynamicQrManager />
-      </main>
-      <SiteFooter />
-    </div>
+    <HomePage initialTab="studio" landing={LANDING_CONTENT.dynamic} heading="Free Dynamic QR Code Generator" autoDynamic>
+      <DynamicQrManager />
+    </HomePage>
   );
 }

@@ -26,6 +26,7 @@ import {
 } from '@/lib/qr-animations';
 import { downloadBlob, exportGif, exportMp4 } from '@/lib/qr-export';
 import DynamicQrPanel from '@/components/dynamic-qr-panel';
+import { BATCH_LIMIT, buildBatchZip, parseBatchLines } from '@/lib/qr-batch';
 import { EXTRA_ART_PRESETS } from '@/lib/qr-art-extra';
 import { DECO_FRAMES, DECO_FRAME_MAP, DECO_GROUPS, DECO_SIDE_PAD, isDecoFrame, renderDecoFrame, renderDecoFrameThumb, type DecoGroup } from '@/lib/qr-frames-deco';
 import {
@@ -97,6 +98,7 @@ import {
   Music,
   Briefcase,
   Printer,
+  FileArchive,
   RotateCcw,
   Landmark,
   Wallet,
@@ -108,7 +110,7 @@ import {
   Sliders,
 } from 'lucide-react';
 
-type StudioMode = 'create' | 'scanner' | 'batch';
+export type StudioMode = 'create' | 'scanner' | 'batch';
 type CategoryId = 'links' | 'payments' | 'social' | 'business' | 'access';
 type DesignTab = 'templates' | 'animate' | 'cards' | 'style' | 'logo' | 'frames' | 'artwork';
 type ArtPlacement = 'qr-fill' | 'neon-cutout' | 'back-halo' | 'back-pure' | 'medallion';
@@ -2019,10 +2021,17 @@ const DecoFramePicker = React.memo(function DecoFramePicker({
   );
 });
 
-export default function QRStudio() {
+export interface QRStudioProps {
+  /** Mode to open in (keyword landing pages: /qr-code-scanner, /bulk-qr-code-generator). */
+  initialMode?: StudioMode;
+  /** Turn the Dynamic QR switch on from the start (/dynamic-qr). */
+  autoDynamic?: boolean;
+}
+
+export default function QRStudio({ initialMode = 'create', autoDynamic = false }: QRStudioProps = {}) {
   // 1. Initialize strictly with server-safe default values to prevent React Error #418
   const [isDark, setIsDark] = useState(true);
-  const [studioMode, setStudioMode] = useState<StudioMode>('create');
+  const [studioMode, setStudioMode] = useState<StudioMode>(initialMode);
   const [activeCategory, setActiveCategory] = useState<CategoryId>('links');
   const [qrType, setQrType] = useState<string>('url');
   const [designTab, setDesignTab] = useState<DesignTab>('artwork');
@@ -2179,6 +2188,7 @@ export default function QRStudio() {
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [batchZipProgress, setBatchZipProgress] = useState<string | null>(null);
   const [batchInput, setBatchInput] = useState(
     'https://qrgenerato.com\nupi://pay?pa=shop@upi&pn=MyStore&cu=INR\nWIFI:T:WPA;S:Cafe_Guest;P:coffee123;;\nhttps://paypal.me/store/25'
   );
@@ -3525,8 +3535,24 @@ export default function QRStudio() {
     }
   };
 
+  const handleBatchZip = async () => {
+    const lines = parseBatchLines(batchInput);
+    if (!lines.length || batchZipProgress) return;
+    setBatchZipProgress(`0 / ${lines.length}`);
+    try {
+      const blob = await buildBatchZip(lines, { dark: defFgColor === '#ffffff' ? '#18181b' : defFgColor }, (done, total) =>
+        setBatchZipProgress(`${done} / ${total}`)
+      );
+      downloadBlob(blob, `qr-codes-${lines.length}.zip`);
+    } catch {
+      alert('Could not build the ZIP. Check that every line is short enough for a QR code.');
+    } finally {
+      setBatchZipProgress(null);
+    }
+  };
+
   const handlePrintBatch = () => {
-    const lines = batchInput.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 30);
+    const lines = parseBatchLines(batchInput);
     const win = window.open('', '_blank');
     if (!win) return;
     const itemsHtml = lines
@@ -4348,7 +4374,7 @@ export default function QRStudio() {
                       className={inputClass}
                     />
                     {qrType === 'url' && (
-                      <DynamicQrPanel isDark={isDark} destination={inputValue} onEncodeUrl={setDynamicUrl} />
+                      <DynamicQrPanel isDark={isDark} destination={inputValue} onEncodeUrl={setDynamicUrl} defaultEnabled={autoDynamic} />
                     )}
                   </div>
                 )}
@@ -5754,17 +5780,33 @@ export default function QRStudio() {
         <div className={clsx('max-w-5xl mx-auto p-6 rounded-2xl border space-y-4', cardClass)}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold">Batch QR Code Studio</h2>
+              <h2 className="text-lg font-bold">Bulk QR Code Generator</h2>
               <p className={clsx('text-xs', isDark ? 'text-zinc-400' : 'text-slate-600')}>
-                Enter one URL, UPI link, or serial code per line.
+                One URL, UPI link, Wi-Fi string or serial code per line, up to {BATCH_LIMIT}. Paste a column from Excel or Google Sheets.
               </p>
             </div>
-            <button type="button" onClick={handlePrintBatch} className={clsx('inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer', activePillClass)}>
-              <Printer className="w-3.5 h-3.5" /> Print Sheet
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleBatchZip}
+                disabled={!!batchZipProgress}
+                className={clsx('inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-70', activePillClass)}
+              >
+                <FileArchive className="w-3.5 h-3.5" /> {batchZipProgress ? `Building ${batchZipProgress}` : 'Download ZIP (PNG + SVG)'}
+              </button>
+              <button type="button" onClick={handlePrintBatch} className={clsx('inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer border', inactivePillClass)}>
+                <Printer className="w-3.5 h-3.5" /> Print Sheet
+              </button>
+            </div>
           </div>
-
-          <textarea rows={4} value={batchInput} onChange={(e) => setBatchInput(e.target.value)} className={inputClass} />
+          <textarea rows={6} value={batchInput} onChange={(e) => setBatchInput(e.target.value)} className={inputClass} aria-label="QR code contents, one per line" />
+          <p className={clsx('text-[11px]', isDark ? 'text-zinc-400' : 'text-slate-500')}>
+            {(() => {
+              const total = batchInput.split('\n').filter((l) => l.trim()).length;
+              const n = Math.min(total, BATCH_LIMIT);
+              return `${n} code${n === 1 ? '' : 's'} ready${total > BATCH_LIMIT ? ` (only the first ${BATCH_LIMIT} lines are used)` : ''}${n > 12 ? ' · previewing the first 12' : ''}. Tap a preview to style it in the full studio.`;
+            })()}
+          </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {batchInput

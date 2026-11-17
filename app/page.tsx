@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import clsx from 'clsx';
 import type { LandingContent } from '@/lib/landing-content';
+import type { StudioMode } from '@/components/qr-studio';
 import {
   QrCode,
   Sparkles,
@@ -123,6 +124,8 @@ const GENERATOR_LINKS: [href: string, label: string][] = [
   ['/instagram-qr', 'Instagram QR Code'],
   ['/youtube-qr', 'YouTube QR Code'],
   ['/dynamic-qr', 'Dynamic QR Code'],
+  ['/qr-code-scanner', 'QR Code Scanner'],
+  ['/bulk-qr-code-generator', 'Bulk QR Code Generator'],
   ['/pdf', 'PDF & Menu QR Code'],
   ['/crypto', 'Crypto Wallet QR Code'],
 ];
@@ -223,11 +226,20 @@ export default function HomePage({
   initialTab = 'studio',
   heading = 'Free QR Code Generator Online',
   landing,
+  studioMode = 'create',
+  autoDynamic = false,
+  children,
 }: {
   initialTab?: ActiveSiteTab;
   heading?: string;
   /** Tool landing pages (/wifi, /upi…) get their own guide section + FAQ schema */
   landing?: LandingContent;
+  /** Studio mode to open in (/qr-code-scanner, /bulk-qr-code-generator) */
+  studioMode?: StudioMode;
+  /** Start with the Dynamic QR switch on (/dynamic-qr) */
+  autoDynamic?: boolean;
+  /** Extra section shown right under the studio (e.g. the saved dynamic codes list) */
+  children?: React.ReactNode;
 }) {
   const landingData = landing ?? null;
   const [isDark, setIsDark] = useState(true);
@@ -441,7 +453,8 @@ export default function HomePage({
               </ul>
             </div>
           )}
-          <QRStudio />
+          <QRStudio initialMode={studioMode} autoDynamic={autoDynamic} />
+          {children}
 
           {landingData && (
             <section className="max-w-7xl mx-auto px-4 pt-2 pb-6" aria-labelledby="landing-guide">

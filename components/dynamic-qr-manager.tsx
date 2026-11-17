@@ -1,16 +1,16 @@
-// components/dynamic-qr-manager.tsx — lists the dynamic QR codes saved in this browser.
+// components/dynamic-qr-manager.tsx — "Your dynamic QR codes" section under the studio on /dynamic-qr.
 // Uses the same server as the Play Store app (q.qrgenerato.com): change destinations, rename,
 // pause/resume, delete, and see scans for the last 7 days with top countries and devices.
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import clsx from 'clsx';
-import { BarChart3, Check, Copy, ExternalLink, Loader2, Pause, Play, Plus, RefreshCw, Repeat, Trash2 } from 'lucide-react';
+import { BarChart3, Check, Copy, ExternalLink, Loader2, Pause, Play, RefreshCw, Repeat, Trash2 } from 'lucide-react';
 import {
   deleteDynamicLink,
   fetchDynamicLink,
   forgetLink,
+  LINKS_CHANGED_EVENT,
   loadOwnedLinks,
   manageUrl,
   normalizeForCompare,
@@ -236,21 +236,28 @@ export default function DynamicQrManager() {
     void run();
   }, [refresh]);
 
+  // A code created in the studio above (or deleted in another row) updates this list without a reload.
+  useEffect(() => {
+    const sync = () => setLinks(loadOwnedLinks());
+    window.addEventListener(LINKS_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(LINKS_CHANGED_EVENT, sync);
+  }, []);
+
+  // Shown under the studio on /dynamic-qr; stays out of the way until the visitor has a code.
+  if (!loading && links.length === 0 && !notice) return null;
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14 space-y-8">
-      <header className="space-y-3">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-bold text-fuchsia-300">
-          <Repeat size={12} /> Dynamic QR codes
-        </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white">Your dynamic QR codes</h1>
-        <p className="text-sm text-zinc-400 max-w-xl">
-          Change where a printed QR code goes, pause it, and see how many times it was scanned. Codes are saved in
-          this browser. Use an edit link to manage a code on another device.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/" className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 px-4 py-2.5 text-xs font-bold text-white">
-            <Plus size={14} /> Create a dynamic QR
-          </Link>
+    <section id="my-codes" aria-labelledby="my-codes-title" className="max-w-7xl mx-auto px-4 pt-2 pb-6 scroll-mt-[calc(var(--header-h)+12px)]">
+      <div className="rounded-2xl border border-zinc-800/90 bg-[#0c0c11] p-4 sm:p-6 space-y-4 text-zinc-100">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 id="my-codes-title" className="flex items-center gap-2 text-lg sm:text-xl font-bold">
+              <Repeat size={18} className="text-fuchsia-400" /> Your dynamic QR codes
+            </h2>
+            <p className="text-xs text-zinc-400">
+              Saved in this browser. Change destinations, pause codes and see scans. Use an edit link to manage a code on another device.
+            </p>
+          </div>
           <button
             type="button"
             onClick={refresh}
@@ -261,31 +268,24 @@ export default function DynamicQrManager() {
           </button>
         </div>
         {notice && <p className="text-xs font-semibold text-emerald-400">{notice}</p>}
-      </header>
 
-      {loading && links.length === 0 ? (
-        <div className="flex items-center gap-2 text-sm text-zinc-400">
-          <Loader2 size={16} className="animate-spin" /> Loading your codes…
-        </div>
-      ) : links.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/[0.12] p-8 text-center space-y-2">
-          <p className="text-sm font-bold text-white">No dynamic codes in this browser yet</p>
-          <p className="text-xs text-zinc-400">
-            In the generator, pick <strong>URL / Web</strong> and turn on <strong>Dynamic QR</strong>.
-          </p>
-        </div>
-      ) : (
-        <ul className="space-y-4">
-          {links.map((link) => (
-            <LinkRow
-              key={link.code}
-              link={link}
-              onChange={(next) => setLinks((all) => all.map((l) => (l.code === next.code ? next : l)))}
-              onRemove={() => setLinks((all) => all.filter((l) => l.code !== link.code))}
-            />
-          ))}
-        </ul>
-      )}
-    </div>
+        {loading && links.length === 0 ? (
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <Loader2 size={16} className="animate-spin" /> Loading your codes…
+          </div>
+        ) : (
+          <ul className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {links.map((link) => (
+              <LinkRow
+                key={link.code}
+                link={link}
+                onChange={(next) => setLinks((all) => all.map((l) => (l.code === next.code ? next : l)))}
+                onRemove={() => setLinks((all) => all.filter((l) => l.code !== link.code))}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
