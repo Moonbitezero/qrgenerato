@@ -122,6 +122,7 @@ const GENERATOR_LINKS: [href: string, label: string][] = [
   ['/google-review-qr', 'Google Review QR'],
   ['/instagram-qr', 'Instagram QR Code'],
   ['/youtube-qr', 'YouTube QR Code'],
+  ['/dynamic-qr', 'Dynamic QR Code'],
   ['/pdf', 'PDF & Menu QR Code'],
   ['/crypto', 'Crypto Wallet QR Code'],
 ];
@@ -137,7 +138,7 @@ const FAQS = [
   },
   {
     q: 'What is the difference between a static and a dynamic QR code?',
-    a: 'A static QR code stores your data inside the pattern itself, so it never expires and needs no server. A dynamic QR code points to a redirect server that can be edited or tracked, but usually needs a paid plan. QR Generato makes reliable, permanent static codes.',
+    a: 'A static QR code stores your data inside the pattern itself, so it never expires and needs no server. A dynamic QR code holds a short link that redirects to your destination, so you can change where it goes after printing and count scans. QR Generato offers both for free: turn on Dynamic QR under URL / Web, then manage your codes at /dynamic-qr.',
   },
   {
     q: 'Can I make an animated QR code?',
@@ -320,14 +321,15 @@ export default function HomePage({
       />
 
       {/* UPPER NAVBAR - Solid on mobile for 60fps scrolling, blurred on desktop */}
-      <header className="sticky top-0 z-50 bg-[#121217] md:bg-[#121217]/95 md:backdrop-blur-md border-b border-zinc-800/80 text-zinc-100">
-        <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-50 bg-[#121217] lg:bg-[#121217]/95 lg:backdrop-blur-md border-b border-zinc-800/80 text-zinc-100 pt-[env(safe-area-inset-top)]">
+        {/* Fixed 60px row (+1px border) = --header-h in globals.css, which sticky panels below rely on */}
+        <div className="max-w-7xl mx-auto px-4 h-[60px] flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={() => switchTab('studio')}
             className="flex items-center gap-3.5 group cursor-pointer text-left min-w-0"
           >
-            <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-purple-500/50 shadow-md shadow-purple-500/20 flex items-center justify-center text-purple-400 group-hover:border-purple-400 transition-colors shrink-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-zinc-900 border border-purple-500/50 shadow-md shadow-purple-500/20 flex items-center justify-center text-purple-400 group-hover:border-purple-400 transition-colors shrink-0">
               <QrCode className="w-6 h-6" />
             </div>
             <div className="min-w-0">
@@ -339,14 +341,14 @@ export default function HomePage({
                   PRO
                 </span>
               </div>
-              <p className="hidden sm:block text-xs text-zinc-400 truncate">
+              <p className="hidden sm:block lg:hidden xl:block text-xs text-zinc-400 truncate">
                 Free Online QR Code Generator With Logo &amp; Global Payments
               </p>
             </div>
           </button>
 
           {/* Desktop Navigation Pill - 100% Instant State Tabs */}
-          <nav className="hidden md:flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#09090d] border border-zinc-800/90">
+          <nav aria-label="Main" className="hidden lg:flex shrink-0 items-center gap-1 xl:gap-1.5 p-1.5 rounded-2xl bg-[#09090d] border border-zinc-800/90">
             {NAV_ITEMS.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -355,7 +357,7 @@ export default function HomePage({
                   type="button"
                   onClick={() => switchTab(item.id)}
                   className={clsx(
-                    'px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap',
+                    'px-3 xl:px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap',
                     isActive
                       ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-md shadow-purple-500/25'
                       : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60'
@@ -368,12 +370,13 @@ export default function HomePage({
           </nav>
 
           {/* Mobile Menu Toggle Button */}
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="flex items-center gap-2 lg:hidden">
             <button
               type="button"
               onClick={() => setMenuOpen(!menuOpen)}
               className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 cursor-pointer"
-              aria-label="Toggle Menu"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
             >
               {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -382,14 +385,14 @@ export default function HomePage({
 
         {/* Mobile Dropdown Menu Drawer */}
         {menuOpen && (
-          <div className="md:hidden border-t border-zinc-800 bg-[#121217] px-4 py-3 space-y-1.5 shadow-xl">
+          <div className="lg:hidden border-t border-zinc-800 bg-[#121217] px-4 py-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 shadow-xl max-h-[calc(100dvh-var(--header-h))] overflow-y-auto">
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => switchTab(item.id)}
                 className={clsx(
-                  'w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer',
+                  'w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
                   activeTab === item.id
                     ? 'bg-purple-600 text-white'
                     : 'text-zinc-300 hover:bg-zinc-800/80'

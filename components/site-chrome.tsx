@@ -21,6 +21,7 @@ import clsx from 'clsx';
 
 const NAV_LINKS = [
   { href: '/', label: 'QR Generator' },
+  { href: '/dynamic-qr', label: 'Dynamic QR' },
   { href: '/about', label: 'About Us' },
   { href: '/privacy-policy', label: 'Privacy Policy' },
   { href: '/terms-and-conditions', label: 'Terms & Conditions' },
@@ -32,7 +33,7 @@ export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="border-b border-white/[0.08] bg-[#09090f]/85 backdrop-blur-2xl sticky top-0 z-50">
+    <header className="border-b border-white/[0.08] bg-[#09090f]/85 backdrop-blur-2xl sticky top-0 z-50 pt-[env(safe-area-inset-top)]">
       <div className="max-w-[1400px] mx-auto px-3.5 sm:px-8 py-3 sm:py-3.5 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 group">
@@ -90,8 +91,9 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle Menu"
-            className="xl:hidden p-2 rounded-xl bg-white/[0.06] border border-white/10 text-zinc-200 hover:text-white"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileMenuOpen}
+            className="xl:hidden p-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-zinc-200 hover:text-white"
           >
             {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -112,7 +114,7 @@ export function SiteHeader() {
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={clsx(
-                  'block px-4 py-2.5 rounded-xl text-xs font-bold transition-all',
+                  'block px-4 py-3 rounded-xl text-sm font-bold transition-all',
                   isActive
                     ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white'
                     : 'text-zinc-300 hover:bg-white/[0.05]'

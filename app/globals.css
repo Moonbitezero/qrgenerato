@@ -7,6 +7,11 @@ html {
   color: #0f172a;
   overflow-y: scroll; /* Prevents horizontal layout jump when switching tabs */
   transition: background-color 0.15s ease, color 0.15s ease;
+  /* Stop iOS/Android from inflating text in landscape */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Height of the sticky site header; sticky panels below it use this so nothing slides underneath */
+  --header-h: calc(61px + env(safe-area-inset-top, 0px));
 }
 
 html.dark {
@@ -19,23 +24,75 @@ html.dark {
     background-color: #eef2f6;
     color: #0f172a;
     font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    min-height: 100dvh; /* mobile browsers: excludes the collapsing address bar */
+    /* Keep content clear of the notch / rounded corners in landscape on iPhone */
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Decorative backdrop on its own fixed layer: background-attachment: fixed repaints on every
+     scroll frame (and is ignored) on iOS Safari, which made scrolling stutter on iPhone/iPad. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background-image:
       radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.08), transparent 35%),
       radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.06), transparent 35%),
       radial-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 24px 24px;
-    background-attachment: fixed;
-    -webkit-tap-highlight-color: transparent;
-    min-height: 100vh;
   }
 
   html.dark body {
     background-color: #070709;
     color: #f4f4f6;
+  }
+
+  html.dark body::before {
     background-image:
       radial-gradient(circle at 15% 10%, rgba(124, 58, 237, 0.12), transparent 35%),
       radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.08), transparent 35%),
       radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  }
+
+  /* Remove the double-tap-to-zoom delay on controls */
+  a, button, [role='button'], [role='tab'], [role='switch'], label, summary, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  /* Visible focus ring for keyboard users (Tab on PC/Mac, iPad with keyboard); hidden for mouse/touch */
+  :focus-visible {
+    outline: 2px solid #a855f7;
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled), [role='button'], summary {
+    cursor: pointer;
+  }
+}
+
+/* iOS Safari zooms the whole page when a field under 16px is focused. Touch devices get 16px fields.
+   Unlayered on purpose so it wins over Tailwind's text-* utilities. */
+@media (pointer: coarse) {
+  input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Respect "Reduce Motion" (iOS, macOS, Windows, Android) for UI transitions and scrolling.
+   QR animation previews keep playing: they are content the user chooses, not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 /* Hide scrollbars on horizontally scrolling chip rows (still scrollable by touch / trackpad) */

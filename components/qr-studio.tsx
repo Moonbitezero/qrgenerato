@@ -25,6 +25,7 @@ import {
   type FxGroupId,
 } from '@/lib/qr-animations';
 import { downloadBlob, exportGif, exportMp4 } from '@/lib/qr-export';
+import DynamicQrPanel from '@/components/dynamic-qr-panel';
 import { EXTRA_ART_PRESETS } from '@/lib/qr-art-extra';
 import { DECO_FRAMES, DECO_FRAME_MAP, DECO_GROUPS, DECO_SIDE_PAD, isDecoFrame, renderDecoFrame, renderDecoFrameThumb, type DecoGroup } from '@/lib/qr-frames-deco';
 import {
@@ -2030,6 +2031,8 @@ export default function QRStudio() {
 
   // Basic & Regional Payment Inputs
   const [inputValue, setInputValue] = useState('https://qrgenerato.com');
+  /** Short /r/<code> link to encode instead of the URL when Dynamic QR is on. */
+  const [dynamicUrl, setDynamicUrl] = useState<string | null>(null);
   const [upiId, setUpiId] = useState('merchant@upi');
   const [upiName, setUpiName] = useState('My Store');
   const [upiAmount, setUpiAmount] = useState('');
@@ -2430,10 +2433,11 @@ export default function QRStudio() {
       case 'search':
         return `https://www.google.com/search?q=${encodeURIComponent(inputValue.trim() || 'QR Generato')}`;
       default:
+        if (qrType === 'url' && dynamicUrl) return dynamicUrl;
         return inputValue.trim() || 'https://qrgenerato.com';
     }
   }, [
-    qrType, inputValue, upiId, upiName, upiAmount, upiNote,
+    qrType, inputValue, dynamicUrl, upiId, upiName, upiAmount, upiNote,
     sepaName, sepaIban, sepaBic, sepaAmount, sepaRef,
     paypalUser, paypalAmount, paypalCurrency,
     p2pPlatform, p2pHandle, p2pAmount, intlPlatform, intlUser,
@@ -3767,7 +3771,7 @@ export default function QRStudio() {
           {/* LEFT COLUMN (7 Cols on PC) */}
           <div className="lg:col-span-7 space-y-4">
             {/* CLEAN, UNCLUTTERED STICKY MOBILE PREVIEW DOCK */}
-            <div className="block lg:hidden sticky top-[58px] z-30">
+            <div className="block lg:hidden sticky top-[calc(var(--header-h)+6px)] z-30">
               <div
                 className={clsx(
                   'p-2.5 rounded-2xl border shadow-2xl backdrop-blur-md',
@@ -3781,10 +3785,19 @@ export default function QRStudio() {
                     {/* Top Split Row: Crisp QR Preview + Status & Primary Export Actions */}
                     <div className="flex items-center gap-3">
                       <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Expand QR preview"
                         onClick={() => setMobileZoomed(true)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setMobileZoomed(true);
+                          }
+                        }}
                         title="Tap to expand QR"
                         className={clsx(
-                          'relative w-[72px] h-[72px] rounded-xl p-1 flex items-center justify-center border shrink-0 overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
+                          'relative w-[72px] h-[72px] md:w-28 md:h-28 rounded-xl p-1 flex items-center justify-center border shrink-0 overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
                           isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
                         )}
                       >
@@ -4020,8 +4033,8 @@ export default function QRStudio() {
                           : 'text-slate-600 hover:text-slate-900'
                       )}
                     >
-                      <span className="sm:hidden">{cat.label}</span>
-                      <span className="hidden sm:inline">{cat.full}</span>
+                      <span className="sm:hidden lg:inline xl:hidden">{cat.label}</span>
+                      <span className="hidden sm:inline lg:hidden xl:inline">{cat.full}</span>
                     </button>
                   );
                 })}
@@ -4334,6 +4347,9 @@ export default function QRStudio() {
                       placeholder={QR_TYPES.find((t) => t.id === qrType)?.placeholder || 'https://qrgenerato.com'}
                       className={inputClass}
                     />
+                    {qrType === 'url' && (
+                      <DynamicQrPanel isDark={isDark} destination={inputValue} onEncodeUrl={setDynamicUrl} />
+                    )}
                   </div>
                 )}
               </div>

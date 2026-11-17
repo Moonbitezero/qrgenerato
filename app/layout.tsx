@@ -1,8 +1,21 @@
 // app/layout.tsx
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import Analytics from '@/components/analytics';
 import { SITE_NAME, SITE_URL, pageMetadata } from '@/lib/seo';
 import './globals.css';
+
+// Same typeface on Windows, macOS, iOS and Android (self-hosted by Next, no request to Google at runtime).
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-jakarta' });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // Lets the page use the full screen on notched iPhones; edges are padded with safe-area insets in globals.css.
+  viewportFit: 'cover',
+  themeColor: '#121217',
+  colorScheme: 'dark light',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -12,6 +25,8 @@ export const metadata: Metadata = {
     'Free online QR code generator with logo, colors and frames. Create QR codes for URLs, Wi-Fi, UPI, PayPal, vCard and WhatsApp. No sign-up, no watermark, codes never expire. Download PNG or SVG.'
   ),
   applicationName: SITE_NAME,
+  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: 'black' },
+  formatDetection: { telephone: false },
   icons: { icon: [{ url: '/favicon.ico', sizes: 'any' }, { url: '/icon', type: 'image/png', sizes: '32x32' }], apple: '/apple-touch-icon.png' },
   keywords: [
     'qr generator',
@@ -35,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" className={`dark ${jakarta.variable}`} suppressHydrationWarning>
       <body
         suppressHydrationWarning
         className="antialiased selection:bg-indigo-500 selection:text-white"

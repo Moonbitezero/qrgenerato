@@ -18,6 +18,7 @@ const ROUTES: Entry[] = [
   ['/google-review-qr', 'weekly', 0.9],
   ['/instagram-qr', 'weekly', 0.9],
   ['/youtube-qr', 'weekly', 0.9],
+  ['/dynamic-qr', 'weekly', 0.9],
   ['/faq', 'monthly', 0.8],
   ['/about', 'monthly', 0.7],
   ['/contact-us', 'monthly', 0.6],
