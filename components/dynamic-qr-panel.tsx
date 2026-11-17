@@ -1,5 +1,5 @@
 // components/dynamic-qr-panel.tsx
-// Sits under the URL field in the studio. When on, the QR encodes a short /r/<code> link
+// Sits under the URL field in the studio. When on, the QR encodes a short q.qrgenerato.com/<code> link
 // whose destination (the URL field) can be changed later without reprinting.
 'use client';
 
@@ -93,7 +93,7 @@ export default function DynamicQrPanel({ isDark, destination, onEncodeUrl }: Pro
             <Repeat size={13} className="text-fuchsia-500" /> Dynamic QR
           </span>
           <span className={clsx('block text-[11px] leading-snug', muted)}>
-            Change where the code points after printing, and count scans. Free, no sign-up.
+            Change where the code points after printing, and count scans. Free, no sign-up. Works with the QR Generato app.
           </span>
         </button>
       </div>
@@ -122,7 +122,7 @@ export default function DynamicQrPanel({ isDark, destination, onEncodeUrl }: Pro
           </div>
 
           {changed && (
-            <button type="button" disabled={busy} onClick={() => run(() => updateDynamicLink(link, destination))} className={primary}>
+            <button type="button" disabled={busy} onClick={() => run(() => updateDynamicLink(link, { target: destination }))} className={primary}>
               {busy ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               Point this QR to the new URL
             </button>

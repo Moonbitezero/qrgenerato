@@ -1,46 +1,63 @@
-// lib/dynamic-client.ts — browser-side helpers for dynamic QR codes.
-// Edit keys are kept in this browser's localStorage. A "manage link" carries the key in the
-// URL hash (never sent to the server) so the owner can open their code on another device.
+// lib/dynamic-client.ts — browser client for the dynamic QR server shared with the Play Store app
+// (Cloudflare Worker + D1 in qr-generato-mobile/dynamic-server, live at q.qrgenerato.com).
+//
+// Kept compatible with the app's components/qr-studio/dynamic.ts: same server, same API,
+// same localStorage key and record shape. Edit keys never leave the creator's device except
+// in an "edit link", which carries the key in the URL hash (not sent to any server).
 
-export interface OwnedLink {
-  code: string;
-  token: string;
-  shortUrl: string;
-  target: string;
-  scans: number;
-  lastScanAt: number | null;
-  createdAt: number;
-  updatedAt: number;
+export interface DynamicStats {
+  last7: { day: string; n: number }[];
+  countries: { country: string; n: number }[];
+  devices: { device: string; n: number }[];
 }
 
-const STORAGE_KEY = 'qr-dynamic-links';
+export interface DynamicLink {
+  code: string;
+  shortUrl: string;
+  target: string;
+  title: string | null;
+  active: boolean;
+  scans: number;
+  createdAt: number;
+  updatedAt: number;
+  stats?: DynamicStats;
+}
+
+/** What this browser keeps: the link plus its secret edit key. */
+export interface OwnedLink extends DynamicLink {
+  token: string;
+}
+
+export const DYNAMIC_SERVER = (process.env.NEXT_PUBLIC_DYNAMIC_API || 'https://q.qrgenerato.com').replace(/\/+$/, '');
+
+const LINKS_KEY = 'qrg.dynamic.links.v1';
 
 export function loadOwnedLinks(): OwnedLink[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const list = raw ? (JSON.parse(raw) as OwnedLink[]) : [];
+    const list = JSON.parse(localStorage.getItem(LINKS_KEY) || '[]');
     return Array.isArray(list) ? list : [];
   } catch {
     return [];
   }
 }
 
-function writeOwnedLinks(list: OwnedLink[]) {
+function saveOwnedLinks(list: OwnedLink[]) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    localStorage.setItem(LINKS_KEY, JSON.stringify(list));
   } catch {
     // Private mode / storage blocked: the code still works, it just isn't remembered here.
   }
 }
 
-export function rememberLink(link: OwnedLink) {
-  writeOwnedLinks([link, ...loadOwnedLinks().filter((l) => l.code !== link.code)]);
+function upsertOwned(link: OwnedLink) {
+  saveOwnedLinks([link, ...loadOwnedLinks().filter((l) => l.code !== link.code)]);
 }
 
 export function forgetLink(code: string) {
-  writeOwnedLinks(loadOwnedLinks().filter((l) => l.code !== code));
+  saveOwnedLinks(loadOwnedLinks().filter((l) => l.code !== code));
 }
 
+/** Opens this code's management page on any device (website). */
 export function manageUrl(link: Pick<OwnedLink, 'code' | 'token'>) {
   return `${window.location.origin}/dynamic-qr#code=${link.code}&key=${link.token}`;
 }
@@ -56,37 +73,53 @@ export function normalizeForCompare(input: string) {
   }
 }
 
-async function call<T>(path: string, init: RequestInit): Promise<T> {
-  const res = await fetch(path, { ...init, headers: { 'Content-Type': 'application/json', ...init.headers } });
+async function call<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${DYNAMIC_SERVER}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...init.headers,
+      },
+    });
+  } catch {
+    throw new Error('Can’t reach the dynamic QR server. Check your internet connection.');
+  }
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  if (!res.ok) throw new Error(data.error || `Server error (${res.status})`);
   return data;
 }
 
-export async function createDynamicLink(target: string): Promise<OwnedLink> {
-  const link = await call<OwnedLink>('/api/links', { method: 'POST', body: JSON.stringify({ target }) });
-  rememberLink(link);
+export async function createDynamicLink(target: string, title = ''): Promise<OwnedLink> {
+  const link = await call<OwnedLink>('/api/links', { method: 'POST', body: JSON.stringify({ target, title }) });
+  upsertOwned(link);
   return link;
 }
 
-type ServerView = Omit<OwnedLink, 'token' | 'shortUrl'>;
-
-function merge(prev: Pick<OwnedLink, 'code' | 'token'>, view: ServerView): OwnedLink {
-  const link = { ...view, token: prev.token, shortUrl: `${window.location.origin}/r/${prev.code}` };
-  rememberLink(link);
-  return link;
+function merge(owned: Pick<OwnedLink, 'code' | 'token'>, link: DynamicLink): OwnedLink {
+  const prev = loadOwnedLinks().find((l) => l.code === owned.code);
+  const merged = { ...prev, ...link, token: owned.token };
+  upsertOwned(merged);
+  return merged;
 }
 
-export async function fetchDynamicLink(prev: Pick<OwnedLink, 'code' | 'token'>): Promise<OwnedLink> {
-  const view = await call<ServerView>(`/api/links/${prev.code}`, { method: 'GET', headers: { 'X-Edit-Token': prev.token } });
-  return merge(prev, view);
+export async function fetchDynamicLink(owned: Pick<OwnedLink, 'code' | 'token'>): Promise<OwnedLink> {
+  return merge(owned, await call<DynamicLink>(`/api/links/${owned.code}`, { method: 'GET' }, owned.token));
 }
 
-export async function updateDynamicLink(prev: Pick<OwnedLink, 'code' | 'token'>, target: string): Promise<OwnedLink> {
-  const view = await call<ServerView>(`/api/links/${prev.code}`, {
-    method: 'PATCH',
-    headers: { 'X-Edit-Token': prev.token },
-    body: JSON.stringify({ target }),
-  });
-  return merge(prev, view);
+export async function updateDynamicLink(
+  owned: Pick<OwnedLink, 'code' | 'token'>,
+  patch: { target?: string; title?: string; active?: boolean }
+): Promise<OwnedLink> {
+  return merge(
+    owned,
+    await call<DynamicLink>(`/api/links/${owned.code}`, { method: 'PATCH', body: JSON.stringify(patch) }, owned.token)
+  );
+}
+
+export async function deleteDynamicLink(owned: Pick<OwnedLink, 'code' | 'token'>) {
+  await call(`/api/links/${owned.code}`, { method: 'DELETE' }, owned.token);
+  forgetLink(owned.code);
 }

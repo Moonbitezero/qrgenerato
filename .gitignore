@@ -11,5 +11,3 @@ coverage/
 # Original artwork (only optimised copies go in public/)
 /art-source/
 
-# Local Cloudflare dev data
-.wrangler/

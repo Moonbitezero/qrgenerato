@@ -2031,7 +2031,7 @@ export default function QRStudio() {
 
   // Basic & Regional Payment Inputs
   const [inputValue, setInputValue] = useState('https://qrgenerato.com');
-  /** Short /r/<code> link to encode instead of the URL when Dynamic QR is on. */
+  /** Short q.qrgenerato.com/<code> link to encode instead of the URL when Dynamic QR is on. */
   const [dynamicUrl, setDynamicUrl] = useState<string | null>(null);
   const [upiId, setUpiId] = useState('merchant@upi');
   const [upiName, setUpiName] = useState('My Store');

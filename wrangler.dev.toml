@@ -1,8 +1,0 @@
-# Local development only: gives `next dev` a simulated KV namespace for dynamic QR codes
-# (data is kept in .wrangler/). Production bindings are set in the Cloudflare Pages dashboard.
-# Deliberately NOT named wrangler.toml, which Pages would treat as its deploy config.
-name = "qr-code-studio-dev"
-compatibility_date = "2025-01-01"
-compatibility_flags = ["nodejs_compat"]
-
-kv_namespaces = [{ binding = "QR_LINKS", id = "local-dev" }]
