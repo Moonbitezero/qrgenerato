@@ -1,114 +1,138 @@
-// components/contact-form.tsx
+// components/contact-form.tsx — Contact page form. Messages are emailed to the site owner by the
+// dynamic QR server (POST q.qrgenerato.com/api/contact, see qr-generato-mobile/dynamic-server/src/contact.ts).
 'use client';
 
 import React, { useState } from 'react';
-import { Send, CheckCircle2 } from 'lucide-react';
+import clsx from 'clsx';
+import { CheckCircle2, Loader2, Send } from 'lucide-react';
+import { DYNAMIC_SERVER } from '@/lib/dynamic-client';
 
-export default function ContactForm() {
+const SUPPORT_EMAIL = 'support@qrgenerato.com';
+
+type Status = { kind: 'idle' } | { kind: 'sending' } | { kind: 'sent' } | { kind: 'error'; message: string };
+
+export default function ContactForm({ isDark = true }: { isDark?: boolean }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('Feature Request');
+  const [subject, setSubject] = useState('General Support');
   const [message, setMessage] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [website, setWebsite] = useState(''); // honeypot, hidden from people
+  const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    if (status.kind === 'sending') return;
+    setStatus({ kind: 'sending' });
+    try {
+      const res = await fetch(`${DYNAMIC_SERVER}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, subject, message, website }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) throw new Error(data.error || `Could not send (error ${res.status}).`);
+      setStatus({ kind: 'sent' });
+    } catch (err) {
+      const offline = err instanceof TypeError;
+      setStatus({
+        kind: 'error',
+        message: offline ? 'Could not reach our server. Check your internet connection.' : (err as Error).message,
+      });
+    }
   };
 
-  const inputClass =
-    'w-full bg-[#0b0b12] border border-white/[0.1] hover:border-violet-500/40 rounded-2xl px-4 py-3.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-fuchsia-500 transition-all placeholder:text-zinc-500';
+  const field = clsx(
+    'w-full rounded-xl border px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30',
+    isDark ? 'bg-zinc-950 border-zinc-800 text-white placeholder-zinc-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
+  );
+  const label = clsx('block text-xs font-semibold mb-1.5', isDark ? 'text-zinc-300' : 'text-slate-700');
+  const muted = isDark ? 'text-zinc-400' : 'text-slate-600';
 
-  if (submitted) {
+  const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`[${subject}] from ${name || 'website visitor'}`)}&body=${encodeURIComponent(message)}`;
+
+  if (status.kind === 'sent') {
     return (
-      <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 text-center space-y-3">
-        <CheckCircle2 size={36} className="text-emerald-400 mx-auto" />
-        <h3 className="text-lg font-extrabold text-white">Message Ready to Send!</h3>
-        <p className="text-xs sm:text-sm text-zinc-300 max-w-md mx-auto">
-          Thank you, <strong>{name || 'Creator'}</strong>. Click below to open your email client with
-          your pre-filled message, or reach us directly at{' '}
-          <span className="text-emerald-300 font-mono">support@qrcodestudio.app</span>.
+      <div role="status" className="max-w-3xl p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+        <p className="flex items-center gap-2 text-sm font-bold text-emerald-500">
+          <CheckCircle2 className="w-5 h-5" /> Message sent. Thank you, {name.split(' ')[0] || 'friend'}!
         </p>
-        <div className="pt-2 flex justify-center gap-3">
-          <a
-            href={`mailto:support@qrcodestudio.app?subject=${encodeURIComponent(
-              `[${subject}] from ${name}`
-            )}&body=${encodeURIComponent(message + `\n\nReply to: ${email}`)}`}
-            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white"
-          >
-            Open in Email App
-          </a>
-          <button
-            type="button"
-            onClick={() => setSubmitted(false)}
-            className="px-4 py-2.5 rounded-xl bg-white/10 text-xs font-semibold text-zinc-200"
-          >
-            Edit Message
-          </button>
-        </div>
+        <p className={clsx('text-xs', muted)}>
+          We’ll reply to <strong>{email}</strong>, usually within 1–2 days. Check your spam folder if you don’t see it.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setMessage('');
+            setStatus({ kind: 'idle' });
+          }}
+          className={clsx('text-xs font-semibold underline', muted)}
+        >
+          Send another message
+        </button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-bold text-violet-300 mb-1.5">Your Name *</label>
-          <input
-            type="text"
-            required
-            placeholder="Yourname"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-violet-300 mb-1.5">Email Address *</label>
-          <input
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
-          />
-        </div>
-      </div>
-
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl" noValidate={false}>
       <div>
-        <label className="block text-xs font-bold text-pink-300 mb-1.5">Inquiry Topic</label>
-        <select
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          className={inputClass}
-        >
-          <option value="Feature Request">Feature Request / Custom Artwork</option>
-          <option value="Bug Report">Bug Report / Scanning Feedback</option>
-          <option value="Business Partnership">Business &amp; API Inquiry</option>
-          <option value="General Support">General Support</option>
+        <label htmlFor="contact-name" className={label}>Your name</label>
+        <input id="contact-name" type="text" required maxLength={100} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={field} />
+      </div>
+      <div>
+        <label htmlFor="contact-email" className={label}>Your email (for our reply)</label>
+        <input id="contact-email" type="email" required maxLength={200} autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
+      </div>
+      <div className="sm:col-span-2">
+        <label htmlFor="contact-topic" className={label}>Topic</label>
+        <select id="contact-topic" value={subject} onChange={(e) => setSubject(e.target.value)} className={field}>
+          <option value="General Support">General support</option>
+          <option value="Bug Report">Bug report / scanning problem</option>
+          <option value="Feature Request">Feature request / custom artwork</option>
+          <option value="Dynamic QR">Dynamic QR codes</option>
+          <option value="Business Inquiry">Business inquiry</option>
         </select>
       </div>
-
-      <div>
-        <label className="block text-xs font-bold text-zinc-300 mb-1.5">Message *</label>
+      <div className="sm:col-span-2">
+        <label htmlFor="contact-message" className={label}>Message</label>
         <textarea
-          required
+          id="contact-message"
           rows={5}
-          placeholder="Tell us how we can help or what feature you'd love to see next..."
+          required
+          minLength={10}
+          maxLength={5000}
+          placeholder="How can we help?"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className={inputClass}
+          className={field}
         />
       </div>
 
-      <button
-        type="submit"
-        className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 hover:opacity-95 text-white font-bold text-sm shadow-lg shadow-fuchsia-600/25 flex items-center justify-center gap-2 cursor-pointer"
-      >
-        <Send size={16} /> Send Message
-      </button>
+      {/* Honeypot: invisible to people and screen readers, bots tend to fill it */}
+      <div aria-hidden="true" className="absolute -left-[9999px] w-px h-px overflow-hidden">
+        <label htmlFor="contact-website">Website</label>
+        <input id="contact-website" type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+      </div>
+
+      <div className="sm:col-span-2 space-y-2">
+        <button
+          type="submit"
+          disabled={status.kind === 'sending'}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-70 cursor-pointer"
+        >
+          {status.kind === 'sending' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {status.kind === 'sending' ? 'Sending…' : 'Send message'}
+        </button>
+        {status.kind === 'error' && (
+          <p role="alert" className="text-xs font-semibold text-rose-500">
+            {status.message}{' '}
+            <a href={mailto} className="underline">
+              Email us instead
+            </a>
+            .
+          </p>
+        )}
+      </div>
     </form>
   );
 }

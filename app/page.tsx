@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import ContactForm from '@/components/contact-form';
 import clsx from 'clsx';
 import type { LandingContent } from '@/lib/landing-content';
 import type { StudioMode } from '@/components/qr-studio';
@@ -20,7 +21,6 @@ import {
   Palette,
   Layers,
   Mail,
-  Send,
   ArrowLeft,
   Info,
   Scale,
@@ -257,7 +257,6 @@ export default function HomePage({
     return initialTab;
   });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [contactSent, setContactSent] = useState(false);
 
   useEffect(() => {
     // Initial tab (hash/path) is already resolved by the useState initializer above.
@@ -750,55 +749,7 @@ export default function HomePage({
                       Have feedback, a question, or a custom QR request? Send us a quick message below.
                     </p>
                   </div>
-                  {contactSent ? (
-                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-xs font-bold flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4" /> Thank you! Your message has been received.
-                    </div>
-                  ) : (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        setContactSent(true);
-                      }}
-                      className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl"
-                    >
-                      <input
-                        type="text"
-                        required
-                        placeholder="Your Name"
-                        className={clsx(
-                          'w-full rounded-xl border px-3.5 py-2.5 text-sm',
-                          isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-                        )}
-                      />
-                      <input
-                        type="email"
-                        required
-                        placeholder="Your Email"
-                        className={clsx(
-                          'w-full rounded-xl border px-3.5 py-2.5 text-sm',
-                          isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-                        )}
-                      />
-                      <textarea
-                        rows={4}
-                        required
-                        placeholder="How can we help?"
-                        className={clsx(
-                          'sm:col-span-2 w-full rounded-xl border px-3.5 py-2.5 text-sm',
-                          isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-                        )}
-                      />
-                      <div>
-                        <button
-                          type="submit"
-                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                        >
-                          <Send className="w-3.5 h-3.5" /> Send Message
-                        </button>
-                      </div>
-                    </form>
-                  )}
+                  <ContactForm isDark={isDark} />
                   <div className={clsx('pt-3 border-t text-xs flex items-center gap-2', isDark ? 'border-zinc-800 text-zinc-400' : 'border-slate-200 text-slate-500')}>
                     <Mail className="w-4 h-4 text-indigo-500" /> Direct Email: support@qrgenerato.com
                   </div>

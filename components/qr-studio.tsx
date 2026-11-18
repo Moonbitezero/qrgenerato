@@ -26,6 +26,9 @@ import {
 } from '@/lib/qr-animations';
 import { downloadBlob, exportGif, exportMp4 } from '@/lib/qr-export';
 import DynamicQrPanel from '@/components/dynamic-qr-panel';
+import QuickFill from '@/components/quick-fill';
+import { decodeQr } from '@/lib/qr-decode';
+import { detect, type Detected } from '@/lib/smart-import';
 import { BATCH_LIMIT, buildBatchZip, parseBatchLines } from '@/lib/qr-batch';
 import { EXTRA_ART_PRESETS } from '@/lib/qr-art-extra';
 import { DECO_FRAMES, DECO_FRAME_MAP, DECO_GROUPS, DECO_SIDE_PAD, isDecoFrame, renderDecoFrame, renderDecoFrameThumb, type DecoGroup } from '@/lib/qr-frames-deco';
@@ -1875,9 +1878,11 @@ let decoRasterRunning = false;
 const DECO_RASTER_W = 360;
 const DECO_RASTER_H = 479; // thumbnail viewBox is 266×354
 
+// Runs only when the browser is genuinely idle. No timeout: a forced run used to fire while people
+// were typing and froze phones for ~1 s while 50 SVG frames were rasterised.
 function onIdle(cb: () => void) {
-  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(() => cb(), { timeout: 1500 });
-  else window.setTimeout(cb, 30);
+  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(() => cb());
+  else window.setTimeout(cb, 250); // Safari: no idle callback, so space the work out
 }
 
 function pumpDecoRaster() {
@@ -1924,7 +1929,7 @@ function pumpDecoRaster() {
     .finally(() => onIdle(pumpDecoRaster));
 }
 
-/** Queue tiles for rasterising; `ids` jump to the front (the group on screen goes first). */
+/** Queue tiles for rasterising (only the group on screen; other groups when they're opened). */
 function queueDecoRaster(ids: string[] = DECO_FRAMES.map((d) => d.id)) {
   if (typeof window === 'undefined') return;
   const todo = ids.filter((id) => !DECO_RASTER[id]);
@@ -1933,7 +1938,6 @@ function queueDecoRaster(ids: string[] = DECO_FRAMES.map((d) => d.id)) {
     if (i >= 0) decoRasterQueue.splice(i, 1);
   }
   decoRasterQueue.unshift(...todo);
-  for (const d of DECO_FRAMES) if (!DECO_RASTER[d.id] && !decoRasterQueue.includes(d.id)) decoRasterQueue.push(d.id);
   if (!decoRasterRunning && decoRasterQueue.length) {
     decoRasterRunning = true;
     onIdle(pumpDecoRaster);
@@ -2088,13 +2092,13 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   const [wifiSsid, setWifiSsid] = useState('Office_WiFi_5G');
   const [wifiPass, setWifiPass] = useState('welcome2026');
   const [wifiType, setWifiType] = useState<'WPA' | 'WEP' | 'nopass'>('WPA');
-  const [wifiHidden] = useState(false);
+  const [wifiHidden, setWifiHidden] = useState(false);
   const [vcardName, setVcardName] = useState('');
   const [vcardPhone, setVcardPhone] = useState('');
   const [vcardEmail, setVcardEmail] = useState('contact@qrgenerato.com');
   const [vcardOrg, setVcardOrg] = useState('QR Generato PRO');
-  const [vcardWebsite] = useState('');
-  const [vcardCity] = useState('');
+  const [vcardWebsite, setVcardWebsite] = useState('');
+  const [vcardCity, setVcardCity] = useState('');
   const [waPhone, setWaPhone] = useState('');
   const [waMessage, setWaMessage] = useState('Hello! I just scanned your QR code.');
   const [emailTo, setEmailTo] = useState('support@qrgenerato.com');
@@ -2264,23 +2268,24 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
         setCameraActive(true);
-        if ('BarcodeDetector' in window) {
-         
-          const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-          scanIntervalRef.current = window.setInterval(async () => {
-            if (videoRef.current && videoRef.current.readyState === 4) {
-              try {
-                const codes = await detector.detect(videoRef.current);
-                if (codes.length > 0 && codes[0].rawValue) {
-                  setScanResult(codes[0].rawValue);
-                  stopCameraScanner();
-                }
-              } catch {
-                // ignore
-              }
+        // Built-in detector where available, jsQR everywhere else (iPhone Safari, Firefox, Windows).
+        let busy = false;
+        scanIntervalRef.current = window.setInterval(async () => {
+          const video = videoRef.current;
+          if (busy || !video || video.readyState < 2) return;
+          busy = true;
+          try {
+            const text = await decodeQr(video, 720);
+            if (text) {
+              setScanResult(text);
+              stopCameraScanner();
             }
-          }, 350);
-        }
+          } catch {
+            // ignore this frame
+          } finally {
+            busy = false;
+          }
+        }, 300);
       }
     } catch {
       setScanError('Camera access denied or unavailable. Please use "Upload QR Image" below.');
@@ -3258,6 +3263,17 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
   }, []);
+
+  // Animated previews are repainted every frame (SVG can't be GPU-composited). Pause them while
+  // they're scrolled off screen, e.g. when reading the guide below the studio.
+  useEffect(() => {
+    if (!isAnimated || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((entries) =>
+      entries.forEach((e) => e.target.classList.toggle('preview-offscreen', !e.isIntersecting))
+    );
+    document.querySelectorAll('[data-live-preview]').forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [isAnimated, isDesktop, studioMode]);
   // Mouse users can't scroll sideways strips (frame groups, card types…) with a normal wheel.
   // When the pointer enters such a strip, give it a wheel handler that turns vertical wheel into
   // horizontal scroll. Attached per strip on demand, so page scrolling never waits on a global listener.
@@ -3284,11 +3300,6 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
     return () => document.removeEventListener('pointerover', onOver);
   }, []);
 
-  // Rasterise frame tiles in idle time shortly after load, so the Frames tab opens instantly.
-  useEffect(() => {
-    const t = window.setTimeout(() => queueDecoRaster(), 3000);
-    return () => window.clearTimeout(t);
-  }, []);
   // ── Card QR: drag on the preview (Custom position) ──
   const canDragCardQr = Boolean(activeCard?.movable) && cardQrLayout === 'free' && cardQrFree !== null;
   const qrDragging = useRef(false);
@@ -3449,24 +3460,69 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
         const img = new Image();
         img.onload = async () => {
           try {
-            if ('BarcodeDetector' in window) {
-             
-              const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-              const barcodes = await detector.detect(img);
-              if (barcodes.length > 0) {
-                setScanResult(barcodes[0].rawValue);
-                return;
-              }
+            const text = await decodeQr(img, 1600);
+            if (text) {
+              setScanResult(text);
+              return;
             }
-            setScanError('Could not detect a QR code in this image. Please try a clearer screenshot.');
+            setScanError('Could not detect a QR code in this image. Try a sharper screenshot or crop closer to the code.');
           } catch {
-            setScanError('QR detection works best in Chrome, Edge, or Brave browsers.');
+            setScanError('Could not read this image. Please try another screenshot or photo.');
           }
         };
         img.src = result;
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  /** Fills the form from pasted text, a scanned/imported QR, a contact file or a phone contact. */
+  const applyDetected = (d: Detected) => {
+    // Types whose form is the single main field (links, socials, PIN, search…).
+    const SPECIAL = ['upi', 'sepa', 'paypal', 'cashapp', 'revolut', 'pix', 'paynow', 'crypto', 'bank', 'wifi', 'vcard', 'whatsapp', 'email', 'sms', 'event', 'maps'];
+    const mainField = !SPECIAL.includes(qrType);
+    let target: string = d.type;
+    switch (d.type) {
+      case 'url':
+        setInputValue(d.url);
+        if (mainField && !['phone', 'pin', 'search', 'text'].includes(qrType)) target = qrType; // e.g. Instagram stays Instagram
+        break;
+      case 'text':
+        setInputValue(d.text);
+        if (mainField) target = qrType;
+        break;
+      case 'phone':
+        if (qrType === 'whatsapp') { setWaPhone(d.phone); target = 'whatsapp'; }
+        else if (qrType === 'sms') { setSmsPhone(d.phone); target = 'sms'; }
+        else if (qrType === 'vcard') { setVcardPhone(d.phone); target = 'vcard'; }
+        else setInputValue(d.phone);
+        break;
+      case 'email':
+        if (qrType === 'vcard' && !d.subject && !d.body) { setVcardEmail(d.to); target = 'vcard'; }
+        else { setEmailTo(d.to); setEmailSub(d.subject); setEmailBody(d.body); }
+        break;
+      case 'wifi':
+        setWifiSsid(d.ssid); setWifiPass(d.password); setWifiType(d.security); setWifiHidden(d.hidden);
+        break;
+      case 'vcard':
+        setVcardName(d.name); setVcardOrg(d.org); setVcardPhone(d.phone); setVcardEmail(d.email); setVcardWebsite(d.website); setVcardCity(d.city);
+        break;
+      case 'upi':
+        setUpiId(d.id); setUpiName(d.name); setUpiAmount(d.amount); setUpiNote(d.note);
+        break;
+      case 'whatsapp':
+        setWaPhone(d.phone.replace(/[^\d+]/g, '')); setWaMessage(d.message);
+        break;
+      case 'sms':
+        setSmsPhone(d.phone); setSmsBody(d.body);
+        break;
+      case 'maps':
+        setMapsQuery(d.query);
+        break;
+    }
+    const cat = QR_TYPES.find((t) => t.id === target)?.category;
+    if (cat) setActiveCategory(cat as CategoryId);
+    setQrType(target);
   };
 
   const applyQuickPreset = (preset: 'classic' | 'upi' | 'cafe' | 'cyber') => {
@@ -3827,7 +3883,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                           isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-100 border-slate-200'
                         )}
                       >
-                        <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svgMobile }} />
+                        <div data-live-preview className="w-full h-full" dangerouslySetInnerHTML={{ __html: svgMobile }} />
                         <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-black/80 text-white pointer-events-none">
                           ⤢ Zoom
                         </span>
@@ -4094,6 +4150,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-400">● 60fps Instant Sync</span>
                 </div>
+                <QuickFill qrType={qrType} isDark={isDark} onApply={applyDetected} />
 
                 {qrType === 'upi' ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -4305,6 +4362,14 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                     <div>
                       <label className={labelClass}>Company</label>
                       <input type="text" value={vcardOrg} onChange={(e) => setVcardOrg(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Website (Optional)</label>
+                      <input type="url" value={vcardWebsite} onChange={(e) => setVcardWebsite(e.target.value)} placeholder="https://" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>City (Optional)</label>
+                      <input type="text" value={vcardCity} onChange={(e) => setVcardCity(e.target.value)} className={inputClass} />
                     </div>
                   </div>
                 ) : qrType === 'whatsapp' ? (
@@ -4657,7 +4722,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                             </button>
                           ))}
                         </div>
-                        <div className="grid grid-cols-5 gap-2">
+                        <div className="anim-thumbs grid grid-cols-5 gap-2">
                           {CARD_MOTIONS.filter((m) => m.group === cardMotionGroup).map((m) => {
                             const active = cardMotionId === m.id;
                             return (
@@ -4749,7 +4814,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                     })}
                   </div>
 
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                  <div className="anim-thumbs grid grid-cols-4 sm:grid-cols-5 gap-2">
                     {(fxGroup === 'popular'
                       ? POPULAR_FX.map((p) => ({ ...ANIMATED_EFFECT_MAP[p.id], name: p.label }))
                       : ANIMATED_EFFECTS.filter((e) => e.group === fxGroup)
@@ -5564,6 +5629,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                 />
                 <div
                   {...cardQrDragProps}
+                  data-live-preview
                   className={clsx(
                     'relative w-full h-full rounded-2xl p-2.5 flex items-center justify-center border overflow-hidden transition-colors [&>svg]:w-full [&>svg]:h-full',
                     isDark ? 'bg-zinc-950/95 border-zinc-800/90' : 'bg-slate-100 border-slate-200/90'
@@ -5764,6 +5830,23 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                 </button>
               </div>
               <p className="text-sm font-mono break-all">{scanResult}</p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {/^https?:\/\//i.test(scanResult) && (
+                  <a href={scanResult} target="_blank" rel="noopener noreferrer nofollow" className={clsx('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border', secondaryActionBtnClass)}>
+                    Open link
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    applyDetected(detect(scanResult));
+                    setStudioMode('create');
+                  }}
+                  className={clsx('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer', activePillClass)}
+                >
+                  Make a styled QR from this
+                </button>
+              </div>
             </div>
           )}
 

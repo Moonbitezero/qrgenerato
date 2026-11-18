@@ -87,6 +87,18 @@ html.dark {
   }
 }
 
+/* Animated effect / card-motion thumbnails: each is an SVG with hundreds of individually animated
+   squares, and 20-70 of them on screen kept phones at 100% CPU. They hold still and play only when
+   hovered (mouse) or selected; the big live preview always animates. */
+.anim-thumbs > :not(:hover):not([aria-pressed='true']) * {
+  animation-play-state: paused !important;
+}
+
+/* Live animated QR preview scrolled out of view (set by the studio) */
+.preview-offscreen * {
+  animation-play-state: paused !important;
+}
+
 /* Respect "Reduce Motion" (iOS, macOS, Windows, Android) for UI transitions and scrolling.
    QR animation previews keep playing: they are content the user chooses, not decoration. */
 @media (prefers-reduced-motion: reduce) {
