@@ -4949,6 +4949,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                           { id: 'elegant', label: `Elegant (${CARD_DESIGNS.filter((c) => c.kind === 'elegant').length})` },
                           { id: 'indian', label: `Indian (${CARD_DESIGNS.filter((c) => c.kind === 'indian').length})` },
                           { id: 'vintage', label: `Vintage (${CARD_DESIGNS.filter((c) => c.kind === 'vintage').length})` },
+                          { id: 'poster', label: `Art Posters (${CARD_DESIGNS.filter((c) => c.kind === 'poster').length})` },
                           { id: 'business', label: `Business (${CARD_DESIGNS.filter((c) => c.kind === 'business').length})` },
                         ] as const
                       ).map((k) => (

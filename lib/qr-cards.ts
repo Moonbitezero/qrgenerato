@@ -1,5 +1,5 @@
 // lib/qr-cards.ts
-// 104 printable card layouts (11 retro aesthetic + 12 retro girl + 12 elegant + 26 indian + 31 vintage + 12 business, membership & event) that
+// Printable card layouts (retro aesthetic, retro girl, elegant, indian, vintage, art posters, business/membership/event) that
 // wrap the live QR code. All artwork is original vector art generated here.
 
 import { buildCardMotion } from './qr-card-motion';
@@ -8,8 +8,9 @@ import { GIRL_DESIGNS } from './qr-cards-girl';
 import { ELEGANT_DESIGNS } from './qr-cards-elegant';
 import { INDIAN_DESIGNS } from './qr-cards-indian';
 import { VINTAGE_DESIGNS } from './qr-cards-vintage';
+import { POSTER_DESIGNS } from './qr-cards-poster';
 
-export type CardKind = 'retro' | 'girl' | 'elegant' | 'indian' | 'vintage' | 'business';
+export type CardKind = 'retro' | 'girl' | 'elegant' | 'indian' | 'vintage' | 'poster' | 'business';
 
 export interface CardFields {
   name: string;
@@ -431,7 +432,7 @@ export const CARD_DESIGNS: CardDesign[] = [
   },
 ];
 
-CARD_DESIGNS.unshift(...RETRO_DESIGNS, ...GIRL_DESIGNS, ...ELEGANT_DESIGNS, ...INDIAN_DESIGNS, ...VINTAGE_DESIGNS);
+CARD_DESIGNS.unshift(...RETRO_DESIGNS, ...GIRL_DESIGNS, ...ELEGANT_DESIGNS, ...INDIAN_DESIGNS, ...VINTAGE_DESIGNS, ...POSTER_DESIGNS);
 
 export const CARD_MAP: Record<string, CardDesign> = Object.fromEntries(CARD_DESIGNS.map((c) => [c.id, c]));
 

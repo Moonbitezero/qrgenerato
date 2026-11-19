@@ -74,7 +74,7 @@ const STEPS = [
   {
     step: '02',
     title: 'Style It: Art, Cards & Animation',
-    desc: '56 templates, 30 QR artworks, 104 printable cards and 70 animated effects.',
+    desc: '56 templates, 30 QR artworks, 135 printable cards and 70 animated effects.',
     icon: Palette,
     accent: 'text-pink-500',
   },
@@ -138,7 +138,7 @@ const FAQS = [
   },
   {
     q: 'Can I put my QR code on a business card?',
-    a: 'Yes. The Cards tab has 104 printable layouts — 11 retro pixel-art cards, 12 Retro Girl lo-fi game cards, 12 elegant Art-Nouveau portraits, 26 Indian travel-poster and folk-art cards, 31 vintage poster, blueprint and botanical cards, plus business, ID, membership, ticket, invitation and menu cards. Add your own name and details and download a 3000px PNG ready for print.',
+    a: 'Yes. The Cards tab has 135 printable layouts — 12 retro pixel-art cards, 12 Retro Girl lo-fi game cards, 12 elegant Art-Nouveau portraits, 26 Indian travel-poster and folk-art cards, 31 vintage poster, blueprint and botanical cards, 30 screen-print Art Posters, plus business, ID, membership, ticket, invitation and menu cards. Add your own name and details and download a 3000px PNG ready for print.',
   },
   {
     q: 'Can I add artwork or a logo to my QR code?',
