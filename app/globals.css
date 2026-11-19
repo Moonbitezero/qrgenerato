@@ -94,6 +94,21 @@ html.dark {
   animation-play-state: paused !important;
 }
 
+/* Big sections that start below the fold: the browser skips their layout, text shaping and painting
+   until they're about to scroll into view (content stays in the HTML for search engines).
+   "auto" remembers the real height after the first render, so the scrollbar doesn't jump. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
+/* Thumbnail grids (templates, cards, frames, art, motion): only tiles near the screen are laid out
+   and painted, so opening a tab with 30–70 thumbnails stays quick. */
+.tile-grid > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 150px;
+}
+
 /* Custom name panel can be dragged on the preview */
 [data-panel-draggable] [data-card-panel] {
   cursor: grab;

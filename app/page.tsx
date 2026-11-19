@@ -367,7 +367,7 @@ export default function HomePage({
           {children}
 
           {landingData && (
-            <section className="max-w-7xl mx-auto px-4 pt-2 pb-6" aria-labelledby="landing-guide">
+            <section className="cv-auto max-w-7xl mx-auto px-4 pt-2 pb-6" aria-labelledby="landing-guide">
               <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-6', cardClass)}>
                 <div className="space-y-2 max-w-3xl">
                   <h2 id="landing-guide" className="text-xl sm:text-2xl font-bold tracking-tight">
@@ -426,7 +426,7 @@ export default function HomePage({
             </section>
           )}
 
-          <section className="max-w-7xl mx-auto px-4 pb-16 pt-2 space-y-6">
+          <section className="cv-auto max-w-7xl mx-auto px-4 pb-16 pt-2 space-y-6">
             {/* Simple 3-Step Workflow */}
             <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-5', cardClass)}>
               <div className="flex flex-wrap items-center justify-between gap-4">

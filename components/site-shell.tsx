@@ -168,7 +168,7 @@ export function SiteFooter({ onTab }: Pick<ShellProps, 'onTab'>) {
   const small = 'hover:text-slate-900 dark:hover:text-zinc-300';
 
   return (
-    <footer className="bg-white dark:bg-[#0a0a0f] md:bg-white/95 md:dark:bg-[#0a0a0f]/95 md:backdrop-blur-md border-t border-slate-200/90 dark:border-zinc-800/80 text-slate-600 dark:text-zinc-400">
+    <footer className="cv-auto bg-white dark:bg-[#0a0a0f] md:bg-white/95 md:dark:bg-[#0a0a0f]/95 md:backdrop-blur-md border-t border-slate-200/90 dark:border-zinc-800/80 text-slate-600 dark:text-zinc-400">
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           <div className="space-y-3">

@@ -2008,7 +2008,7 @@ const DecoFramePicker = React.memo(function DecoFramePicker({
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+      <div className="tile-grid grid grid-cols-3 sm:grid-cols-5 gap-2">
         {DECO_FRAMES.filter((d) => d.group === group).map((d) => {
           const active = frameStyle === d.id;
           return (
@@ -3999,10 +3999,11 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
             <div className="block lg:hidden sticky top-[calc(var(--header-h)+6px)] z-30">
               <div
                 className={clsx(
-                  'p-2.5 rounded-2xl border shadow-2xl backdrop-blur-md',
+                  // Solid, no backdrop blur: a blurred sticky bar is re-blurred on every scroll frame (janky on phones)
+                  'p-2.5 rounded-2xl border shadow-xl',
                   isDark
-                    ? 'bg-[#111116]/95 border-zinc-800 shadow-black/80'
-                    : 'bg-white/95 border-slate-200 shadow-slate-300/70'
+                    ? 'bg-[#111116] border-zinc-800 shadow-black/60'
+                    : 'bg-white border-slate-200 shadow-slate-300/70'
                 )}
               >
                 {!mobileZoomed ? (
@@ -4597,7 +4598,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
             </div>
 
             {/* STEP 2: Design tabs — icon-over-label tiles (4 + 3 on mobile, 7 in a row on desktop), never truncated */}
-            <div className={clsx('p-3 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
+            <div className={clsx('cv-auto p-3 sm:p-5 rounded-2xl border space-y-4', cardClass)}>
               <div
                 role="tablist"
                 aria-label="Design options"
@@ -4780,7 +4781,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                   )}
 
                   {/* Full-Bleed Illustrated Poster Cards Grid */}
-                  <div className={clsx('grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-2', !showAll['art'] && 'max-sm:[&>*:nth-child(n+11)]:hidden')}>
+                  <div className={clsx('tile-grid grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-2', !showAll['art'] && 'max-sm:[&>*:nth-child(n+11)]:hidden')}>
                     {ART_PRESETS.length > 9 && (
                       <button
                         data-more
@@ -4803,10 +4804,13 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                             active ? activePillClass : inactivePillClass
                           )}
                         >
+                          {/* Thumbnail set after hydration (isDesktop is measured on mount): keeps ~110 KB of
+                              generated SVG data URLs out of every page's HTML. Decorative, so no SEO loss. */}
                           <img
-                            src={art.posterSvg}
+                            src={isDesktop === null ? undefined : art.posterSvg}
                             alt={art.name}
                             loading="lazy"
+                            decoding="async"
                             className="w-full h-16 sm:h-14 object-cover rounded-lg mb-1"
                           />
                           <p className="text-[11px] sm:text-[10px] font-semibold text-center truncate">{art.name}</p>
@@ -4872,7 +4876,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                             </button>
                           ))}
                         </div>
-                        <div className="anim-thumbs grid grid-cols-5 gap-2">
+                        <div className="anim-thumbs tile-grid grid grid-cols-5 gap-2">
                           {CARD_MOTIONS.filter((m) => m.group === cardMotionGroup).map((m) => {
                             const active = cardMotionId === m.id;
                             return (
@@ -4964,7 +4968,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                     })}
                   </div>
 
-                  <div className="anim-thumbs grid grid-cols-4 sm:grid-cols-5 gap-2">
+                  <div className="anim-thumbs tile-grid grid grid-cols-4 sm:grid-cols-5 gap-2">
                     {(fxGroup === 'popular'
                       ? POPULAR_FX.map((p) => ({ ...ANIMATED_EFFECT_MAP[p.id], name: p.label }))
                       : ANIMATED_EFFECTS.filter((e) => e.group === fxGroup)
@@ -5298,7 +5302,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                     </div>
                   ) : null}
 
-                  <div className={clsx('grid grid-cols-3 sm:grid-cols-4 gap-2', !showAll['cards'] && 'max-sm:[&>*:nth-child(n+11)]:hidden')}>
+                  <div className={clsx('tile-grid grid grid-cols-3 sm:grid-cols-4 gap-2', !showAll['cards'] && 'max-sm:[&>*:nth-child(n+11)]:hidden')}>
                     {CARD_DESIGNS.filter((c) => c.kind === cardKind).length > 9 && (
                       <button
                         data-more
@@ -5370,7 +5374,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                     })}
                   </div>
 
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  <div className="tile-grid grid grid-cols-4 sm:grid-cols-6 gap-2">
                     {(collapsed ? list.slice(0, 12) : list).map((t) => {
                       const active = activeTemplateId === t.id;
                       return (
