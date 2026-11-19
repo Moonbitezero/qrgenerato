@@ -54,7 +54,10 @@ export async function getTurnstileToken(): Promise<string> {
       sitekey: TURNSTILE_SITE_KEY,
       appearance: 'interaction-only', // invisible unless Cloudflare needs a click
       callback: (token: string) => done(() => resolve(token)),
-      'error-callback': () => done(() => reject(new Error('The security check failed. Please try again.'))),
+      retry: 'auto',
+      // Cloudflare passes an error code (e.g. 110200 = this web address isn't allowed for the widget).
+      'error-callback': (code?: string) =>
+        done(() => reject(new Error(`The security check failed${code ? ` (code ${code})` : ''}. Please reload the page and try again.`))),
       'timeout-callback': () => done(() => reject(new Error('The security check timed out. Please try again.'))),
     });
   });
