@@ -525,7 +525,8 @@ function customTextBlock(d: CardDesign, f: CardFields, t: CardTextStyle): string
   const panel =
     t.bg === 'panel'
       ? `<rect x="${(left - 10).toFixed(1)}" y="${(top - 8).toFixed(1)}" width="${(bw + 20).toFixed(1)}" height="${(bh + 16).toFixed(1)}" rx="8" fill="${light ? '#000000' : '#ffffff'}" fill-opacity="${light ? 0.55 : 0.85}"/>`
-      : '';
+      : // invisible grab area so the block can be dragged on the preview, even between letters
+        `<rect x="${(left - 6).toFixed(1)}" y="${(top - 4).toFixed(1)}" width="${(bw + 12).toFixed(1)}" height="${(bh + 8).toFixed(1)}" fill="transparent"/>`;
   return `<g class="card-custom-text">${panel}${texts}</g>`;
 }
 

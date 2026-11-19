@@ -118,6 +118,7 @@ export default function CardTextControls({ isDark, mode, onMode, value, onChange
                 {p.label}
               </button>
             ))}
+            <span className={clsx('text-[10.5px] ml-1', isDark ? 'text-zinc-500' : 'text-slate-500')}>or drag the text on the preview</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-3 gap-y-1.5">
             {(

@@ -94,6 +94,11 @@ html.dark {
   animation-play-state: paused !important;
 }
 
+/* Custom card text can be dragged on the preview */
+[data-text-draggable] .card-custom-text {
+  cursor: move;
+}
+
 /* Live animated QR preview scrolled out of view (set by the studio) */
 .preview-offscreen * {
   animation-play-state: paused !important;

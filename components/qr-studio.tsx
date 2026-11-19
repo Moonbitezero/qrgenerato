@@ -3359,43 +3359,70 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
 
   // ── Card QR: drag on the preview (Custom position) ──
   const canDragCardQr = Boolean(activeCard?.movable) && cardQrLayout === 'free' && cardQrFree !== null;
-  const qrDragging = useRef(false);
-  const qrDragFrame = useRef(0);
-  const moveCardQrTo = (el: HTMLElement, clientX: number, clientY: number) => {
+  const canDragCardText = Boolean(activeCard) && cardTextMode === 'custom';
+  /** What the current pointer drag is moving on the card preview. */
+  const cardDrag = useRef<{ mode: 'qr' | 'text'; dx: number; dy: number } | null>(null);
+  const cardDragFrame = useRef(0);
+
+  /** Pointer position as 0–1 of the card's width/height (the SVG is drawn with preserveAspectRatio "meet"). */
+  const pointerOnCard = (el: HTMLElement, clientX: number, clientY: number) => {
     const svg = el.querySelector('svg');
-    if (!svg || !activeCard) return;
-    // The card SVG is drawn with preserveAspectRatio "meet": map the pointer into card units.
+    if (!svg || !activeCard) return null;
     const r = svg.getBoundingClientRect();
     const scale = Math.min(r.width / activeCard.w, r.height / activeCard.h);
     const ox = r.left + (r.width - activeCard.w * scale) / 2;
     const oy = r.top + (r.height - activeCard.h * scale) / 2;
-    const cx = Math.min(1, Math.max(0, (clientX - ox) / scale / activeCard.w));
-    const cy = Math.min(1, Math.max(0, (clientY - oy) / scale / activeCard.h));
-    cancelAnimationFrame(qrDragFrame.current);
-    qrDragFrame.current = requestAnimationFrame(() => setCardQrFree((f) => (f ? { ...f, cx, cy } : f)));
+    return {
+      cx: Math.min(1, Math.max(0, (clientX - ox) / scale / activeCard.w)),
+      cy: Math.min(1, Math.max(0, (clientY - oy) / scale / activeCard.h)),
+    };
   };
-  const cardQrDragProps = canDragCardQr
-    ? {
-        onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.currentTarget.setPointerCapture(e.pointerId);
-          qrDragging.current = true;
-          moveCardQrTo(e.currentTarget, e.clientX, e.clientY);
-        },
-        onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
-          if (qrDragging.current) moveCardQrTo(e.currentTarget, e.clientX, e.clientY);
-        },
-        onPointerUp: () => {
-          qrDragging.current = false;
-        },
-        onPointerCancel: () => {
-          qrDragging.current = false;
-        },
-        title: 'Drag to move the QR',
-        style: { touchAction: 'none' as const, cursor: 'move' },
+
+  const applyCardDrag = (el: HTMLElement, clientX: number, clientY: number) => {
+    const d = cardDrag.current;
+    const pt = pointerOnCard(el, clientX, clientY);
+    if (!d || !pt) return;
+    cancelAnimationFrame(cardDragFrame.current);
+    cardDragFrame.current = requestAnimationFrame(() => {
+      if (d.mode === 'qr') {
+        setCardQrFree((f) => (f ? { ...f, cx: pt.cx, cy: pt.cy } : f));
+      } else {
+        // Keep the grab point under the finger, so the text doesn't jump.
+        const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+        setCardText((t) => ({ ...t, cx: clamp01(pt.cx + d.dx), cy: clamp01(pt.cy + d.dy) }));
       }
-    : {};
+    });
+  };
+
+  const endCardDrag = () => {
+    cardDrag.current = null;
+  };
+
+  const cardQrDragProps =
+    canDragCardQr || canDragCardText
+      ? {
+          onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+            const onText = canDragCardText && (e.target as Element).closest?.('.card-custom-text');
+            if (!onText && !canDragCardQr) return; // nothing draggable here: leave the click alone
+            const pt = pointerOnCard(e.currentTarget, e.clientX, e.clientY);
+            if (!pt) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.setPointerCapture(e.pointerId);
+            cardDrag.current = onText ? { mode: 'text', dx: cardText.cx - pt.cx, dy: cardText.cy - pt.cy } : { mode: 'qr', dx: 0, dy: 0 };
+            applyCardDrag(e.currentTarget, e.clientX, e.clientY);
+          },
+          onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+            if (cardDrag.current) applyCardDrag(e.currentTarget, e.clientX, e.clientY);
+          },
+          onPointerUp: endCardDrag,
+          onPointerCancel: endCardDrag,
+          title: canDragCardText && canDragCardQr ? 'Drag the text or the QR to move them' : canDragCardText ? 'Drag the text to move it' : 'Drag to move the QR',
+          // Marks the preview so CSS shows a "move" cursor over the text block (see globals.css).
+          'data-text-draggable': canDragCardText ? '' : undefined,
+          style: { touchAction: 'none' as const, cursor: canDragCardQr ? 'move' : undefined },
+        }
+      : {};
 
   /** One click: QR dots in the card's colour (darkened enough to scan), eyes in its accent. */
   const matchCardColours = () => {
@@ -4078,8 +4105,8 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
 
                     <div
                       {...cardQrDragProps}
-                      // While the QR can be dragged, a tap moves it; "Minimize" above still closes the view.
-                      onClick={canDragCardQr ? undefined : () => setMobileZoomed(false)}
+                      // While the QR or text can be dragged, a tap moves it; "Minimize" above still closes the view.
+                      onClick={canDragCardQr || canDragCardText ? undefined : () => setMobileZoomed(false)}
                       className={clsx(
                         'rounded-2xl p-2 flex items-center justify-center border overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
                         activeCard ? (activeCard.w > activeCard.h ? 'w-full max-w-[340px]' : 'w-64') : 'w-56 h-56',
