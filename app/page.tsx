@@ -165,7 +165,7 @@ const FAQS = [
   },
   {
     q: 'Is my data stored on your servers?',
-    a: 'No. QR Generato runs entirely in your browser. Your links, bank details, photos and logos never leave your device.',
+    a: 'Not for normal QR codes: they are made in your browser, and your links, bank details, photos and logos never leave your device. Only the optional features use our server: dynamic QR codes (destination link and scan counts) and uploaded PDF, audio or image files. See the Privacy Policy for details.',
   },
   {
     q: 'Can I use these QR codes commercially?',
@@ -687,28 +687,50 @@ export default function HomePage({
                 <div className="space-y-5">
                   <h1 className="text-2xl sm:text-3xl font-bold">Privacy Policy</h1>
                   <p className={clsx('text-sm leading-relaxed max-w-4xl', mutedText)}>
-                    Your privacy is 100% protected because QR Generato runs entirely inside your web browser:
+                    Most of QR Generato runs inside your browser and sends nothing anywhere. A few optional features use our server. This page lists exactly what is stored, and for how long. Last updated: November 2026.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className={clsx('p-5 rounded-xl border', subCardClass)}>
-                      <h3 className="text-xs font-bold text-emerald-500 mb-1.5">1. Zero Server Uploads</h3>
-                      <p className={clsx('text-xs leading-relaxed', mutedText)}>
-                        URLs, bank details, UPI IDs, and WiFi passwords are encoded locally in JavaScript and never leave your device.
-                      </p>
-                    </div>
-                    <div className={clsx('p-5 rounded-xl border', subCardClass)}>
-                      <h3 className="text-xs font-bold text-indigo-500 mb-1.5">2. Local Image Memory</h3>
-                      <p className={clsx('text-xs leading-relaxed', mutedText)}>
-                        Uploaded brand logos and custom photos are processed directly inside your browser via HTML5 FileReader.
-                      </p>
-                    </div>
-                    <div className={clsx('p-5 rounded-xl border', subCardClass)}>
-                      <h3 className="text-xs font-bold text-purple-500 mb-1.5">3. No Tracking Cookies</h3>
-                      <p className={clsx('text-xs leading-relaxed', mutedText)}>
-                        We only save your Dark/Light theme preference in local storage. We never track scans or user identities.
-                      </p>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      {
+                        title: '1. Made in your browser (not uploaded)',
+                        color: 'text-emerald-500',
+                        text: 'Normal QR codes, the links and details you type, Wi-Fi passwords, payment details, logos, photos used for QR art, and images you scan are processed on your device and never sent to us.',
+                      },
+                      {
+                        title: '2. Dynamic QR codes (optional)',
+                        color: 'text-indigo-500',
+                        text: 'When you create a dynamic QR code we store its destination link, the name you give it, and scan statistics: time, country and device type. We never store IP addresses; a one-way hash of your IP is used only to enforce daily limits. Your edit key is kept in your browser and we store only a hash of it.',
+                      },
+                      {
+                        title: '3. Uploaded files (optional)',
+                        color: 'text-fuchsia-500',
+                        text: 'PDF, audio and image files you upload are stored with our cloud storage provider (Backblaze, in the United States) and can be opened by anyone who has the QR code or link. They are deleted when you delete them, or automatically after 6 months without scans. Files reported by visitors may be reviewed and removed.',
+                      },
+                      {
+                        title: '4. Contact form',
+                        color: 'text-sky-500',
+                        text: 'Your name, email address and message are emailed to our support inbox so we can reply. We don’t add you to any mailing list.',
+                      },
+                      {
+                        title: '5. Analytics',
+                        color: 'text-amber-500',
+                        text: 'On qrgenerato.com we use Google Analytics to count visits and see which pages are useful. Google may set cookies for this. It doesn’t receive the content of your QR codes.',
+                      },
+                      {
+                        title: '6. Stored on your device',
+                        color: 'text-purple-500',
+                        text: 'Your theme choice and the edit keys for your dynamic QR codes and uploaded files are saved in your browser’s local storage. Clearing your browser data removes them.',
+                      },
+                    ].map((item) => (
+                      <div key={item.title} className={clsx('p-5 rounded-xl border', subCardClass)}>
+                        <h3 className={clsx('text-xs font-bold mb-1.5', item.color)}>{item.title}</h3>
+                        <p className={clsx('text-xs leading-relaxed', mutedText)}>{item.text}</p>
+                      </div>
+                    ))}
                   </div>
+                  <p className={clsx('text-xs leading-relaxed max-w-4xl', mutedText)}>
+                    To ask about your data or have a dynamic code or file deleted, email support@qrgenerato.com.
+                  </p>
                 </div>
               )}
 
@@ -737,6 +759,32 @@ export default function HomePage({
                         Always test your downloaded QR code with a phone camera before printing in bulk.
                       </p>
                     </div>
+                  </div>
+                  <h2 className="text-lg font-bold pt-2">Uploaded files and dynamic QR codes</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      {
+                        title: '4. Only upload what you have the right to share',
+                        text: 'You must own the file or have permission to share it. Do not upload pirated music, films or books, malware, scams or phishing, sexual content involving minors, violent or hateful content, or other people’s personal information.',
+                      },
+                      {
+                        title: '5. We may remove content',
+                        text: 'We may hide or delete files and disable dynamic QR codes that break these rules or the law, or that are reported by visitors, without notice. Report a file with the “Report this file” link on its page or by emailing support@qrgenerato.com.',
+                      },
+                      {
+                        title: '6. Limits and deletion',
+                        text: 'Files can be up to 20 MB (PDF and audio) or 10 MB (images), with daily upload limits. Files nobody scans for 6 months are deleted automatically. Keep your own copy of anything important.',
+                      },
+                      {
+                        title: '7. Free service, no guarantee',
+                        text: 'Dynamic codes and file hosting are free and provided as is. We work to keep them running but can’t guarantee they will always be available. Keep your edit links safe: anyone who has one can change or delete that code.',
+                      },
+                    ].map((item) => (
+                      <div key={item.title} className={clsx('p-5 rounded-xl border', subCardClass)}>
+                        <h3 className="text-xs font-bold text-fuchsia-500 mb-1.5">{item.title}</h3>
+                        <p className={clsx('text-xs leading-relaxed', mutedText)}>{item.text}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -812,7 +860,7 @@ export default function HomePage({
                 </span>
               </div>
               <p className="text-xs leading-relaxed text-slate-500 dark:text-zinc-400">
-                The best free QR code generator online with no sign up and no expiration. Create custom QR codes with logo, UPI, SEPA, PayPal, Pix, and smart artwork 100% client-side.
+                The best free QR code generator online with no sign up and no expiration. Create custom QR codes with logo, UPI, SEPA, PayPal, Pix and smart artwork, made right in your browser.
               </p>
             </div>
 

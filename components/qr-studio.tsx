@@ -27,6 +27,8 @@ import {
 import { downloadBlob, exportGif, exportMp4 } from '@/lib/qr-export';
 import DynamicQrPanel from '@/components/dynamic-qr-panel';
 import QuickFill from '@/components/quick-fill';
+import FileUploadPanel from '@/components/file-upload-panel';
+import type { FileKind, OwnedFile } from '@/lib/file-client';
 import { decodeQr } from '@/lib/qr-decode';
 import { detect, type Detected } from '@/lib/smart-import';
 import { BATCH_LIMIT, buildBatchZip, parseBatchLines } from '@/lib/qr-batch';
@@ -114,6 +116,9 @@ import {
 } from 'lucide-react';
 
 export type StudioMode = 'create' | 'scanner' | 'batch';
+
+/** QR types that can hold an uploaded file instead of a link. */
+const FILE_TYPE_KIND: Partial<Record<string, FileKind>> = { pdf: 'pdf', audio: 'audio', image: 'image' };
 type CategoryId = 'links' | 'payments' | 'social' | 'business' | 'access';
 type DesignTab = 'templates' | 'animate' | 'cards' | 'style' | 'logo' | 'frames' | 'artwork';
 type ArtPlacement = 'qr-fill' | 'neon-cutout' | 'back-halo' | 'back-pure' | 'medallion';
@@ -270,12 +275,13 @@ const QR_TYPES: QRTypeOption[] = [
   { id: 'facebook', label: 'Facebook Page', category: 'social', icon: Globe, placeholder: 'https://facebook.com/pagename' },
 
   { id: 'menu', label: 'Cafe / Menu', category: 'business', icon: Utensils, placeholder: 'https://yourcafe.com/digital-menu.pdf' },
-  { id: 'pdf', label: 'PDF Brochure', category: 'business', icon: FileText, placeholder: 'https://example.com/brochure.pdf' },
+  { id: 'pdf', label: 'PDF / Brochure', category: 'business', icon: FileText, placeholder: 'https://example.com/brochure.pdf' },
+  { id: 'image', label: 'Image / Photo', category: 'business', icon: ImageIcon, placeholder: 'https://example.com/photo.jpg' },
   { id: 'review', label: 'Google Review', category: 'business', icon: Star, placeholder: 'https://g.page/r/your-business-review' },
   { id: 'event', label: 'Calendar Event', category: 'business', icon: Calendar },
   { id: 'maps', label: 'Google Maps', category: 'business', icon: MapPin },
   { id: 'zoom', label: 'Video Meeting', category: 'business', icon: Video, placeholder: 'https://meet.google.com/abc-defg-hij' },
-  { id: 'audio', label: 'Music / Spotify', category: 'business', icon: Music, placeholder: 'https://open.spotify.com/track/...' },
+  { id: 'audio', label: 'Audio / MP3', category: 'business', icon: Music, placeholder: 'https://open.spotify.com/track/...' },
   { id: 'shop', label: 'Product / Store', category: 'business', icon: ShoppingBag, placeholder: 'https://mystore.com/featured-product' },
 
   { id: 'wifi', label: 'WiFi Network', category: 'access', icon: Wifi },
@@ -2046,6 +2052,8 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   const [inputValue, setInputValue] = useState('https://qrgenerato.com');
   /** Short q.qrgenerato.com/<code> link to encode instead of the URL when Dynamic QR is on. */
   const [dynamicUrl, setDynamicUrl] = useState<string | null>(null);
+  /** Uploaded file (PDF / audio / image types): the QR encodes its q.qrgenerato.com/f/ link. */
+  const [uploadedFile, setUploadedFile] = useState<OwnedFile | null>(null);
   const [upiId, setUpiId] = useState('merchant@upi');
   const [upiName, setUpiName] = useState('My Store');
   const [upiAmount, setUpiAmount] = useState('');
@@ -2449,10 +2457,11 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
         return `https://www.google.com/search?q=${encodeURIComponent(inputValue.trim() || 'QR Generato')}`;
       default:
         if (qrType === 'url' && dynamicUrl) return dynamicUrl;
+        if (uploadedFile && FILE_TYPE_KIND[qrType] === uploadedFile.kind) return uploadedFile.shortUrl;
         return inputValue.trim() || 'https://qrgenerato.com';
     }
   }, [
-    qrType, inputValue, dynamicUrl, upiId, upiName, upiAmount, upiNote,
+    qrType, inputValue, dynamicUrl, uploadedFile, upiId, upiName, upiAmount, upiNote,
     sepaName, sepaIban, sepaBic, sepaAmount, sepaRef,
     paypalUser, paypalAmount, paypalCurrency,
     p2pPlatform, p2pHandle, p2pAmount, intlPlatform, intlUser,
@@ -4440,6 +4449,9 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                     />
                     {qrType === 'url' && (
                       <DynamicQrPanel isDark={isDark} destination={inputValue} onEncodeUrl={setDynamicUrl} defaultEnabled={autoDynamic} />
+                    )}
+                    {FILE_TYPE_KIND[qrType] && (
+                      <FileUploadPanel kind={FILE_TYPE_KIND[qrType]!} isDark={isDark} value={uploadedFile} onChange={setUploadedFile} />
                     )}
                   </div>
                 )}

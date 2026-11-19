@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import { LANDING_CONTENT } from '@/lib/landing-content';
 import DynamicQrManager from '@/components/dynamic-qr-manager';
+import FilesManager from '@/components/files-manager';
 import HomePage from '../page';
 
 export const metadata: Metadata = pageMetadata(
@@ -14,6 +15,7 @@ export default function DynamicQrRoute() {
   return (
     <HomePage initialTab="studio" landing={LANDING_CONTENT.dynamic} heading="Free Dynamic QR Code Generator" autoDynamic>
       <DynamicQrManager />
+      <FilesManager />
     </HomePage>
   );
 }

@@ -223,7 +223,7 @@ export function SiteFooter() {
               </li>
             </ul>
             <p className="text-[11px] text-zinc-500 pt-1">
-              100% browser-based execution. Zero server uploads or tracking cookies.
+              QR codes are made in your browser. Optional dynamic codes and file uploads use our server.
             </p>
           </div>
         </div>
