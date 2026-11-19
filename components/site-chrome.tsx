@@ -22,6 +22,7 @@ import clsx from 'clsx';
 const NAV_LINKS = [
   { href: '/', label: 'QR Generator' },
   { href: '/dynamic-qr', label: 'Dynamic QR' },
+  { href: '/my-codes', label: 'My QR Codes' },
   { href: '/about', label: 'About Us' },
   { href: '/privacy-policy', label: 'Privacy Policy' },
   { href: '/terms-and-conditions', label: 'Terms & Conditions' },
@@ -69,7 +70,7 @@ export function SiteHeader() {
                 key={link.href}
                 href={link.href}
                 className={clsx(
-                  'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  'px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap',
                   isActive
                     ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow'
                     : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
@@ -83,7 +84,7 @@ export function SiteHeader() {
 
         {/* Right Trust Badges & Mobile Menu Trigger */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-xs font-semibold text-emerald-300">
+          <div className="hidden sm:flex xl:hidden 2xl:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-xs font-semibold text-emerald-300">
             <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
             <span>No Sign Up • Free Forever</span>
           </div>

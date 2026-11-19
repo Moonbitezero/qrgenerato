@@ -3,11 +3,11 @@
 // and the file can be replaced later without reprinting.
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { Check, Copy, FileUp, Loader2, RefreshCw, Upload, X } from 'lucide-react';
-import { FILE_RULES, fileManageUrl, humanSize, precheck, replaceFile, uploadFile, type FileKind, type OwnedFile } from '@/lib/file-client';
+import { FILES_CHANGED_EVENT, FILE_RULES, fileManageUrl, humanSize, loadOwnedFiles, precheck, replaceFile, uploadFile, type FileKind, type OwnedFile } from '@/lib/file-client';
 
 interface Props {
   kind: FileKind;
@@ -18,7 +18,7 @@ interface Props {
   onChange: (file: OwnedFile | null) => void;
 }
 
-const NOUN: Record<FileKind, string> = { pdf: 'PDF', audio: 'audio file', image: 'image' };
+const NOUN: Record<FileKind, string> = { pdf: 'a PDF', audio: 'an audio file', image: 'an image' };
 
 export default function FileUploadPanel({ kind, isDark, value, onChange }: Props) {
   const [progress, setProgress] = useState<number | null>(null);
@@ -29,6 +29,14 @@ export default function FileUploadPanel({ kind, isDark, value, onChange }: Props
   const replaceRef = useRef<HTMLInputElement>(null);
   // A file uploaded for another type (e.g. a PDF, then switching to Image) doesn't apply here.
   const current = value && value.kind === kind ? value : null;
+  // Earlier uploads of this kind saved in this browser, for one-tap reuse.
+  const [mine, setMine] = useState<OwnedFile[]>([]);
+  useEffect(() => {
+    const sync = () => setMine(loadOwnedFiles().filter((f) => f.kind === kind && !f.hidden));
+    sync();
+    window.addEventListener(FILES_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(FILES_CHANGED_EVENT, sync);
+  }, [kind]);
 
   const start = async (f: File, mode: 'new' | 'replace') => {
     const problem = precheck(f, kind);
@@ -87,11 +95,12 @@ export default function FileUploadPanel({ kind, isDark, value, onChange }: Props
                 onClick={() => pickRef.current?.click()}
                 className="inline-flex items-center gap-2 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 px-4 py-2.5 text-xs font-bold text-white"
               >
-                <Upload size={14} /> Upload a {NOUN[kind]} instead of a link
+                <Upload size={14} /> Upload {NOUN[kind]} instead of a link
               </button>
               <p className={clsx('mt-1.5 text-[11px]', muted)}>
                 {rule.label}, up to {rule.max / (1024 * 1024)} MB. Or drag it here. The QR opens a page with {kind === 'pdf' ? 'a PDF viewer' : kind === 'audio' ? 'an audio player' : 'your image'} and a download button.
               </p>
+              <p className={clsx('mt-0.5 text-[10.5px]', muted)}>Free: 10 uploads a day, up to 20 files (200 MB) at a time.</p>
             </>
           ) : (
             <div className="space-y-1.5" role="status" aria-live="polite">
@@ -101,6 +110,29 @@ export default function FileUploadPanel({ kind, isDark, value, onChange }: Props
               <div className={clsx('h-1.5 rounded-full overflow-hidden', isDark ? 'bg-zinc-800' : 'bg-slate-200')}>
                 <div className="h-full bg-fuchsia-500 transition-[width]" style={{ width: `${progress}%` }} />
               </div>
+            </div>
+          )}
+          {mine.length > 0 && progress === null && (
+            <div className="mt-3 text-left">
+              <p className={clsx('text-[10.5px] font-bold uppercase tracking-wider mb-1.5', muted)}>Or use one of your files</p>
+              <div className="flex flex-col gap-1.5">
+                {mine.slice(0, 4).map((f) => (
+                  <button
+                    key={f.code}
+                    type="button"
+                    onClick={() => onChange(f)}
+                    className={clsx('flex items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-xs text-left transition-colors', isDark ? 'border-zinc-700 hover:border-fuchsia-500' : 'border-slate-300 hover:border-fuchsia-500')}
+                  >
+                    <span className="truncate font-semibold">{f.title || f.name || 'Uploaded file'}</span>
+                    <span className={clsx('shrink-0', muted)}>{humanSize(f.size)} · {f.scans} scans</span>
+                  </button>
+                ))}
+              </div>
+              {mine.length > 4 && (
+                <Link href="/my-codes#my-files" className="mt-1.5 inline-block text-[11px] font-semibold text-fuchsia-500 hover:underline">
+                  See all {mine.length} files
+                </Link>
+              )}
             </div>
           )}
         </div>
@@ -129,7 +161,7 @@ export default function FileUploadPanel({ kind, isDark, value, onChange }: Props
             <button type="button" onClick={copyEdit} className={btn}>
               {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copied' : 'Copy edit link'}
             </button>
-            <Link href="/dynamic-qr#my-files" className={btn}>
+            <Link href="/my-codes#my-files" className={btn}>
               <FileUp size={13} /> Manage files
             </Link>
             <button

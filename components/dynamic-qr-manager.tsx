@@ -195,7 +195,8 @@ function LinkRow({ link, onChange, onRemove }: { link: OwnedLink; onChange: (l: 
   );
 }
 
-export default function DynamicQrManager() {
+/** `alwaysShow`: on the My QR Codes page the section stays visible (with a message) even when empty. */
+export default function DynamicQrManager({ alwaysShow = false }: { alwaysShow?: boolean } = {}) {
   const [links, setLinks] = useState<OwnedLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
@@ -244,7 +245,7 @@ export default function DynamicQrManager() {
   }, []);
 
   // Shown under the studio on /dynamic-qr; stays out of the way until the visitor has a code.
-  if (!loading && links.length === 0 && !notice) return null;
+  if (!alwaysShow && !loading && links.length === 0 && !notice) return null;
 
   return (
     <section id="my-codes" aria-labelledby="my-codes-title" className="max-w-7xl mx-auto px-4 pt-2 pb-6 scroll-mt-[calc(var(--header-h)+12px)]">
@@ -273,6 +274,10 @@ export default function DynamicQrManager() {
           <div className="flex items-center gap-2 text-sm text-zinc-400">
             <Loader2 size={16} className="animate-spin" /> Loading your codes…
           </div>
+        ) : links.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-white/[0.12] p-5 text-center text-xs text-zinc-400">
+            No dynamic QR codes in this browser yet. In the generator, choose <strong className="text-zinc-200">URL / Web</strong> and turn on <strong className="text-zinc-200">Dynamic QR</strong>.
+          </p>
         ) : (
           <ul className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {links.map((link) => (

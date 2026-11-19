@@ -21,8 +21,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   ...pageMetadata(
     '/',
-    'Free QR Code Generator Online – Custom QR Codes With Logo | QR Generato',
-    'Free online QR code generator with logo, colors and frames. Create QR codes for URLs, Wi-Fi, UPI, PayPal, vCard and WhatsApp. No sign-up, no watermark, codes never expire. Download PNG or SVG.'
+    'Free QR Code Generator Online With Logo | QR Generato',
+    'Free QR code generator with logo, colors and frames. Make dynamic QR codes you can edit, PDF, MP3 and image QR codes, plus Wi-Fi, UPI and vCard. No sign-up.'
   ),
   applicationName: SITE_NAME,
   appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: 'black' },

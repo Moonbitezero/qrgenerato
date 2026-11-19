@@ -4,8 +4,8 @@ import HomePage from '../page';
 
 export const metadata: Metadata = pageMetadata(
   '/faq',
-  'QR Code Generator FAQ – Free, Static & Permanent | QR Generato',
-  'Answers about our free QR generator: do QR codes expire, can I add a logo, PNG vs SVG, UPI and payment QR codes, and print sizes.'
+  'QR Code Generator FAQ – Dynamic, PDF & More | QR Generato',
+  'Answers about our free QR generator: do codes expire, dynamic vs static, PDF, MP3 and image QR codes, editing and deleting codes, logos, UPI and bulk QR.'
 );
 
 export default function FAQRoute() {

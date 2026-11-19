@@ -2227,6 +2227,8 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
       'google-review-qr': ['review', 'frames'],
       'instagram-qr': ['instagram', 'templates'],
       'youtube-qr': ['youtube', 'templates'],
+      'mp3-qr-code': ['audio', 'templates'],
+      'image-qr-code': ['image', 'templates'],
     };
     const rawPath = window.location.pathname.replace(/^\/|\/$/g, '');
     const landingPath = LANDING_PATHS[rawPath];
@@ -2237,7 +2239,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
       setActiveCategory('payments');
     } else if (['vcard', 'whatsapp', 'telegram', 'instagram', 'youtube', 'twitter', 'linkedin', 'facebook'].includes(path)) {
       setActiveCategory('social');
-    } else if (['menu', 'pdf', 'review', 'event', 'maps', 'zoom', 'audio', 'shop'].includes(path)) {
+    } else if (['menu', 'pdf', 'image', 'review', 'event', 'maps', 'zoom', 'audio', 'shop'].includes(path)) {
       setActiveCategory('business');
     } else if (['wifi', 'email', 'sms', 'phone', 'drive', 'coffee'].includes(path)) {
       setActiveCategory('access');

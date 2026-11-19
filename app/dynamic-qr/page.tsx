@@ -7,7 +7,7 @@ import HomePage from '../page';
 
 export const metadata: Metadata = pageMetadata(
   '/dynamic-qr',
-  'Free Dynamic QR Code Generator – Edit Link Anytime & Track Scans | QR Generato',
+  'Free Dynamic QR Code Generator – Edit & Track | QR Generato',
   'Create a free dynamic QR code: change the link after printing, pause it, and see scans by day, country and device. No sign-up, no subscription, no watermark.'
 );
 

@@ -126,14 +126,16 @@ const GENERATOR_LINKS: [href: string, label: string][] = [
   ['/dynamic-qr', 'Dynamic QR Code'],
   ['/qr-code-scanner', 'QR Code Scanner'],
   ['/bulk-qr-code-generator', 'Bulk QR Code Generator'],
-  ['/pdf', 'PDF & Menu QR Code'],
+  ['/pdf', 'PDF to QR Code'],
+  ['/mp3-qr-code', 'MP3 & Audio QR Code'],
+  ['/image-qr-code', 'Image to QR Code'],
   ['/crypto', 'Crypto Wallet QR Code'],
 ];
 
 const FAQS = [
   {
     q: 'Do QR codes created on QR Generato ever expire?',
-    a: 'No. Every QR code made here is static: your link, payment ID, WiFi details or contact card is stored directly in the code, so it works forever with unlimited scans and no subscription.',
+    a: 'Normal QR codes never expire: your link, payment ID, Wi-Fi details or contact card is stored inside the code, so it works forever with unlimited scans. Dynamic QR codes don’t expire either and need no subscription. Uploaded PDF, audio and image files are kept as long as people scan them (files with no scans for 6 months are deleted).',
   },
   {
     q: 'Is QR Generato really a free QR code generator?',
@@ -156,8 +158,20 @@ const FAQS = [
     a: 'Yes. Choose from 30 QR art presets or upload your own image to blend art into the QR dots, place it behind the code or show it as a centre badge. You can also add a preset or custom logo in the Logos tab.',
   },
   {
+    q: 'Can I turn a PDF, MP3 or image into a QR code?',
+    a: 'Yes. Choose PDF, Audio or Image and upload your file (PDFs and audio up to 20 MB, images up to 10 MB). Scanning opens a page with a PDF viewer, audio player or the image, plus a download button. You can replace the file later without reprinting the code.',
+  },
+  {
+    q: 'How do I edit or delete a dynamic QR code?',
+    a: 'Open My QR Codes from the menu. There you can change where a code points, rename it, pause it, replace an uploaded file, see scans, or delete it. Codes are saved in the browser that created them; use “Copy edit link” to manage a code from another phone or computer.',
+  },
+  {
+    q: 'Can I create many QR codes at once?',
+    a: 'Yes. The Bulk QR Code Generator makes up to 200 codes from a list (for example a column pasted from Excel or Google Sheets) and downloads them all as PNG and SVG files in one ZIP, with an index CSV.',
+  },
+  {
     q: 'Is there a built-in QR code scanner?',
-    a: 'Yes. Switch to Scan at the top of the studio to read QR codes with your camera or by uploading a screenshot.',
+    a: 'Yes. Open the QR Code Scanner (or switch to Scan in the studio) to read codes with your camera or from a screenshot or photo. It works on iPhone, Android and computers, and the image is decoded in your browser, never uploaded.',
   },
   {
     q: 'Which payment QR codes are supported?',
@@ -186,6 +200,14 @@ const FAQ_SCHEMA_JSON = JSON.stringify({
   })),
 });
 
+const WEBSITE_SCHEMA_JSON = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'QR Generato',
+  alternateName: ['QRGenerato', 'qrgenerato.com'],
+  url: 'https://qrgenerato.com/',
+});
+
 const APP_SCHEMA_JSON = JSON.stringify({
   '@context': 'https://schema.org',
   '@type': 'WebApplication',
@@ -193,7 +215,7 @@ const APP_SCHEMA_JSON = JSON.stringify({
   alternateName: 'QR Generato – Free QR Code Generator',
   url: 'https://qrgenerato.com/',
   description:
-    'Free online QR code generator with logo, colors, frames and payment QR codes. No sign-up, no watermark, permanent static codes.',
+    'Free online QR code generator with logo, colors and frames. Dynamic QR codes you can edit, PDF, MP3 and image QR codes with file upload, payment QR codes, bulk generation and a QR scanner. No sign-up, no watermark.',
   applicationCategory: 'UtilitiesApplication',
   operatingSystem: 'Any',
   browserRequirements: 'Requires JavaScript',
@@ -204,9 +226,12 @@ const APP_SCHEMA_JSON = JSON.stringify({
     'Custom colors, gradients and frames',
     'Wi-Fi, vCard, WhatsApp, URL, email and SMS QR codes',
     'UPI, PayPal, SEPA, Pix and crypto payment QR codes',
+    'Dynamic QR codes with editable links and scan statistics',
+    'PDF, MP3 and image QR codes with free file upload',
+    'Animated QR codes with GIF and MP4 export',
     'PNG and SVG download',
-    'Batch QR generation',
-    'QR code scanner',
+    'Bulk QR code generator with ZIP download',
+    'QR code scanner for camera and screenshots',
   ],
 });
 
@@ -319,16 +344,23 @@ export default function HomePage({
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Inject Google FAQ Schema */}
-      <script
-        type="application/ld+json"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: landingData ? faqSchemaJson(landingData.faqs) : FAQ_SCHEMA_JSON }}
-      />
+      {/* Google FAQ markup — only on pages that show these questions (structured data must match visible content) */}
+      {(initialTab === 'studio' || initialTab === 'faq') && (
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: landingData ? faqSchemaJson(landingData.faqs) : FAQ_SCHEMA_JSON }}
+        />
+      )}
       <script
         type="application/ld+json"
         suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: APP_SCHEMA_JSON }}
+      />
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: WEBSITE_SCHEMA_JSON }}
       />
 
       {/* UPPER NAVBAR - Solid on mobile for 60fps scrolling, blurred on desktop */}
@@ -377,7 +409,20 @@ export default function HomePage({
                   {item.label}
                 </button>
               );
-            })}
+            }).flatMap((el, i) =>
+              i === 0
+                ? [
+                    el,
+                    <Link
+                      key="my-codes"
+                      href="/my-codes"
+                      className="px-3 xl:px-4 py-2 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap text-zinc-300 hover:text-white hover:bg-zinc-800/60"
+                    >
+                      My QR Codes
+                    </Link>,
+                  ]
+                : [el]
+            )}
           </nav>
 
           {/* Mobile Menu Toggle Button */}
@@ -412,6 +457,13 @@ export default function HomePage({
                 {item.label}
               </button>
             ))}
+            <Link
+              href="/my-codes"
+              onClick={() => setMenuOpen(false)}
+              className="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold transition-colors text-zinc-300 hover:bg-zinc-800/80"
+            >
+              My QR Codes (dynamic codes &amp; files)
+            </Link>
           </div>
         )}
       </header>
@@ -773,7 +825,7 @@ export default function HomePage({
                       },
                       {
                         title: '6. Limits and deletion',
-                        text: 'Files can be up to 20 MB (PDF and audio) or 10 MB (images), with daily upload limits. Files nobody scans for 6 months are deleted automatically. Keep your own copy of anything important.',
+                        text: 'Files can be up to 20 MB (PDF and audio) or 10 MB (images). Each person can upload 10 files a day and keep up to 20 files (200 MB) at a time. Very popular files may pause for the rest of the day after 1,000 opens. Files nobody scans for 6 months are deleted automatically. Keep your own copy of anything important.',
                       },
                       {
                         title: '7. Free service, no guarantee',

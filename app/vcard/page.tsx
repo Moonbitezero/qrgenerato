@@ -5,7 +5,7 @@ import HomePage from '../page';
 
 export const metadata: Metadata = pageMetadata(
   '/vcard',
-  'Free vCard QR Code Generator – Digital Business Card | QR Generato',
+  'vCard QR Code Generator – Free Digital Contact | QR Generato',
   'Generate a free vCard QR code. Instantly share your contact details, phone number, email, and company info directly to smartphones.'
 );
 

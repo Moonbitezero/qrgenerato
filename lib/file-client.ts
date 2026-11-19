@@ -83,7 +83,7 @@ export function forgetFile(code: string) {
 }
 
 export function fileManageUrl(f: Pick<OwnedFile, 'code' | 'token'>) {
-  return `${window.location.origin}/dynamic-qr#file=${f.code}&key=${f.token}`;
+  return `${window.location.origin}/my-codes#file=${f.code}&key=${f.token}`;
 }
 
 /** Sends a file with upload progress (fetch can't report upload progress, XHR can). */

@@ -63,7 +63,7 @@ export function forgetLink(code: string) {
 
 /** Opens this code's management page on any device (website). */
 export function manageUrl(link: Pick<OwnedLink, 'code' | 'token'>) {
-  return `${window.location.origin}/dynamic-qr#code=${link.code}&key=${link.token}`;
+  return `${window.location.origin}/my-codes#code=${link.code}&key=${link.token}`;
 }
 
 /** Mirrors the server's URL normalisation so "example.com" and "https://example.com/" compare equal. */

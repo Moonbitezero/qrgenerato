@@ -164,7 +164,8 @@ function FileRow({ file, onChange, onRemove }: { file: OwnedFile; onChange: (f: 
   );
 }
 
-export default function FilesManager() {
+/** `alwaysShow`: on the My QR Codes page the section stays visible (with a message) even when empty. */
+export default function FilesManager({ alwaysShow = false }: { alwaysShow?: boolean } = {}) {
   const [files, setFiles] = useState<OwnedFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
@@ -184,7 +185,7 @@ export default function FilesManager() {
   }, []);
 
   useEffect(() => {
-    // Edit link from another device: /dynamic-qr#file=<code>&key=<token>
+    // Edit link from another device: /my-codes#file=<code>&key=<token> (older links use /dynamic-qr)
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const code = hash.get('file');
     const key = hash.get('key');
@@ -209,7 +210,7 @@ export default function FilesManager() {
     return () => window.removeEventListener(FILES_CHANGED_EVENT, sync);
   }, []);
 
-  if (!loading && files.length === 0 && !notice) return null;
+  if (!alwaysShow && !loading && files.length === 0 && !notice) return null;
 
   return (
     <section id="my-files" aria-labelledby="my-files-title" className="max-w-7xl mx-auto px-4 pt-2 pb-6 scroll-mt-[calc(var(--header-h)+12px)]">
@@ -234,6 +235,10 @@ export default function FilesManager() {
         {loading && files.length === 0 ? (
           <p className="flex items-center gap-2 text-sm text-zinc-400">
             <Loader2 size={16} className="animate-spin" /> Loading your files…
+          </p>
+        ) : files.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-white/[0.12] p-5 text-center text-xs text-zinc-400">
+            No uploaded files in this browser yet. In the generator, choose <strong className="text-zinc-200">PDF</strong>, <strong className="text-zinc-200">Audio</strong> or <strong className="text-zinc-200">Image</strong> and upload a file.
           </p>
         ) : (
           <ul className="grid grid-cols-1 xl:grid-cols-2 gap-4">

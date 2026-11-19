@@ -134,7 +134,7 @@ export default function DynamicQrPanel({ isDark, destination, onEncodeUrl, defau
             <button type="button" onClick={copyManage} className={btn}>
               {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copied' : 'Copy edit link'}
             </button>
-            <Link href="/dynamic-qr#my-codes" className={btn}>
+            <Link href="/my-codes#my-codes" className={btn}>
               <BarChart3 size={13} /> Manage codes
             </Link>
           </div>

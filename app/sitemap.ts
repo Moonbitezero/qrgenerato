@@ -21,6 +21,8 @@ const ROUTES: Entry[] = [
   ['/dynamic-qr', 'weekly', 0.9],
   ['/qr-code-scanner', 'weekly', 0.9],
   ['/bulk-qr-code-generator', 'weekly', 0.9],
+  ['/mp3-qr-code', 'weekly', 0.9],
+  ['/image-qr-code', 'weekly', 0.9],
   ['/faq', 'monthly', 0.8],
   ['/about', 'monthly', 0.7],
   ['/contact-us', 'monthly', 0.6],
