@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import clsx from 'clsx';
 import { CheckCircle2, Loader2, Send } from 'lucide-react';
 import { DYNAMIC_SERVER } from '@/lib/dynamic-client';
+import { getTurnstileToken } from '@/lib/turnstile';
 
 const SUPPORT_EMAIL = 'support@qrgenerato.com';
 
@@ -24,10 +25,11 @@ export default function ContactForm({ isDark = true }: { isDark?: boolean }) {
     if (status.kind === 'sending') return;
     setStatus({ kind: 'sending' });
     try {
+      const turnstileToken = await getTurnstileToken(); // invisible bot check
       const res = await fetch(`${DYNAMIC_SERVER}/api/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, subject, message, website }),
+        body: JSON.stringify({ name, email, subject, message, website, turnstileToken }),
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) throw new Error(data.error || `Could not send (error ${res.status}).`);

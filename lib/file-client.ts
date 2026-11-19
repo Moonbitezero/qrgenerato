@@ -3,6 +3,7 @@
 // Like dynamic links, there are no accounts: each upload returns a secret edit key kept in this browser.
 
 import { DYNAMIC_SERVER } from '@/lib/dynamic-client';
+import { getTurnstileToken } from '@/lib/turnstile';
 
 export type FileKind = 'pdf' | 'audio' | 'image';
 
@@ -87,7 +88,8 @@ export function fileManageUrl(f: Pick<OwnedFile, 'code' | 'token'>) {
 }
 
 /** Sends a file with upload progress (fetch can't report upload progress, XHR can). */
-function send<T>(method: 'POST' | 'PUT', path: string, file: File, opts: { title?: string; token?: string; onProgress?: (pct: number) => void }): Promise<T> {
+async function send<T>(method: 'POST' | 'PUT', path: string, file: File, opts: { title?: string; token?: string; onProgress?: (pct: number) => void }): Promise<T> {
+  const human = await getTurnstileToken(); // bot check (empty when not configured)
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open(method, `${DYNAMIC_SERVER}${path}`);
@@ -95,6 +97,7 @@ function send<T>(method: 'POST' | 'PUT', path: string, file: File, opts: { title
     xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name));
     if (opts.title) xhr.setRequestHeader('X-Title', opts.title.replace(/[\r\n]/g, ' ').slice(0, 80));
     if (opts.token) xhr.setRequestHeader('Authorization', `Bearer ${opts.token}`);
+    if (human) xhr.setRequestHeader('X-Turnstile-Token', human);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) opts.onProgress?.(Math.round((e.loaded / e.total) * 100));
     };
