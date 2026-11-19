@@ -54,8 +54,8 @@ import {
   type EyeSize,
 } from '@/lib/qr-shapes';
 import { CARD_MOTIONS, CARD_MOTION_GROUPS, CARD_MOTION_LOOP, CARD_MOTION_MAP, renderCardMotionThumb, type CardMotionGroup } from '@/lib/qr-card-motion';
-import { CARD_DESIGNS, CARD_MAP, DEFAULT_CARD_TEXT, SAMPLE_QR_SVG, defaultFreeQr, renderCardSvg, type CardKind, type CardLayout, type CardTextStyle } from '@/lib/qr-cards';
-import CardTextControls from '@/components/card-text-controls';
+import { CARD_DESIGNS, CARD_MAP, DEFAULT_CARD_TEXT, SAMPLE_QR_SVG, defaultFreeQr, renderCardSvg, type CardKind, type CardLayout, type CardLineKey, type CardTextStyle } from '@/lib/qr-cards';
+import CardTextControls, { type CardTextSelection } from '@/components/card-text-controls';
 import {
   QrCode,
   Camera,
@@ -2234,6 +2234,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   const [cardTextMode, setCardTextMode] = useState<'design' | 'custom'>('design');
   const [cardText, setCardText] = useState<CardTextStyle>(DEFAULT_CARD_TEXT);
   const [cardSubtitle, setCardSubtitle] = useState('');
+  const [cardTextSel, setCardTextSel] = useState<CardTextSelection>('all');
 
   // Scanner & Batch States
   const [copied, setCopied] = useState(false);
@@ -3361,7 +3362,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   const canDragCardQr = Boolean(activeCard?.movable) && cardQrLayout === 'free' && cardQrFree !== null;
   const canDragCardText = Boolean(activeCard) && cardTextMode === 'custom';
   /** What the current pointer drag is moving on the card preview. */
-  const cardDrag = useRef<{ mode: 'qr' | 'text'; dx: number; dy: number } | null>(null);
+  const cardDrag = useRef<{ mode: 'qr' | 'text'; line?: CardLineKey; dx: number; dy: number } | null>(null);
   const cardDragFrame = useRef(0);
 
   /** Pointer position as 0–1 of the card's width/height (the SVG is drawn with preserveAspectRatio "meet"). */
@@ -3387,9 +3388,11 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
       if (d.mode === 'qr') {
         setCardQrFree((f) => (f ? { ...f, cx: pt.cx, cy: pt.cy } : f));
       } else {
-        // Keep the grab point under the finger, so the text doesn't jump.
+        // Move just the grabbed line, keeping the grab point under the finger so it doesn't jump.
         const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-        setCardText((t) => ({ ...t, cx: clamp01(pt.cx + d.dx), cy: clamp01(pt.cy + d.dy) }));
+        const k = d.line;
+        if (!k) return;
+        setCardText((t) => ({ ...t, lines: { ...t.lines, [k]: { ...t.lines[k], cx: clamp01(pt.cx + d.dx), cy: clamp01(pt.cy + d.dy) } } }));
       }
     });
   };
@@ -3402,14 +3405,21 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
     canDragCardQr || canDragCardText
       ? {
           onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
-            const onText = canDragCardText && (e.target as Element).closest?.('.card-custom-text');
+            const onText = canDragCardText ? (e.target as Element).closest?.('[data-line]') : null;
+            const lineKey = (onText?.getAttribute('data-line') || '') as CardLineKey;
             if (!onText && !canDragCardQr) return; // nothing draggable here: leave the click alone
             const pt = pointerOnCard(e.currentTarget, e.clientX, e.clientY);
             if (!pt) return;
             e.preventDefault();
             e.stopPropagation();
             e.currentTarget.setPointerCapture(e.pointerId);
-            cardDrag.current = onText ? { mode: 'text', dx: cardText.cx - pt.cx, dy: cardText.cy - pt.cy } : { mode: 'qr', dx: 0, dy: 0 };
+            if (onText && cardText.lines[lineKey]) {
+              const L = cardText.lines[lineKey];
+              cardDrag.current = { mode: 'text', line: lineKey, dx: L.cx - pt.cx, dy: L.cy - pt.cy };
+              setCardTextSel(lineKey); // the controls follow the line you grab
+            } else {
+              cardDrag.current = { mode: 'qr', dx: 0, dy: 0 };
+            }
             applyCardDrag(e.currentTarget, e.clientX, e.clientY);
           },
           onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
@@ -5117,6 +5127,8 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                         onMode={setCardTextMode}
                         value={cardText}
                         onChange={setCardText}
+                        selected={cardTextSel}
+                        onSelect={setCardTextSel}
                         subtitle={cardSubtitle}
                         onSubtitle={setCardSubtitle}
                         accent={activeCard.accent}

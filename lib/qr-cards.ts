@@ -24,30 +24,61 @@ export interface CardFields {
 
 export type CardTextFont = 'sans' | 'serif' | 'mono' | 'bold' | 'script';
 
-/**
- * Custom text layout chosen in the studio. When set, the design's own text is hidden and this block is
- * drawn instead: position (centre as 0–1 of width/height), size, alignment, font, colour and backing.
- */
-export interface CardTextStyle {
+export type CardLineKey = 'name' | 'title' | 'subtitle' | 'extra';
+export const CARD_LINE_KEYS: CardLineKey[] = ['name', 'title', 'subtitle', 'extra'];
+
+/** One independently styled and positioned text line (custom text mode). */
+export interface CardTextLine {
+  show: boolean;
+  /** Anchor point as 0–1 of the card width/height (x follows `align`, y is the line's middle) */
   cx: number;
   cy: number;
-  scale: number;
-  align: 'left' | 'center' | 'right';
+  /** Multiplier on the line's base size (name 22, title 12.5, subtitle 11, extra 9 card units) */
+  size: number;
   font: CardTextFont;
   color: string;
-  bg: 'none' | 'shadow' | 'panel';
-  show: { name: boolean; title: boolean; subtitle: boolean; extra: boolean };
+  bold: boolean;
+  italic: boolean;
+  upper: boolean;
+  /** Letter spacing in card units */
+  spacing: number;
+  align: 'left' | 'center' | 'right';
 }
 
-export const DEFAULT_CARD_TEXT: CardTextStyle = {
-  cx: 0.32,
-  cy: 0.84,
-  scale: 1,
-  align: 'left',
+/**
+ * Custom text layout chosen in the studio. When set, the design's own text is hidden and these four
+ * lines are drawn instead, each with its own position and style; `bg` adds an outline or panel to all.
+ */
+export interface CardTextStyle {
+  lines: Record<CardLineKey, CardTextLine>;
+  bg: 'none' | 'shadow' | 'panel';
+}
+
+export const CARD_LINE_BASE: Record<CardLineKey, number> = { name: 22, title: 12.5, subtitle: 11, extra: 9 };
+
+const line = (cy: number, extra: Partial<CardTextLine> = {}): CardTextLine => ({
+  show: true,
+  cx: 0.08,
+  cy,
+  size: 1,
   font: 'sans',
   color: '#ffffff',
+  bold: false,
+  italic: false,
+  upper: false,
+  spacing: 0,
+  align: 'left',
+  ...extra,
+});
+
+export const DEFAULT_CARD_TEXT: CardTextStyle = {
   bg: 'shadow',
-  show: { name: true, title: true, subtitle: true, extra: true },
+  lines: {
+    name: line(0.775, { bold: true }),
+    title: line(0.828),
+    subtitle: line(0.866),
+    extra: line(0.904, { bold: true, spacing: 1.4 }),
+  },
 };
 
 export interface CardDesign {
@@ -491,43 +522,42 @@ function isLight(hex: string) {
   return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
 }
 
-/** The custom text block (see CardTextStyle). Kept inside the card with a 22-unit margin. */
-function customTextBlock(d: CardDesign, f: CardFields, t: CardTextStyle): string {
-  const s = Math.min(2, Math.max(0.5, t.scale));
-  const font = TEXT_FONTS[t.font] ?? TEXT_FONTS.sans;
-  const rows = [
-    t.show.name && f.name ? { v: f.name, size: 22 * s, weight: font.weight ?? 800, spacing: 0 } : null,
-    t.show.title && f.title ? { v: f.title, size: 12.5 * s, weight: font.weight ?? 600, spacing: 0 } : null,
-    t.show.subtitle && f.subtitle ? { v: f.subtitle, size: 11 * s, weight: font.weight ?? 500, spacing: 0 } : null,
-    t.show.extra && f.extra ? { v: f.extra, size: 9 * s, weight: font.weight ?? 800, spacing: 1.4 * s } : null,
-  ].filter((r): r is { v: string; size: number; weight: number; spacing: number } => r !== null);
-  if (!rows.length) return '';
-  const margin = 22;
+/** Draws one custom text line as its own group (data-line lets the studio drag it on the preview). */
+function customTextLine(d: CardDesign, key: CardLineKey, value: string | undefined, L: CardTextLine, bg: CardTextStyle['bg']): string {
+  if (!L || !L.show || !value) return '';
+  const text = L.upper ? value.toUpperCase() : value;
+  const font = TEXT_FONTS[L.font] ?? TEXT_FONTS.sans;
+  const size = CARD_LINE_BASE[key] * Math.min(3, Math.max(0.4, L.size));
+  const weight = font.weight ?? (L.bold ? 800 : 500);
+  const spacing = Math.max(0, L.spacing);
+  const margin = 18;
   const maxW = d.w - margin * 2;
-  const est = (r: (typeof rows)[number]) => r.v.length * (r.size * font.charW + r.spacing);
-  const bw = Math.min(maxW, Math.max(...rows.map(est)));
-  const bh = rows.reduce((h, r, i) => h + r.size * (i === 0 ? 1.02 : 1.3), 0);
-  const left = clamp(t.cx * d.w - bw / 2, margin, d.w - margin - bw);
-  const top = clamp(t.cy * d.h - bh / 2, margin, d.h - margin - bh);
-  const x = t.align === 'left' ? left : t.align === 'center' ? left + bw / 2 : left + bw;
-  const anchor = t.align === 'left' ? 'start' : t.align === 'center' ? 'middle' : 'end';
-  const light = isLight(t.color);
-  const outline = light ? '#000000' : '#ffffff';
-  let y = top;
-  const texts = rows
-    .map((r, i) => {
-      y += r.size * (i === 0 ? 0.86 : 1.3);
-      const fit = est(r) > maxW ? ` textLength="${maxW}" lengthAdjust="spacingAndGlyphs"` : '';
-      const halo = t.bg === 'shadow' ? ` paint-order="stroke" stroke="${outline}" stroke-opacity=".55" stroke-width="${(r.size * 0.12).toFixed(2)}" stroke-linejoin="round"` : '';
-      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="${font.family}" font-size="${r.size.toFixed(2)}" font-weight="${r.weight}"${font.italic ? ' font-style="italic"' : ''} fill="${t.color}" text-anchor="${anchor}"${r.spacing ? ` letter-spacing="${r.spacing.toFixed(2)}"` : ''}${fit}${halo}>${escapeCardText(r.v)}</text>`;
-    })
-    .join('');
-  const panel =
-    t.bg === 'panel'
-      ? `<rect x="${(left - 10).toFixed(1)}" y="${(top - 8).toFixed(1)}" width="${(bw + 20).toFixed(1)}" height="${(bh + 16).toFixed(1)}" rx="8" fill="${light ? '#000000' : '#ffffff'}" fill-opacity="${light ? 0.55 : 0.85}"/>`
-      : // invisible grab area so the block can be dragged on the preview, even between letters
-        `<rect x="${(left - 6).toFixed(1)}" y="${(top - 4).toFixed(1)}" width="${(bw + 12).toFixed(1)}" height="${(bh + 8).toFixed(1)}" fill="transparent"/>`;
-  return `<g class="card-custom-text">${panel}${texts}</g>`;
+  const est = text.length * (size * font.charW * (L.bold ? 1.06 : 1) + spacing);
+  const bw = Math.min(maxW, est);
+  const ax = L.cx * d.w;
+  const rawLeft = L.align === 'left' ? ax : L.align === 'center' ? ax - bw / 2 : ax - bw;
+  const left = clamp(rawLeft, margin, d.w - margin - bw);
+  const x = L.align === 'left' ? left : L.align === 'center' ? left + bw / 2 : left + bw;
+  const anchor = L.align === 'left' ? 'start' : L.align === 'center' ? 'middle' : 'end';
+  const yc = clamp(L.cy * d.h, margin + size * 0.55, d.h - margin - size * 0.55);
+  const baseline = yc + size * 0.35;
+  const light = isLight(L.color);
+  const fit = est > maxW ? ` textLength="${maxW}" lengthAdjust="spacingAndGlyphs"` : '';
+  const halo = bg === 'shadow' ? ` paint-order="stroke" stroke="${light ? '#000000' : '#ffffff'}" stroke-opacity=".55" stroke-width="${(size * 0.12).toFixed(2)}" stroke-linejoin="round"` : '';
+  const box = { x: left - 6, y: yc - size * 0.7, w: bw + 12, h: size * 1.4 };
+  // The rect is the panel (or an invisible grab area, so the line can be dragged between letters)
+  const rect =
+    bg === 'panel'
+      ? `<rect x="${box.x.toFixed(1)}" y="${box.y.toFixed(1)}" width="${box.w.toFixed(1)}" height="${box.h.toFixed(1)}" rx="${(size * 0.3).toFixed(1)}" fill="${light ? '#000000' : '#ffffff'}" fill-opacity="${light ? 0.55 : 0.85}"/>`
+      : `<rect x="${box.x.toFixed(1)}" y="${box.y.toFixed(1)}" width="${box.w.toFixed(1)}" height="${box.h.toFixed(1)}" fill="transparent"/>`;
+  return `<g class="card-custom-text" data-line="${key}">${rect}<text x="${x.toFixed(1)}" y="${baseline.toFixed(1)}" font-family="${font.family}" font-size="${size.toFixed(2)}" font-weight="${weight}"${
+    L.italic || font.italic ? ' font-style="italic"' : ''
+  } fill="${L.color}" text-anchor="${anchor}"${spacing ? ` letter-spacing="${spacing.toFixed(2)}"` : ''}${fit}${halo}>${escapeCardText(text)}</text></g>`;
+}
+
+function customTextBlock(d: CardDesign, f: CardFields, t: CardTextStyle): string {
+  const values: Record<CardLineKey, string | undefined> = { name: f.name, title: f.title, subtitle: f.subtitle, extra: f.extra };
+  return CARD_LINE_KEYS.map((k) => customTextLine(d, k, values[k], t.lines?.[k], t.bg)).join('');
 }
 
 export function renderCardSvg(
