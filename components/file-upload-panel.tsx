@@ -100,7 +100,7 @@ export default function FileUploadPanel({ kind, isDark, value, onChange }: Props
               <p className={clsx('mt-1.5 text-[11px]', muted)}>
                 {rule.label}, up to {rule.max / (1024 * 1024)} MB. Or drag it here. The QR opens a page with {kind === 'pdf' ? 'a PDF viewer' : kind === 'audio' ? 'an audio player' : 'your image'} and a download button.
               </p>
-              <p className={clsx('mt-0.5 text-[10.5px]', muted)}>Free: 10 uploads a day, up to 20 files (200 MB) at a time.</p>
+              <p className={clsx('mt-0.5 text-[10.5px]', muted)}>Free: 8 uploads a day, up to 15 files (100 MB) at a time.</p>
             </>
           ) : (
             <div className="space-y-1.5" role="status" aria-live="polite">

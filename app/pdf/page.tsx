@@ -6,7 +6,7 @@ import HomePage from '../page';
 export const metadata: Metadata = pageMetadata(
   '/pdf',
   'PDF to QR Code – Free, Upload Your PDF or Menu | QR Generato',
-  'Upload a PDF (up to 20 MB) and get a free QR code that opens it on any phone. Replace the menu or brochure anytime without reprinting. No sign-up.'
+  'Upload a PDF (up to 15 MB) and get a free QR code that opens it on any phone. Replace the menu or brochure anytime without reprinting. No sign-up.'
 );
 
 export default function PdfRoute() {

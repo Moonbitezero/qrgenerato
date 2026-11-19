@@ -150,7 +150,7 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     title: 'How to Turn a PDF Into a QR Code',
     intro: [
       'A PDF QR code opens your menu, brochure, catalogue, price list or manual on any phone with one scan. People see a clean page with a PDF viewer and a download button, with no app or sign-in needed.',
-      'Upload your PDF here (up to 20 MB) and get the QR code straight away, free. You can replace the PDF later and the printed code keeps working, which is ideal for menus and price lists that change. You can also paste a link to a PDF you already host.',
+      'Upload your PDF here (up to 15 MB) and get the QR code straight away, free. You can replace the PDF later and the printed code keeps working, which is ideal for menus and price lists that change. You can also paste a link to a PDF you already host.',
     ],
     steps: [
       { title: 'Upload your PDF', text: 'Choose PDF / Brochure and click “Upload a PDF instead of a link”, or paste a link to a PDF that’s already online.' },
@@ -164,7 +164,7 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       'Use “Replace file” instead of making a new code when the menu changes, so nothing needs reprinting.',
     ],
     faqs: [
-      { q: 'Can I upload my PDF directly?', a: 'Yes. Upload a PDF of up to 20 MB and the QR code opens it in a viewer with a download button. It’s free and needs no account.' },
+      { q: 'Can I upload my PDF directly?', a: 'Yes. Upload a PDF of up to 15 MB and the QR code opens it in a viewer with a download button. It’s free and needs no account.' },
       { q: 'Can I change the PDF after printing the QR code?', a: 'Yes. Open My QR Codes and click “Replace file”. The printed QR stays the same and shows the new PDF straight away.' },
       { q: 'How long is my PDF kept?', a: 'As long as people scan it. Files nobody scans for 6 months are deleted automatically, and you can delete yours anytime.' },
       { q: 'Can I see how many people opened it?', a: 'Yes. Each uploaded file shows its scan count and a 7-day chart on the My QR Codes page.' },
@@ -441,7 +441,7 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     title: 'How to Make an MP3 or Audio QR Code',
     intro: [
       'An audio QR code plays a song, voice message, podcast clip or audio guide when someone scans it. It opens a simple page with a play button that works on iPhone and Android, with no app needed.',
-      'Upload an MP3 or M4A file (iPhone voice memos work too) of up to 20 MB, free. Replace the audio later without changing the printed code, and see how many people listened.',
+      'Upload an MP3 or M4A file (iPhone voice memos work too) of up to 15 MB, free. Replace the audio later without changing the printed code, and see how many people listened.',
     ],
     steps: [
       { title: 'Upload your audio', text: 'Choose Audio / MP3 and click “Upload an audio file instead of a link”. You can also paste a Spotify, SoundCloud or YouTube link.' },
@@ -455,7 +455,7 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       'For a long playlist, paste a Spotify or YouTube link instead of uploading.',
     ],
     faqs: [
-      { q: 'Which audio files can I upload?', a: 'MP3 and M4A (including iPhone voice memos), up to 20 MB.' },
+      { q: 'Which audio files can I upload?', a: 'MP3 and M4A (including iPhone voice memos), up to 15 MB.' },
       { q: 'Does it work on iPhone and Android?', a: 'Yes. Scanning opens a page with a standard audio player that works in every phone browser, plus a download button.' },
       { q: 'Can I change the audio later?', a: 'Yes. Use “Replace file” on the My QR Codes page; the printed QR keeps working with the new audio.' },
       { q: 'Is it free?', a: 'Yes, with no sign-up. Files nobody plays for 6 months are deleted automatically.' },
@@ -466,7 +466,7 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     title: 'How to Turn an Image Into a QR Code',
     intro: [
       'An image QR code shows a photo when someone scans it: a product picture, flyer, poster, certificate, menu photo or a memory to share. It opens a clean page with the image and a download button.',
-      'Upload a JPG, PNG or WebP of up to 10 MB, free and without an account. Swap the picture later without reprinting, and see how many people viewed it.',
+      'Upload a JPG, PNG or WebP of up to 8 MB, free and without an account. Swap the picture later without reprinting, and see how many people viewed it.',
     ],
     steps: [
       { title: 'Upload your image', text: 'Choose Image / Photo and click “Upload an image instead of a link”, or paste a link to an image that’s already online.' },
@@ -480,7 +480,7 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       'To show several photos, put them into one PDF and use a PDF QR code.',
     ],
     faqs: [
-      { q: 'Which image types can I upload?', a: 'JPG, PNG and WebP images up to 10 MB.' },
+      { q: 'Which image types can I upload?', a: 'JPG, PNG and WebP images up to 8 MB.' },
       { q: 'Can I replace the photo after printing?', a: 'Yes. Use “Replace file” on the My QR Codes page; the same QR shows the new image straight away.' },
       { q: 'Can people download the image?', a: 'Yes. The scan page shows the image with a download button.' },
       { q: 'Is my image public?', a: 'Anyone with the QR code or link can open it, so don’t upload private documents. It isn’t listed or shown in search engines.' },

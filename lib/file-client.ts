@@ -40,9 +40,9 @@ const MB = 1024 * 1024;
 
 /** What each QR type accepts (checked again on the server from the file's own bytes). */
 export const FILE_RULES: Record<FileKind, { accept: string; max: number; label: string; exts: RegExp }> = {
-  pdf: { accept: 'application/pdf,.pdf', max: 20 * MB, label: 'PDF', exts: /\.pdf$/i },
-  audio: { accept: 'audio/mpeg,audio/mp4,audio/x-m4a,.mp3,.m4a', max: 20 * MB, label: 'MP3 or M4A audio', exts: /\.(mp3|m4a)$/i },
-  image: { accept: 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp', max: 10 * MB, label: 'JPG, PNG or WebP image', exts: /\.(jpe?g|png|webp)$/i },
+  pdf: { accept: 'application/pdf,.pdf', max: 15 * MB, label: 'PDF', exts: /\.pdf$/i },
+  audio: { accept: 'audio/mpeg,audio/mp4,audio/x-m4a,.mp3,.m4a', max: 15 * MB, label: 'MP3 or M4A audio', exts: /\.(mp3|m4a)$/i },
+  image: { accept: 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp', max: 8 * MB, label: 'JPG, PNG or WebP image', exts: /\.(jpe?g|png|webp)$/i },
 };
 
 export const humanSize = (n: number) => (n >= MB ? `${(n / MB).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);

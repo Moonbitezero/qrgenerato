@@ -159,7 +159,7 @@ const FAQS = [
   },
   {
     q: 'Can I turn a PDF, MP3 or image into a QR code?',
-    a: 'Yes. Choose PDF, Audio or Image and upload your file (PDFs and audio up to 20 MB, images up to 10 MB). Scanning opens a page with a PDF viewer, audio player or the image, plus a download button. You can replace the file later without reprinting the code.',
+    a: 'Yes. Choose PDF, Audio or Image and upload your file (PDFs and audio up to 15 MB, images up to 8 MB). Scanning opens a page with a PDF viewer, audio player or the image, plus a download button. You can replace the file later without reprinting the code.',
   },
   {
     q: 'How do I edit or delete a dynamic QR code?',
@@ -825,7 +825,7 @@ export default function HomePage({
                       },
                       {
                         title: '6. Limits and deletion',
-                        text: 'Files can be up to 20 MB (PDF and audio) or 10 MB (images). Each person can upload 10 files a day and keep up to 20 files (200 MB) at a time. Very popular files may pause for the rest of the day after 1,000 opens. Files nobody scans for 6 months are deleted automatically. Keep your own copy of anything important.',
+                        text: 'Files can be up to 15 MB (PDF and audio) or 8 MB (images). Each person can upload 8 files a day and keep up to 15 files (100 MB) at a time. Very popular files may pause for the rest of the day after 1,000 opens. Files nobody scans for 6 months are deleted automatically. Keep your own copy of anything important.',
                       },
                       {
                         title: '7. Free service, no guarantee',
