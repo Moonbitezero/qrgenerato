@@ -54,7 +54,8 @@ import {
   type EyeSize,
 } from '@/lib/qr-shapes';
 import { CARD_MOTIONS, CARD_MOTION_GROUPS, CARD_MOTION_LOOP, CARD_MOTION_MAP, renderCardMotionThumb, type CardMotionGroup } from '@/lib/qr-card-motion';
-import { CARD_DESIGNS, CARD_MAP, SAMPLE_QR_SVG, defaultFreeQr, renderCardSvg, type CardKind, type CardLayout } from '@/lib/qr-cards';
+import { CARD_DESIGNS, CARD_MAP, DEFAULT_CARD_TEXT, SAMPLE_QR_SVG, defaultFreeQr, renderCardSvg, type CardKind, type CardLayout, type CardTextStyle } from '@/lib/qr-cards';
+import CardTextControls from '@/components/card-text-controls';
 import {
   QrCode,
   Camera,
@@ -103,6 +104,7 @@ import {
   Music,
   Briefcase,
   Printer,
+  Loader2,
   FileArchive,
   RotateCcw,
   Landmark,
@@ -2031,6 +2033,40 @@ const DecoFramePicker = React.memo(function DecoFramePicker({
   );
 });
 
+/** Encodes an ImageBitmap to PNG in a throwaway worker (OffscreenCanvas), keeping the page responsive. */
+function encodeInWorker(bitmap: ImageBitmap, w: number, h: number): Promise<Blob> {
+  const code = `onmessage = async (e) => {
+    try {
+      const { bitmap, w, h } = e.data;
+      const canvas = new OffscreenCanvas(w, h);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      bitmap.close();
+      postMessage({ blob: await canvas.convertToBlob({ type: 'image/png' }) });
+    } catch (err) {
+      postMessage({ error: String(err) });
+    }
+  };`;
+  const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+  const worker = new Worker(url);
+  return new Promise<Blob>((resolve, reject) => {
+    const done = () => {
+      worker.terminate();
+      URL.revokeObjectURL(url);
+    };
+    worker.onmessage = (e: MessageEvent<{ blob?: Blob; error?: string }>) => {
+      done();
+      if (e.data.blob) resolve(e.data.blob);
+      else reject(new Error(e.data.error || 'PNG export failed'));
+    };
+    worker.onerror = () => {
+      done();
+      reject(new Error('PNG worker failed'));
+    };
+    worker.postMessage({ bitmap, w, h }, [bitmap]);
+  });
+}
+
 export interface QRStudioProps {
   /** Mode to open in (keyword landing pages: /qr-code-scanner, /bulk-qr-code-generator). */
   initialMode?: StudioMode;
@@ -2194,9 +2230,15 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   const [cardPlate, setCardPlate] = useState<'card' | 'white' | 'qr-bg'>('card');
   const [cardTitle, setCardTitle] = useState('');
   const [cardExtra, setCardExtra] = useState('');
+  // Custom card text: move/resize/restyle the name, title, subtitle and extra line on any card.
+  const [cardTextMode, setCardTextMode] = useState<'design' | 'custom'>('design');
+  const [cardText, setCardText] = useState<CardTextStyle>(DEFAULT_CARD_TEXT);
+  const [cardSubtitle, setCardSubtitle] = useState('');
 
   // Scanner & Batch States
   const [copied, setCopied] = useState(false);
+  /** Which raster export is being prepared (big card PNGs take a moment): drives the button labels. */
+  const [exporting, setExporting] = useState<'png' | 'copy' | null>(null);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
@@ -2495,6 +2537,8 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   const defAnimEffectId = useDeferredValue(animEffectId);
   const defAnimSpeed = useDeferredValue(animSpeed);
   const defCardName = useDeferredValue(cardName);
+  const defCardText = useDeferredValue(cardText);
+  const defCardSubtitle = useDeferredValue(cardSubtitle);
   const defCardQrFree = useDeferredValue(cardQrFree);
   const defCardTitle = useDeferredValue(cardTitle);
   const defCardExtra = useDeferredValue(cardExtra);
@@ -3211,6 +3255,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
               name: defCardName.trim() || activeCard.defaults.name,
               title: defCardTitle.trim() || activeCard.defaults.title,
               extra: defCardExtra.trim() || activeCard.defaults.extra,
+              subtitle: defCardSubtitle.trim(),
               art: activeCard.artSrc
                 ? cardArtData?.src === activeCard.artSrc
                   ? cardArtData.data
@@ -3224,12 +3269,13 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
               free: defCardQrFree ?? undefined,
               plate: cardPlate === 'white' ? '#ffffff' : cardPlate === 'qr-bg' && !transparentBg ? defBgColor : undefined,
             },
-            animate && cardMotionId !== 'none' ? { id: cardMotionId, speed: animSpeed } : undefined
+            animate && cardMotionId !== 'none' ? { id: cardMotionId, speed: animSpeed } : undefined,
+            cardTextMode === 'custom' ? defCardText : undefined
           )
         : qr;
       return design;
     },
-    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra, cardArtData, cardQrLayout, defCardQrFree, cardPlate, transparentBg, defBgColor, cardMotionId, animSpeed]
+    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra, defCardSubtitle, cardTextMode, defCardText, cardArtData, cardQrLayout, defCardQrFree, cardPlate, transparentBg, defBgColor, cardMotionId, animSpeed]
   );
 
   const hasCardMotion = Boolean(activeCard) && cardMotionId !== 'none';
@@ -3387,67 +3433,98 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
       : { w: Math.round((longest * vw) / vh), h: longest };
   };
 
-  const handleDownloadPng = () => {
-    const svgExport = getFinalMarkup('exp', false);
-    const svgBlob = new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-    const img = new Image();
-    img.onload = () => {
-      const { w, h } = rasterSize(svgExport, activeCard ? 3000 : 1400);
+  /**
+   * Rasterises an SVG to a PNG Blob without freezing the page.
+   * 1. The SVG gets an explicit pixel size, so every browser (incl. Safari) renders it at full resolution.
+   * 2. createImageBitmap() rasterises it in the background (drawing the SVG straight onto a canvas
+   *    froze the page for ~1 s on a 2000×3000 card).
+   * 3. A small worker draws the bitmap on an OffscreenCanvas and encodes the PNG off the main thread.
+   * Older browsers fall back step by step to the plain canvas path.
+   */
+  const svgToPngBlob = async (svg: string, longest: number): Promise<Blob> => {
+    const { w, h } = rasterSize(svg, longest);
+    const sized = svg.replace(/(<svg\b[^>]*?)\swidth="100%" height="100%"/, `$1 width="${w}" height="${h}"`);
+    const url = URL.createObjectURL(new Blob([sized], { type: 'image/svg+xml;charset=utf-8' }));
+    try {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      await img.decode();
+      let bitmap: ImageBitmap | null = null;
+      try {
+        bitmap = await createImageBitmap(img);
+      } catch {
+        bitmap = null;
+      }
+      if (bitmap && typeof OffscreenCanvas !== 'undefined' && typeof Worker !== 'undefined') {
+        try {
+          return await encodeInWorker(bitmap, w, h);
+        } catch {
+          bitmap = await createImageBitmap(img).catch(() => null); // the first bitmap was transferred away
+        }
+      }
       const canvas = document.createElement('canvas');
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, w, h);
-        const pngUrl = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = pngUrl;
-        a.download = activeCard ? `qr-generato-${activeCard.id}-card.png` : `qr-generato-${qrType}.png`;
-        a.click();
-      }
+      if (!ctx) throw new Error('Canvas not available');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(bitmap ?? img, 0, 0, w, h);
+      bitmap?.close();
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      canvas.width = canvas.height = 0; // free the big bitmap right away (helps phones)
+      if (!blob) throw new Error('PNG export failed');
+      return blob;
+    } finally {
       URL.revokeObjectURL(url);
-    };
-    img.src = url;
+    }
+  };
+
+  /** Lets React paint the "Preparing…" state before the heavy work starts. */
+  const nextPaint = () => new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+
+  const handleDownloadPng = async () => {
+    if (exporting) return;
+    setExporting('png');
+    try {
+      await nextPaint();
+      const svgExport = getFinalMarkup('exp', false);
+      const blob = await svgToPngBlob(svgExport, activeCard ? 3000 : 1400);
+      downloadBlob(blob, activeCard ? `qr-generato-${activeCard.id}-card.png` : `qr-generato-${qrType}.png`);
+    } catch {
+      alert('Could not create the PNG. Please try again, or download the SVG instead.');
+    } finally {
+      setExporting(null);
+    }
   };
 
   const handleDownloadSvg = () => {
     const svgExport = getFinalMarkup('exp');
-    const blob = new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = isAnimated ? `qr-generato-${qrType}-animated.svg` : `qr-generato-${qrType}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' }),
+      isAnimated ? `qr-generato-${qrType}-animated.svg` : `qr-generato-${qrType}.svg`
+    );
   };
 
-  const handleCopyImage = () => {
-    const svgExport = getFinalMarkup('exp', false);
-    const svgBlob = new Blob([svgExport], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-    const img = new Image();
-    img.onload = () => {
-      const { w, h } = rasterSize(svgExport, 1000);
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, w, h);
-        canvas.toBlob((blob) => {
-          if (blob && navigator.clipboard && window.ClipboardItem) {
-            navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }
-        });
+  const handleCopyImage = async () => {
+    if (exporting) return;
+    setExporting('copy');
+    try {
+      await nextPaint();
+      const blob = await svgToPngBlob(getFinalMarkup('exp', false), 1000);
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        downloadBlob(blob, `qr-generato-${qrType}.png`); // browsers without image clipboard: save instead
       }
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
+    } catch {
+      alert('Could not copy the image. Try “Download PNG” instead.');
+    } finally {
+      setExporting(null);
+    }
   };
 
   const handleFileUpload = (
@@ -3941,12 +4018,14 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                           <button
                             type="button"
                             onClick={handleDownloadPng}
+                            disabled={exporting === 'png'}
+                            aria-busy={exporting === 'png'}
                             className={clsx(
                               'col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
                               isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
                             )}
                           >
-                            <Download className="w-3.5 h-3.5 shrink-0" /> PNG
+                            {exporting === 'png' ? <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" /> : <Download className="w-3.5 h-3.5 shrink-0" />} {exporting === 'png' ? 'Preparing…' : 'PNG'}
                           </button>
                           <button
                             type="button"
@@ -4065,12 +4144,14 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                       <button
                         type="button"
                         onClick={handleDownloadPng}
+                        disabled={exporting === 'png'}
+                        aria-busy={exporting === 'png'}
                         className={clsx(
                           'col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
                           isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
                         )}
                       >
-                        <Download className="w-4 h-4" /> Download PNG
+                        {exporting === 'png' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} {exporting === 'png' ? 'Preparing PNG…' : 'Download PNG'}
                       </button>
                       <button
                         type="button"
@@ -4986,7 +5067,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                         {(
                           [
                             { label: 'Name / Heading', value: cardName, set: setCardName, ph: activeCard.defaults.name },
-                            { label: 'Title / Subtitle', value: cardTitle, set: setCardTitle, ph: activeCard.defaults.title },
+                            { label: 'Title', value: cardTitle, set: setCardTitle, ph: activeCard.defaults.title },
                             { label: 'Extra Line', value: cardExtra, set: setCardExtra, ph: activeCard.defaults.extra },
                           ] as const
                         ).map((fld) => (
@@ -5003,6 +5084,18 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                           </label>
                         ))}
                       </div>
+                      <CardTextControls
+                        isDark={isDark}
+                        mode={cardTextMode}
+                        onMode={setCardTextMode}
+                        value={cardText}
+                        onChange={setCardText}
+                        subtitle={cardSubtitle}
+                        onSubtitle={setCardSubtitle}
+                        accent={activeCard.accent}
+                        inputClass={inputClass}
+                        segClass={subCardClass}
+                      />
                       {activeCard.movable && (
                         <div className="space-y-2 pt-1">
                           <div className="flex flex-wrap items-center gap-2">
@@ -5761,6 +5854,8 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                 <button
                   type="button"
                   onClick={handleDownloadPng}
+                  disabled={exporting === 'png'}
+                  aria-busy={exporting === 'png'}
                   className={clsx(
                     'flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-colors cursor-pointer',
                     isDark
@@ -5768,7 +5863,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                       : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
                   )}
                 >
-                  <Download className="w-4 h-4" /> Download PNG
+                  {exporting === 'png' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} {exporting === 'png' ? 'Preparing PNG…' : 'Download PNG'}
                 </button>
 
                 <button

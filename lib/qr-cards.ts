@@ -18,7 +18,37 @@ export interface CardFields {
   extra: string;
   /** Artwork URL or data URL for image-based cards (retro). Defaults to the small thumbnail. */
   art?: string;
+  /** Optional 4th line, shown only with custom text (the built-in designs have three lines). */
+  subtitle?: string;
 }
+
+export type CardTextFont = 'sans' | 'serif' | 'mono' | 'bold' | 'script';
+
+/**
+ * Custom text layout chosen in the studio. When set, the design's own text is hidden and this block is
+ * drawn instead: position (centre as 0–1 of width/height), size, alignment, font, colour and backing.
+ */
+export interface CardTextStyle {
+  cx: number;
+  cy: number;
+  scale: number;
+  align: 'left' | 'center' | 'right';
+  font: CardTextFont;
+  color: string;
+  bg: 'none' | 'shadow' | 'panel';
+  show: { name: boolean; title: boolean; subtitle: boolean; extra: boolean };
+}
+
+export const DEFAULT_CARD_TEXT: CardTextStyle = {
+  cx: 0.32,
+  cy: 0.84,
+  scale: 1,
+  align: 'left',
+  font: 'sans',
+  color: '#ffffff',
+  bg: 'shadow',
+  show: { name: true, title: true, subtitle: true, extra: true },
+};
 
 export interface CardDesign {
   id: string;
@@ -446,10 +476,72 @@ export interface CardMotionOpt {
   speed: number;
 }
 
-export function renderCardSvg(design: CardDesign, fields: CardFields, qrSvg: string, uid: string, qrOpt?: CardQrOption, motion?: CardMotionOpt): string {
+const TEXT_FONTS: Record<CardTextFont, { family: string; charW: number; weight?: number; italic?: boolean }> = {
+  sans: { family: SANS, charW: 0.56 },
+  serif: { family: SERIF, charW: 0.55 },
+  mono: { family: MONO, charW: 0.62 },
+  bold: { family: "'Arial Black', 'Helvetica Neue', Impact, sans-serif", charW: 0.68, weight: 900 },
+  script: { family: "'Brush Script MT', 'Segoe Script', 'Lucida Handwriting', cursive", charW: 0.5, italic: true },
+};
+
+function isLight(hex: string) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return true;
+  const n = parseInt(m[1], 16);
+  return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
+}
+
+/** The custom text block (see CardTextStyle). Kept inside the card with a 22-unit margin. */
+function customTextBlock(d: CardDesign, f: CardFields, t: CardTextStyle): string {
+  const s = Math.min(2, Math.max(0.5, t.scale));
+  const font = TEXT_FONTS[t.font] ?? TEXT_FONTS.sans;
+  const rows = [
+    t.show.name && f.name ? { v: f.name, size: 22 * s, weight: font.weight ?? 800, spacing: 0 } : null,
+    t.show.title && f.title ? { v: f.title, size: 12.5 * s, weight: font.weight ?? 600, spacing: 0 } : null,
+    t.show.subtitle && f.subtitle ? { v: f.subtitle, size: 11 * s, weight: font.weight ?? 500, spacing: 0 } : null,
+    t.show.extra && f.extra ? { v: f.extra, size: 9 * s, weight: font.weight ?? 800, spacing: 1.4 * s } : null,
+  ].filter((r): r is { v: string; size: number; weight: number; spacing: number } => r !== null);
+  if (!rows.length) return '';
+  const margin = 22;
+  const maxW = d.w - margin * 2;
+  const est = (r: (typeof rows)[number]) => r.v.length * (r.size * font.charW + r.spacing);
+  const bw = Math.min(maxW, Math.max(...rows.map(est)));
+  const bh = rows.reduce((h, r, i) => h + r.size * (i === 0 ? 1.02 : 1.3), 0);
+  const left = clamp(t.cx * d.w - bw / 2, margin, d.w - margin - bw);
+  const top = clamp(t.cy * d.h - bh / 2, margin, d.h - margin - bh);
+  const x = t.align === 'left' ? left : t.align === 'center' ? left + bw / 2 : left + bw;
+  const anchor = t.align === 'left' ? 'start' : t.align === 'center' ? 'middle' : 'end';
+  const light = isLight(t.color);
+  const outline = light ? '#000000' : '#ffffff';
+  let y = top;
+  const texts = rows
+    .map((r, i) => {
+      y += r.size * (i === 0 ? 0.86 : 1.3);
+      const fit = est(r) > maxW ? ` textLength="${maxW}" lengthAdjust="spacingAndGlyphs"` : '';
+      const halo = t.bg === 'shadow' ? ` paint-order="stroke" stroke="${outline}" stroke-opacity=".55" stroke-width="${(r.size * 0.12).toFixed(2)}" stroke-linejoin="round"` : '';
+      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="${font.family}" font-size="${r.size.toFixed(2)}" font-weight="${r.weight}"${font.italic ? ' font-style="italic"' : ''} fill="${t.color}" text-anchor="${anchor}"${r.spacing ? ` letter-spacing="${r.spacing.toFixed(2)}"` : ''}${fit}${halo}>${escapeCardText(r.v)}</text>`;
+    })
+    .join('');
+  const panel =
+    t.bg === 'panel'
+      ? `<rect x="${(left - 10).toFixed(1)}" y="${(top - 8).toFixed(1)}" width="${(bw + 20).toFixed(1)}" height="${(bh + 16).toFixed(1)}" rx="8" fill="${light ? '#000000' : '#ffffff'}" fill-opacity="${light ? 0.55 : 0.85}"/>`
+      : '';
+  return `<g class="card-custom-text">${panel}${texts}</g>`;
+}
+
+export function renderCardSvg(
+  design: CardDesign,
+  fields: CardFields,
+  qrSvg: string,
+  uid: string,
+  qrOpt?: CardQrOption,
+  motion?: CardMotionOpt,
+  text?: CardTextStyle
+): string {
   const id = (n: string) => `card_${uid}_${design.id.replace(/[^a-z0-9]/gi, '')}_${n}`;
   const place = resolveCardPlacement(design, qrOpt);
-  const { back, front = '' } = design.draw(fields, id, place);
+  // Custom text: the design draws without its own lines, and our block goes on top.
+  const { back, front = '' } = design.draw(text ? { ...fields, name: '', title: '', extra: '' } : fields, id, place);
   const { radius = 8 } = design.qr;
   const plate = qrOpt?.plate ?? design.qr.plate ?? '#ffffff';
   const { x, y, size } = place.qr;
@@ -468,6 +560,7 @@ export function renderCardSvg(design: CardDesign, fields: CardFields, qrSvg: str
     ${inner}
     ${front}
     ${motion ? buildCardMotion(motion.id, { uid: `${uid}${design.id}`, w: design.w, h: design.h, hole: place.qr, speed: motion.speed }) : ''}
+    ${text ? customTextBlock(design, fields, text) : ''}
     </g>
   </svg>`;
 }
