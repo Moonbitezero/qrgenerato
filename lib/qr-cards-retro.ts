@@ -81,6 +81,8 @@ function retroCard(o: RetroOpts) {
       <rect x="4" y="4" width="${W - 8}" height="${H - 8}" rx="10" fill="none" stroke="${o.frame}" stroke-width="8"/>
       <rect x="9" y="9" width="${W - 18}" height="${H - 18}" rx="8" fill="none" stroke="#1c1917" stroke-width="1.5" opacity=".55"/>
 
+      <!-- panel slot: the card's own panel, none, or a custom panel from the studio -->
+      ${f.panel ?? ''}
       <!-- name panel -->
       ${
         stack
@@ -132,6 +134,7 @@ export const RETRO_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
   h: H,
   radius: 14,
   artSrc: `/cards/retro/${e.slug}.webp`,
+  panelSlot: true,
   defaults: { name: 'Your Name', title: e.title, extra: `RETRO · No. ${String(i + 1).padStart(2, '0')}` },
   qr: QR,
   movable: { stack: { x: 115, y: 352, size: 70 } },

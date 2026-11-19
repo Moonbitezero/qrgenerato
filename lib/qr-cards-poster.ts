@@ -82,6 +82,8 @@ function posterCard(o: PosterOpts) {
       <rect x="7" y="7" width="${W - 14}" height="${H - 14}" rx="9" fill="none" stroke="${CREAM}" stroke-width="2" opacity=".9"/>
       ${cropMarks(CREAM)}
 
+      <!-- panel slot: the card's own panel, none, or a custom panel from the studio -->
+      ${f.panel ?? ''}
       <!-- caption -->
       ${
         stack
@@ -151,6 +153,7 @@ export const POSTER_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
   h: H,
   radius: 14,
   artSrc: `/cards/poster/${e.slug}.webp`,
+  panelSlot: true,
   defaults: { name: 'Your Name', title: e.title, extra: `ART POSTER · No. ${String(i + 1).padStart(2, '0')}` },
   qr: QR,
   movable: { stack: { x: 115, y: 350, size: 70 } },

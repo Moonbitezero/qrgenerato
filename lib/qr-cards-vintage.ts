@@ -68,10 +68,15 @@ function vintageCard(o: VintageOpts, cat: string) {
       <rect x="8.5" y="8.5" width="${W - 17}" height="${H - 17}" rx="5" fill="none" stroke="${INK}" stroke-width="1"/>
 
       <!-- archive label -->
-      <rect x="16" y="${panelY}" width="${W - 32}" height="${H - 14 - panelY}" rx="2" fill="${PAPER}" fill-opacity=".97" stroke="${INK}" stroke-width="1.3"/>
+      <!-- panel slot: the card's own panel, none, or a custom panel from the studio -->
+      ${
+        f.panel === undefined
+          ? `<rect x="16" y="${panelY}" width="${W - 32}" height="${H - 14 - panelY}" rx="2" fill="${PAPER}" fill-opacity=".97" stroke="${INK}" stroke-width="1.3"/>
       <rect x="19.5" y="${panelY + 3.5}" width="${W - 39}" height="${H - 21 - panelY}" rx="1" fill="none" stroke="${INK}" stroke-width=".5"/>
       <path d="M${W / 2 - 34},${panelY} h68 v-11 h-68 Z" fill="${INK}"/>
-      ${txt(W / 2, panelY - 3, cat, { size: 7, fill: PAPER, font: MONO, weight: 700, anchor: 'middle', spacing: 1.2 })}
+      ${txt(W / 2, panelY - 3, cat, { size: 7, fill: PAPER, font: MONO, weight: 700, anchor: 'middle', spacing: 1.2 })}`
+          : f.panel ?? ''
+      }
       ${textBlock}
 
       <!-- QR with printer's crop marks (follows the QR wherever it is placed) -->
@@ -141,6 +146,7 @@ export const VINTAGE_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => {
     h: H,
     radius: 14,
     artSrc: `/cards/vintage/${e.slug}.webp`,
+    panelSlot: true,
     defaults: { name: 'Your Name', title: e.title, extra: `CAT. No. ${no} · EST. 1974` },
     qr: QR,
     movable: { stack: { x: 117, y: 340, size: 64 } },

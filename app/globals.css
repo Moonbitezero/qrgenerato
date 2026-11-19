@@ -94,6 +94,11 @@ html.dark {
   animation-play-state: paused !important;
 }
 
+/* Custom name panel can be dragged on the preview */
+[data-panel-draggable] [data-card-panel] {
+  cursor: grab;
+}
+
 /* Custom card text can be dragged on the preview */
 [data-text-draggable] .card-custom-text {
   cursor: move;

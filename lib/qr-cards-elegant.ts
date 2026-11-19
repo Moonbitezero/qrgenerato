@@ -97,9 +97,14 @@ function elegantCard(o: ElegantOpts) {
       ${txt(150, 23, o.numeral, { size: 12, fill: g, weight: 700, anchor: 'middle', spacing: 1.5 })}
 
       <!-- name cartouche -->
-      <path d="${cartouche(18, panelY, W - 36, H - 14 - panelY, 8)}" fill="${o.ink}" fill-opacity=".9" stroke="${g}" stroke-width="1.5"/>
+      <!-- panel slot: the card's own panel, none, or a custom panel from the studio -->
+      ${
+        f.panel === undefined
+          ? `<path d="${cartouche(18, panelY, W - 36, H - 14 - panelY, 8)}" fill="${o.ink}" fill-opacity=".9" stroke="${g}" stroke-width="1.5"/>
       <path d="${cartouche(22, panelY + 4, W - 44, H - 22 - panelY, 6)}" fill="none" stroke="${g}" stroke-width=".6" opacity=".7"/>
-      ${diamond(stack ? 150 : 105, panelY, 4, g)}
+      ${diamond(stack ? 150 : 105, panelY, 4, g)}`
+          : f.panel ?? ''
+      }
       ${textBlock}
 
       <!-- gilded QR frame (follows the QR wherever it is placed) -->
@@ -143,6 +148,7 @@ export const ELEGANT_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
   h: H,
   radius: 14,
   artSrc: `/cards/elegant/${e.slug}.webp`,
+  panelSlot: true,
   defaults: { name: 'Your Name', title: e.title, extra: `ELEGANT SERIES · ${ROMAN[i]}` },
   qr: QR,
   movable: { stack: { x: 115, y: 334, size: 70 } },

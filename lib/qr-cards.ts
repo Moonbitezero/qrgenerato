@@ -20,6 +20,69 @@ export interface CardFields {
   art?: string;
   /** Optional 4th line, shown only with custom text (the built-in designs have three lines). */
   subtitle?: string;
+  /**
+   * Name panel slot (cards with `panelSlot`): undefined = the design's own panel, null = no panel,
+   * a string = custom panel markup drawn in its place (behind the text and QR).
+   */
+  panel?: string | null;
+}
+
+export type CardPanelShape = 'square' | 'rounded' | 'pill' | 'cut';
+
+/** Panel behind the name/QR: keep the design's, remove it, or draw a custom one. */
+export interface CardPanelStyle {
+  mode: 'design' | 'none' | 'custom';
+  shape: CardPanelShape;
+  color: string;
+  opacity: number;
+  /** Border colour, or '' for no border */
+  border: string;
+  /** Adds a thin inner line inside the border */
+  double: boolean;
+  /** Centre as 0–1 of the card width/height, size as 0–1 of width/height */
+  cx: number;
+  cy: number;
+  w: number;
+  h: number;
+}
+
+export const DEFAULT_CARD_PANEL: CardPanelStyle = {
+  mode: 'design',
+  shape: 'rounded',
+  color: '#111116',
+  opacity: 0.82,
+  border: '#ffffff',
+  double: false,
+  cx: 0.5,
+  cy: 0.835,
+  w: 0.89,
+  h: 0.27,
+};
+
+/** Custom panel markup (see CardPanelStyle); kept inside the card. */
+export function customPanelSvg(d: { w: number; h: number }, P: CardPanelStyle): string {
+  const m = 6;
+  const pw = Math.min(d.w - m * 2, Math.max(30, P.w * d.w));
+  const ph = Math.min(d.h - m * 2, Math.max(20, P.h * d.h));
+  const x = Math.min(d.w - m - pw, Math.max(m, P.cx * d.w - pw / 2));
+  const y = Math.min(d.h - m - ph, Math.max(m, P.cy * d.h - ph / 2));
+  const shapeAt = (x0: number, y0: number, w0: number, h0: number) => {
+    if (P.shape === 'cut') {
+      const c = Math.min(14, h0 / 4, w0 / 4);
+      return `<path d="M${x0 + c},${y0} H${x0 + w0 - c} L${x0 + w0},${y0 + c} V${y0 + h0 - c} L${x0 + w0 - c},${y0 + h0} H${x0 + c} L${x0},${y0 + h0 - c} V${y0 + c} Z"`;
+    }
+    const rx = P.shape === 'pill' ? Math.min(h0, w0) / 2 : P.shape === 'rounded' ? Math.min(14, h0 / 3) : 2;
+    return `<rect x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${w0.toFixed(1)}" height="${h0.toFixed(1)}" rx="${rx.toFixed(1)}"`;
+  };
+  const stroke = P.border ? ` stroke="${P.border}" stroke-width="1.6"` : '';
+  const inner = P.double && P.border ? `${shapeAt(x + 4, y + 4, pw - 8, ph - 8)} fill="none" stroke="${P.border}" stroke-width=".7" opacity=".75"/>` : '';
+  return `<g data-card-panel>${shapeAt(x, y, pw, ph)} fill="${P.color}" fill-opacity="${Math.min(1, Math.max(0, P.opacity))}"${stroke}/>${inner}</g>`;
+}
+
+/** Fields value for the panel slot. */
+export function panelSlotValue(design: CardDesign, P?: CardPanelStyle): string | null | undefined {
+  if (!P || !design.panelSlot || P.mode === 'design') return undefined;
+  return P.mode === 'none' ? null : customPanelSvg(design, P);
 }
 
 export type CardTextFont = 'sans' | 'serif' | 'mono' | 'bold' | 'script';
@@ -99,6 +162,8 @@ export interface CardDesign {
   movable?: { stack: QrBox };
   /** The card's signature colour; the studio derives scan-safe "match card" QR colours from it */
   accent?: string;
+  /** The design draws its name panel through `fields.panel`, so it can be removed or replaced */
+  panelSlot?: boolean;
   /** Returns markup drawn behind and in front of the QR. Movable cards receive the resolved placement. */
   draw: (f: CardFields, id: (name: string) => string, place: CardPlacement) => { back: string; front?: string };
 }
@@ -567,12 +632,14 @@ export function renderCardSvg(
   uid: string,
   qrOpt?: CardQrOption,
   motion?: CardMotionOpt,
-  text?: CardTextStyle
+  text?: CardTextStyle,
+  panel?: CardPanelStyle
 ): string {
   const id = (n: string) => `card_${uid}_${design.id.replace(/[^a-z0-9]/gi, '')}_${n}`;
   const place = resolveCardPlacement(design, qrOpt);
   // Custom text: the design draws without its own lines, and our block goes on top.
-  const { back, front = '' } = design.draw(text ? { ...fields, name: '', title: '', extra: '' } : fields, id, place);
+  const drawFields = { ...(text ? { ...fields, name: '', title: '', extra: '' } : fields), panel: panelSlotValue(design, panel) };
+  const { back, front = '' } = design.draw(drawFields, id, place);
   const { radius = 8 } = design.qr;
   const plate = qrOpt?.plate ?? design.qr.plate ?? '#ffffff';
   const { x, y, size } = place.qr;

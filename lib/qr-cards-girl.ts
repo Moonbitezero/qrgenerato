@@ -97,8 +97,13 @@ function girlCard(o: GirlOpts) {
       <path d="M10,10 h6 v3 h-3 v3 h-3 Z M${W - 10},10 h-6 v3 h3 v3 h3 Z M10,${H - 10} h6 v-3 h-3 v-3 h-3 Z M${W - 10},${H - 10} h-6 v-3 h3 v-3 h3 Z" fill="${o.accent}"/>
 
       <!-- RPG dialogue box -->
-      <path d="${pixelRect(16, boxY, W - 32, H - 14 - boxY, 5)}" fill="${o.box}" fill-opacity=".88" stroke="${o.frame}" stroke-width="2.5"/>
-      <path d="${pixelRect(21, boxY + 5, W - 42, H - 24 - boxY, 3)}" fill="none" stroke="${o.accent}" stroke-width="1" opacity=".8"/>
+      <!-- panel slot: the card's own panel, none, or a custom panel from the studio -->
+      ${
+        f.panel === undefined
+          ? `<path d="${pixelRect(16, boxY, W - 32, H - 14 - boxY, 5)}" fill="${o.box}" fill-opacity=".88" stroke="${o.frame}" stroke-width="2.5"/>
+      <path d="${pixelRect(21, boxY + 5, W - 42, H - 24 - boxY, 3)}" fill="none" stroke="${o.accent}" stroke-width="1" opacity=".8"/>`
+          : f.panel ?? ''
+      }
       ${textBlock}
 
       <!-- pixel QR frame (follows the QR wherever it is placed) -->
@@ -139,6 +144,7 @@ export const GIRL_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
   h: H,
   radius: 14,
   artSrc: `/cards/girl/${e.slug}.webp`,
+  panelSlot: true,
   defaults: { name: 'Your Name', title: e.title, extra: `PLAYER 1 · STAGE ${String(i + 1).padStart(2, '0')}` },
   qr: QR,
   movable: { stack: { x: 118, y: 282, size: 64 } },

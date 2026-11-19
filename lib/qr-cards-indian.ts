@@ -77,9 +77,14 @@ function indianCard(o: IndianOpts) {
       ${bloom(18, 18, 3.2, a, PAPER)}${bloom(W - 18, 18, 3.2, a, PAPER)}${bloom(18, H - 18, 3.2, a, PAPER)}${bloom(W - 18, H - 18, 3.2, a, PAPER)}
 
       <!-- scalloped name panel -->
-      <path d="${scallopPanel(18, panelY, W - 36, H - 14 - panelY, 12)}" fill="${PAPER}" fill-opacity=".96" stroke="${a}" stroke-width="1.6"/>
+      <!-- panel slot: the card's own panel, none, or a custom panel from the studio -->
+      ${
+        f.panel === undefined
+          ? `<path d="${scallopPanel(18, panelY, W - 36, H - 14 - panelY, 12)}" fill="${PAPER}" fill-opacity=".96" stroke="${a}" stroke-width="1.6"/>
       <path d="M26,${panelY + 19} H${W - 26} M26,${H - 20} H${W - 26}" stroke="${a}" stroke-width=".6" stroke-dasharray="1 3" opacity=".8"/>
-      ${bloom(150, panelY - 1, 4, a, PAPER)}
+      ${bloom(150, panelY - 1, 4, a, PAPER)}`
+          : f.panel ?? ''
+      }
       ${textBlock}
 
       <!-- QR frame (follows the QR wherever it is placed) -->
@@ -141,6 +146,7 @@ export const INDIAN_DESIGNS: CardDesign[] = ENTRIES.map((e, i) => ({
   h: H,
   radius: 14,
   artSrc: `/cards/indian/${e.slug}.webp`,
+  panelSlot: true,
   defaults: { name: 'Your Name', title: e.title, extra: `INDIA SERIES · No. ${String(i + 1).padStart(2, '0')}` },
   qr: QR,
   movable: { stack: { x: 117, y: 340, size: 66 } },

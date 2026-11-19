@@ -54,7 +54,8 @@ import {
   type EyeSize,
 } from '@/lib/qr-shapes';
 import { CARD_MOTIONS, CARD_MOTION_GROUPS, CARD_MOTION_LOOP, CARD_MOTION_MAP, renderCardMotionThumb, type CardMotionGroup } from '@/lib/qr-card-motion';
-import { CARD_DESIGNS, CARD_MAP, DEFAULT_CARD_TEXT, SAMPLE_QR_SVG, defaultFreeQr, renderCardSvg, type CardKind, type CardLayout, type CardLineKey, type CardTextStyle } from '@/lib/qr-cards';
+import { CARD_DESIGNS, CARD_MAP, DEFAULT_CARD_PANEL, DEFAULT_CARD_TEXT, SAMPLE_QR_SVG, defaultFreeQr, renderCardSvg, resolveCardPlacement, type CardKind, type CardLayout, type CardLineKey, type CardPanelStyle, type CardTextStyle } from '@/lib/qr-cards';
+import CardPanelControls from '@/components/card-panel-controls';
 import CardTextControls, { type CardTextSelection } from '@/components/card-text-controls';
 import {
   QrCode,
@@ -2235,6 +2236,8 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   const [cardText, setCardText] = useState<CardTextStyle>(DEFAULT_CARD_TEXT);
   const [cardSubtitle, setCardSubtitle] = useState('');
   const [cardTextSel, setCardTextSel] = useState<CardTextSelection>('all');
+  // Name panel behind the text/QR: the design's own, removed, or a custom shape.
+  const [cardPanel, setCardPanel] = useState<CardPanelStyle>(DEFAULT_CARD_PANEL);
 
   // Scanner & Batch States
   const [copied, setCopied] = useState(false);
@@ -2539,6 +2542,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   const defAnimSpeed = useDeferredValue(animSpeed);
   const defCardName = useDeferredValue(cardName);
   const defCardText = useDeferredValue(cardText);
+  const defCardPanel = useDeferredValue(cardPanel);
   const defCardSubtitle = useDeferredValue(cardSubtitle);
   const defCardQrFree = useDeferredValue(cardQrFree);
   const defCardTitle = useDeferredValue(cardTitle);
@@ -3271,12 +3275,13 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
               plate: cardPlate === 'white' ? '#ffffff' : cardPlate === 'qr-bg' && !transparentBg ? defBgColor : undefined,
             },
             animate && cardMotionId !== 'none' ? { id: cardMotionId, speed: animSpeed } : undefined,
-            cardTextMode === 'custom' ? defCardText : undefined
+            cardTextMode === 'custom' ? defCardText : undefined,
+            defCardPanel
           )
         : qr;
       return design;
     },
-    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra, defCardSubtitle, cardTextMode, defCardText, cardArtData, cardQrLayout, defCardQrFree, cardPlate, transparentBg, defBgColor, cardMotionId, animSpeed]
+    [getSvgMarkup, activeCard, defCardName, defCardTitle, defCardExtra, defCardSubtitle, cardTextMode, defCardText, defCardPanel, cardArtData, cardQrLayout, defCardQrFree, cardPlate, transparentBg, defBgColor, cardMotionId, animSpeed]
   );
 
   const hasCardMotion = Boolean(activeCard) && cardMotionId !== 'none';
@@ -3361,8 +3366,9 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   // ── Card QR: drag on the preview (Custom position) ──
   const canDragCardQr = Boolean(activeCard?.movable) && cardQrLayout === 'free' && cardQrFree !== null;
   const canDragCardText = Boolean(activeCard) && cardTextMode === 'custom';
+  const canDragCardPanel = Boolean(activeCard?.panelSlot) && cardPanel.mode === 'custom';
   /** What the current pointer drag is moving on the card preview. */
-  const cardDrag = useRef<{ mode: 'qr' | 'text'; line?: CardLineKey; dx: number; dy: number } | null>(null);
+  const cardDrag = useRef<{ mode: 'qr' | 'text' | 'panel'; line?: CardLineKey; dx: number; dy: number } | null>(null);
   const cardDragFrame = useRef(0);
 
   /** Pointer position as 0–1 of the card's width/height (the SVG is drawn with preserveAspectRatio "meet"). */
@@ -3387,6 +3393,9 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
     cardDragFrame.current = requestAnimationFrame(() => {
       if (d.mode === 'qr') {
         setCardQrFree((f) => (f ? { ...f, cx: pt.cx, cy: pt.cy } : f));
+      } else if (d.mode === 'panel') {
+        const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+        setCardPanel((pn) => ({ ...pn, cx: clamp01(pt.cx + d.dx), cy: clamp01(pt.cy + d.dy) }));
       } else {
         // Move just the grabbed line, keeping the grab point under the finger so it doesn't jump.
         const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -3402,14 +3411,20 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
   };
 
   const cardQrDragProps =
-    canDragCardQr || canDragCardText
+    canDragCardQr || canDragCardText || canDragCardPanel
       ? {
           onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
             const onText = canDragCardText ? (e.target as Element).closest?.('[data-line]') : null;
             const lineKey = (onText?.getAttribute('data-line') || '') as CardLineKey;
-            if (!onText && !canDragCardQr) return; // nothing draggable here: leave the click alone
             const pt = pointerOnCard(e.currentTarget, e.clientX, e.clientY);
-            if (!pt) return;
+            if (!pt || !activeCard) return;
+            // Priority: text line > the QR itself (when movable) > custom panel > anywhere (QR, when movable)
+            const q = resolveCardPlacement(activeCard, { layout: cardQrLayout, free: cardQrFree ?? undefined }).qr;
+            const px = pt.cx * activeCard.w;
+            const py = pt.cy * activeCard.h;
+            const onQr = canDragCardQr && px >= q.x && px <= q.x + q.size && py >= q.y && py <= q.y + q.size;
+            const onPanel = !onText && !onQr && canDragCardPanel && Boolean((e.target as Element).closest?.('[data-card-panel]'));
+            if (!onText && !onPanel && !canDragCardQr) return; // nothing draggable here: leave the click alone
             e.preventDefault();
             e.stopPropagation();
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -3417,6 +3432,8 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
               const L = cardText.lines[lineKey];
               cardDrag.current = { mode: 'text', line: lineKey, dx: L.cx - pt.cx, dy: L.cy - pt.cy };
               setCardTextSel(lineKey); // the controls follow the line you grab
+            } else if (onPanel) {
+              cardDrag.current = { mode: 'panel', dx: cardPanel.cx - pt.cx, dy: cardPanel.cy - pt.cy };
             } else {
               cardDrag.current = { mode: 'qr', dx: 0, dy: 0 };
             }
@@ -3427,9 +3444,10 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
           },
           onPointerUp: endCardDrag,
           onPointerCancel: endCardDrag,
-          title: canDragCardText && canDragCardQr ? 'Drag the text or the QR to move them' : canDragCardText ? 'Drag the text to move it' : 'Drag to move the QR',
+          title: [canDragCardText && 'text', canDragCardPanel && 'panel', canDragCardQr && 'QR'].filter(Boolean).join(', ').replace(/^/, 'Drag to move: '),
           // Marks the preview so CSS shows a "move" cursor over the text block (see globals.css).
           'data-text-draggable': canDragCardText ? '' : undefined,
+          'data-panel-draggable': canDragCardPanel ? '' : undefined,
           style: { touchAction: 'none' as const, cursor: canDragCardQr ? 'move' : undefined },
         }
       : {};
@@ -4116,7 +4134,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                     <div
                       {...cardQrDragProps}
                       // While the QR or text can be dragged, a tap moves it; "Minimize" above still closes the view.
-                      onClick={canDragCardQr || canDragCardText ? undefined : () => setMobileZoomed(false)}
+                      onClick={canDragCardQr || canDragCardText || canDragCardPanel ? undefined : () => setMobileZoomed(false)}
                       className={clsx(
                         'rounded-2xl p-2 flex items-center justify-center border overflow-hidden cursor-pointer [&>svg]:w-full [&>svg]:h-full',
                         activeCard ? (activeCard.w > activeCard.h ? 'w-full max-w-[340px]' : 'w-64') : 'w-56 h-56',
@@ -5135,6 +5153,16 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                         inputClass={inputClass}
                         segClass={subCardClass}
                       />
+                      {activeCard.panelSlot && (
+                        <CardPanelControls
+                          isDark={isDark}
+                          value={cardPanel}
+                          onChange={setCardPanel}
+                          hasDesignPanel={['girl', 'vintage', 'indian', 'elegant'].includes(activeCard.kind)}
+                          accent={activeCard.accent}
+                          segClass={subCardClass}
+                        />
+                      )}
                       {activeCard.movable && (
                         <div className="space-y-2 pt-1">
                           <div className="flex flex-wrap items-center gap-2">
