@@ -105,7 +105,7 @@ export default function FileUploadPanel({ kind, isDark, value, onChange }: Props
           ) : (
             <div className="space-y-1.5" role="status" aria-live="polite">
               <p className="flex items-center justify-center gap-2 text-xs font-bold">
-                <Loader2 size={14} className="animate-spin" /> Uploading… {progress}%
+                <Loader2 size={14} className="animate-spin" /> {progress === 0 ? 'Preparing upload…' : `Uploading… ${progress}%`}
               </p>
               <div className={clsx('h-1.5 rounded-full overflow-hidden', isDark ? 'bg-zinc-800' : 'bg-slate-200')}>
                 <div className="h-full bg-fuchsia-500 transition-[width]" style={{ width: `${progress}%` }} />
@@ -151,7 +151,7 @@ export default function FileUploadPanel({ kind, isDark, value, onChange }: Props
           </div>
           {progress !== null && (
             <p className="flex items-center gap-2 text-xs font-bold" role="status">
-              <Loader2 size={14} className="animate-spin" /> Replacing… {progress}%
+              <Loader2 size={14} className="animate-spin" /> {progress === 0 ? 'Preparing…' : `Replacing… ${progress}%`}
             </p>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

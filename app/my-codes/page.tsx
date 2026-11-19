@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { SiteFooter, SiteHeader } from '@/components/site-chrome';
+import { SiteFooter, SiteHeader } from '@/components/site-shell';
 import DynamicQrManager from '@/components/dynamic-qr-manager';
 import FilesManager from '@/components/files-manager';
 
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 
 export default function MyCodesRoute() {
   return (
-    <div className="min-h-screen bg-[#09090f] text-zinc-100 flex flex-col">
-      <SiteHeader />
+    <div className="min-h-screen text-zinc-100 flex flex-col">
+      <SiteHeader active="my-codes" />
       <main className="flex-1 py-8 sm:py-10">
         <div className="max-w-7xl mx-auto px-4 pb-4 space-y-3">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white">My QR Codes</h1>

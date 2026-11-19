@@ -35,10 +35,41 @@ function loadTurnstile(): Promise<TurnstileApi> {
 export async function getTurnstileToken(): Promise<string> {
   if (!TURNSTILE_SITE_KEY) return '';
   const ts = await loadTurnstile();
+  try {
+    // Usually invisible: a token arrives without the visitor noticing.
+    return await runWidget(ts, false);
+  } catch (err) {
+    // Strict browsers (Brave Shields, privacy extensions, VPNs) can fail the invisible check (code 600010).
+    // Give them one more go with a visible "Verify you are human" box they can click.
+    const code = (err as Error & { code?: string }).code || '';
+    if (code.startsWith('110')) throw err; // site setup problem (e.g. web address not allowed): retrying won't help
+    return runWidget(ts, true);
+  }
+}
+
+function runWidget(ts: TurnstileApi, visible: boolean): Promise<string> {
   return new Promise((resolve, reject) => {
     const box = document.createElement('div');
-    box.setAttribute('aria-live', 'polite');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Security check');
     Object.assign(box.style, { position: 'fixed', right: '16px', bottom: '16px', zIndex: '9999' });
+    if (visible) {
+      Object.assign(box.style, {
+        background: '#111116',
+        border: '1px solid #3f3f46',
+        borderRadius: '14px',
+        padding: '12px',
+        boxShadow: '0 10px 30px rgba(0,0,0,.5)',
+        color: '#e4e4e7',
+        font: '600 13px system-ui, sans-serif',
+      });
+      const label = document.createElement('p');
+      label.textContent = 'Quick security check: please confirm you’re human';
+      Object.assign(label.style, { margin: '0 0 8px' });
+      box.appendChild(label);
+    }
+    const slot = document.createElement('div');
+    box.appendChild(slot);
     document.body.appendChild(box);
     let id = '';
     const done = (fn: () => void) => {
@@ -50,15 +81,24 @@ export async function getTurnstileToken(): Promise<string> {
       box.remove();
       fn();
     };
-    id = ts.render(box, {
+    const fail = (code?: string) => {
+      const hint = code === '600010' || code?.startsWith('300') ? ' If you use Brave Shields, an ad blocker or a VPN, try turning it off for this site.' : '';
+      const e = new Error(`The security check failed${code ? ` (code ${code})` : ''}.${hint} Please reload the page and try again.`) as Error & { code?: string };
+      e.code = code;
+      return e;
+    };
+    id = ts.render(slot, {
       sitekey: TURNSTILE_SITE_KEY,
-      appearance: 'interaction-only', // invisible unless Cloudflare needs a click
-      callback: (token: string) => done(() => resolve(token)),
+      appearance: visible ? 'always' : 'interaction-only', // invisible unless Cloudflare needs a click
+      theme: 'dark',
       retry: 'auto',
-      // Cloudflare passes an error code (e.g. 110200 = this web address isn't allowed for the widget).
-      'error-callback': (code?: string) =>
-        done(() => reject(new Error(`The security check failed${code ? ` (code ${code})` : ''}. Please reload the page and try again.`))),
-      'timeout-callback': () => done(() => reject(new Error('The security check timed out. Please try again.'))),
+      callback: (token: string) => done(() => resolve(token)),
+      // Cloudflare passes an error code (e.g. 110200 = web address not allowed, 600010 = browser not trusted).
+      'error-callback': (code?: string) => {
+        done(() => reject(fail(code)));
+        return true; // we handle the error ourselves
+      },
+      'timeout-callback': () => done(() => reject(fail('timeout'))),
     });
   });
 }

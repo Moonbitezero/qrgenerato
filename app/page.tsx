@@ -3,8 +3,8 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import ContactForm from '@/components/contact-form';
+import { SiteFooter, SiteHeader, TAB_PATHS } from '@/components/site-shell';
 import clsx from 'clsx';
 import type { LandingContent } from '@/lib/landing-content';
 import type { StudioMode } from '@/components/qr-studio';
@@ -22,11 +22,7 @@ import {
   Layers,
   Mail,
   ArrowLeft,
-  Info,
-  Scale,
   Globe,
-  Menu,
-  X,
 } from 'lucide-react';
 
 // Lazy-load the heavy QRStudio engine so initial page paint and tab switches are instant on old phones
@@ -45,15 +41,27 @@ export type ActiveSiteTab = 'studio' | 'about' | 'privacy' | 'terms' | 'contact'
 
 const VALID_TABS: ActiveSiteTab[] = ['studio', 'about', 'privacy', 'terms', 'contact', 'faq'];
 
+const PATH_TABS: Record<string, ActiveSiteTab> = {
+  '/faq': 'faq',
+  '/about': 'about',
+  '/about-us': 'about',
+  '/contact': 'contact',
+  '/contact-us': 'contact',
+  '/privacy': 'privacy',
+  '/privacy-policy': 'privacy',
+  '/terms': 'terms',
+  '/terms-and-conditions': 'terms',
+};
+
+/** Section for the current address: real paths first, then old-style /#about links. */
+function tabFromLocation(): ActiveSiteTab | null {
+  const byPath = PATH_TABS[window.location.pathname.replace(/\/$/, '') || '/'];
+  if (byPath) return byPath;
+  const hash = window.location.hash.replace('#', '') as ActiveSiteTab;
+  return VALID_TABS.includes(hash) ? hash : null;
+}
+
 // Hoisted static arrays outside the component so React never recreates them on re-renders
-const NAV_ITEMS: { id: ActiveSiteTab; label: string }[] = [
-  { id: 'studio', label: 'QR Generator' },
-  { id: 'about', label: 'About Us' },
-  { id: 'privacy', label: 'Privacy Policy' },
-  { id: 'terms', label: 'Terms & Conditions' },
-  { id: 'contact', label: 'Contact Us' },
-  { id: 'faq', label: 'FAQ' },
-];
 
 const STEPS = [
   {
@@ -110,27 +118,6 @@ const USE_CASES = [
   },
 ];
 
-const GENERATOR_LINKS: [href: string, label: string][] = [
-  ['/', 'Free QR Code Generator'],
-  ['/animated-qr-code', 'Animated QR Code'],
-  ['/qr-code-with-logo', 'QR Code With Logo'],
-  ['/business-card-qr', 'Business Card QR'],
-  ['/wifi', 'WiFi QR Code'],
-  ['/upi', 'UPI QR Code'],
-  ['/paypal', 'PayPal QR Code'],
-  ['/whatsapp', 'WhatsApp QR Code'],
-  ['/vcard', 'vCard QR Code'],
-  ['/google-review-qr', 'Google Review QR'],
-  ['/instagram-qr', 'Instagram QR Code'],
-  ['/youtube-qr', 'YouTube QR Code'],
-  ['/dynamic-qr', 'Dynamic QR Code'],
-  ['/qr-code-scanner', 'QR Code Scanner'],
-  ['/bulk-qr-code-generator', 'Bulk QR Code Generator'],
-  ['/pdf', 'PDF to QR Code'],
-  ['/mp3-qr-code', 'MP3 & Audio QR Code'],
-  ['/image-qr-code', 'Image to QR Code'],
-  ['/crypto', 'Crypto Wallet QR Code'],
-];
 
 const FAQS = [
   {
@@ -269,19 +256,9 @@ export default function HomePage({
   const landingData = landing ?? null;
   const [isDark, setIsDark] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveSiteTab>(() => {
-    if (typeof window !== 'undefined') {
-      const p = window.location.pathname;
-      if (p === '/faq') return 'faq';
-      if (p === '/about' || p === '/about-us') return 'about';
-      if (p === '/contact' || p === '/contact-us') return 'contact';
-      if (p === '/privacy' || p === '/privacy-policy') return 'privacy';
-      if (p === '/terms' || p === '/terms-and-conditions') return 'terms';
-      const hash = window.location.hash.replace('#', '') as ActiveSiteTab;
-      if (VALID_TABS.includes(hash)) return hash;
-    }
+    if (typeof window !== 'undefined') return tabFromLocation() ?? initialTab;
     return initialTab;
   });
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     // Initial tab (hash/path) is already resolved by the useState initializer above.
@@ -297,16 +274,7 @@ export default function HomePage({
       document.documentElement.classList.toggle('dark', nextDark);
     };
 
-    const popStateHandler = () => {
-      const currentHash = window.location.hash.replace('#', '') as ActiveSiteTab;
-      if (window.location.pathname === '/faq') {
-        setActiveTab('faq');
-      } else if (VALID_TABS.includes(currentHash)) {
-        setActiveTab(currentHash);
-      } else {
-        setActiveTab('studio');
-      }
-    };
+    const popStateHandler = () => setActiveTab(tabFromLocation() ?? 'studio');
 
     window.addEventListener('qr-theme-change', themeHandler);
     window.addEventListener('popstate', popStateHandler);
@@ -318,18 +286,11 @@ export default function HomePage({
 
   const switchTab = useCallback((tab: ActiveSiteTab) => {
     setActiveTab(tab);
-    setMenuOpen(false);
     // Instant scroll on mobile prevents smooth-scroll frame drops during layout shifts
     window.scrollTo({ top: 0, behavior: window.innerWidth < 768 ? 'auto' : 'smooth' });
 
-    // Update URL cleanly without triggering a Next.js page reload or flash
-    if (tab === 'studio') {
-      window.history.pushState(null, '', '/');
-    } else if (tab === 'faq') {
-      window.history.pushState(null, '', '/faq');
-    } else {
-      window.history.pushState(null, '', `/#${tab}`);
-    }
+    // Real page address (/about, /privacy-policy…) without a reload, so links are shareable and match the pages Google indexes
+    window.history.pushState(null, '', TAB_PATHS[tab]);
   }, []);
 
   const cardClass = isDark
@@ -364,109 +325,7 @@ export default function HomePage({
       />
 
       {/* UPPER NAVBAR - Solid on mobile for 60fps scrolling, blurred on desktop */}
-      <header className="sticky top-0 z-50 bg-[#121217] lg:bg-[#121217]/95 lg:backdrop-blur-md border-b border-zinc-800/80 text-zinc-100 pt-[env(safe-area-inset-top)]">
-        {/* Fixed 60px row (+1px border) = --header-h in globals.css, which sticky panels below rely on */}
-        <div className="max-w-7xl mx-auto px-4 h-[60px] flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => switchTab('studio')}
-            className="flex items-center gap-3.5 group cursor-pointer text-left min-w-0"
-          >
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-zinc-900 border border-purple-500/50 shadow-md shadow-purple-500/20 flex items-center justify-center text-purple-400 group-hover:border-purple-400 transition-colors shrink-0">
-              <QrCode className="w-6 h-6" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-tight text-white truncate">
-                  QR Generato
-                </span>
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  PRO
-                </span>
-              </div>
-              <p className="hidden sm:block lg:hidden xl:block text-xs text-zinc-400 truncate">
-                Free Online QR Code Generator With Logo &amp; Global Payments
-              </p>
-            </div>
-          </button>
-
-          {/* Desktop Navigation Pill - 100% Instant State Tabs */}
-          <nav aria-label="Main" className="hidden lg:flex shrink-0 items-center gap-1 xl:gap-1.5 p-1.5 rounded-2xl bg-[#09090d] border border-zinc-800/90">
-            {NAV_ITEMS.map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => switchTab(item.id)}
-                  className={clsx(
-                    'px-3 xl:px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap',
-                    isActive
-                      ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-md shadow-purple-500/25'
-                      : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60'
-                  )}
-                >
-                  {item.label}
-                </button>
-              );
-            }).flatMap((el, i) =>
-              i === 0
-                ? [
-                    el,
-                    <Link
-                      key="my-codes"
-                      href="/my-codes"
-                      className="px-3 xl:px-4 py-2 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap text-zinc-300 hover:text-white hover:bg-zinc-800/60"
-                    >
-                      My QR Codes
-                    </Link>,
-                  ]
-                : [el]
-            )}
-          </nav>
-
-          {/* Mobile Menu Toggle Button */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <button
-              type="button"
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 cursor-pointer"
-              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              aria-expanded={menuOpen}
-            >
-              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Dropdown Menu Drawer */}
-        {menuOpen && (
-          <div className="lg:hidden border-t border-zinc-800 bg-[#121217] px-4 py-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 shadow-xl max-h-[calc(100dvh-var(--header-h))] overflow-y-auto">
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => switchTab(item.id)}
-                className={clsx(
-                  'w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                  activeTab === item.id
-                    ? 'bg-purple-600 text-white'
-                    : 'text-zinc-300 hover:bg-zinc-800/80'
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-            <Link
-              href="/my-codes"
-              onClick={() => setMenuOpen(false)}
-              className="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold transition-colors text-zinc-300 hover:bg-zinc-800/80"
-            >
-              My QR Codes (dynamic codes &amp; files)
-            </Link>
-          </div>
-        )}
-      </header>
+      <SiteHeader active={activeTab} onTab={switchTab} />
 
       {/* MAIN BODY */}
       <main className="flex-1">
@@ -898,94 +757,7 @@ export default function HomePage({
         )}
       </main>
 
-      {/* FOOTER - Solid on mobile for smooth scrolling, blurred on desktop */}
-      <footer className="bg-white dark:bg-[#0a0a0f] md:bg-white/95 md:dark:bg-[#0a0a0f]/95 md:backdrop-blur-md border-t border-slate-200/90 dark:border-zinc-800/80 text-slate-600 dark:text-zinc-400">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-sm">
-                  <QrCode className="w-4 h-4" />
-                </div>
-                <span className="font-bold text-base text-slate-900 dark:text-white">
-                  QR Generato
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-slate-500 dark:text-zinc-400">
-                The best free QR code generator online with no sign up and no expiration. Create custom QR codes with logo, UPI, SEPA, PayPal, Pix and smart artwork, made right in your browser.
-              </p>
-            </div>
-
-            {/* Real links (not buttons) so search engines can discover every generator page */}
-            <nav className="space-y-3" aria-label="QR code generators">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                QR Code Generators
-              </h3>
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                {GENERATOR_LINKS.map(([href, label]) => (
-                  <li key={href}>
-                    <Link href={href} className="hover:text-indigo-600 dark:hover:text-white transition-colors">
-                      {label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-pink-600 dark:text-pink-400">
-                Company &amp; Support
-              </h3>
-              <ul className="space-y-2.5 text-xs">
-                <li>
-                  <button type="button" onClick={() => switchTab('faq')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
-                    <HelpCircle className="w-3.5 h-3.5 text-amber-500" /> Frequently Asked Questions
-                  </button>
-                </li>
-                <li>
-                  <button type="button" onClick={() => switchTab('about')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
-                    <Info className="w-3.5 h-3.5 text-indigo-500" /> About Us
-                  </button>
-                </li>
-                <li>
-                  <button type="button" onClick={() => switchTab('contact')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
-                    <Mail className="w-3.5 h-3.5 text-pink-500" /> Contact Us
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                Legal &amp; Privacy
-              </h3>
-              <ul className="space-y-2.5 text-xs">
-                <li>
-                  <button type="button" onClick={() => switchTab('privacy')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Privacy Policy
-                  </button>
-                </li>
-                <li>
-                  <button type="button" onClick={() => switchTab('terms')} className="inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer">
-                    <Scale className="w-3.5 h-3.5 text-sky-500" /> Terms &amp; Conditions
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-6 border-t border-slate-200/80 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 dark:text-zinc-500">
-            <p>© {new Date().getFullYear()} QR Generato. All rights reserved.</p>
-            <div className="flex items-center gap-5">
-              <button type="button" onClick={() => switchTab('about')} className="hover:text-slate-900 dark:hover:text-zinc-300 cursor-pointer">About</button>
-              <button type="button" onClick={() => switchTab('privacy')} className="hover:text-slate-900 dark:hover:text-zinc-300 cursor-pointer">Privacy</button>
-              <button type="button" onClick={() => switchTab('terms')} className="hover:text-slate-900 dark:hover:text-zinc-300 cursor-pointer">Terms</button>
-              <button type="button" onClick={() => switchTab('contact')} className="hover:text-slate-900 dark:hover:text-zinc-300 cursor-pointer">Contact</button>
-              <button type="button" onClick={() => switchTab('faq')} className="hover:text-slate-900 dark:hover:text-zinc-300 cursor-pointer">FAQ</button>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter onTab={switchTab} />
     </div>
   );
 }
