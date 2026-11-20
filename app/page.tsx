@@ -4,7 +4,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import ContactForm from '@/components/contact-form';
-import { SiteFooter, SiteHeader, TAB_PATHS } from '@/components/site-shell';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { GENERATOR_LINKS, SiteFooter, SiteHeader, TAB_PATHS } from '@/components/site-shell';
 import clsx from 'clsx';
 import type { LandingContent } from '@/lib/landing-content';
 import type { StudioMode } from '@/components/qr-studio';
@@ -319,6 +321,27 @@ export default function HomePage({
 
   const mutedText = isDark ? 'text-zinc-400' : 'text-slate-600';
 
+  const pathname = usePathname() || '/';
+  const otherGenerators = GENERATOR_LINKS.filter(([href]) => href !== pathname && href !== '/');
+  const generatorLinks = (
+    <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+      {otherGenerators.map(([href, label]) => (
+        <li key={href}>
+          <Link
+            href={href}
+            className={clsx(
+              'h-full flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition-colors',
+              isDark ? 'bg-zinc-900/70 border-zinc-800 hover:border-indigo-500/60' : 'bg-slate-50 border-slate-200 hover:border-indigo-400'
+            )}
+          >
+            <QrCode className="w-4 h-4 text-indigo-500 shrink-0" />
+            {label}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Google FAQ markup — only on pages that show these questions (structured data must match visible content) */}
@@ -395,6 +418,21 @@ export default function HomePage({
                     </p>
                   ))}
                 </div>
+
+                {landingData.sections && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-5">
+                    {landingData.sections.map((sec) => (
+                      <div key={sec.heading} className="space-y-2">
+                        <h3 className="text-base font-bold">{sec.heading}</h3>
+                        {sec.paragraphs.map((para) => (
+                          <p key={para} className={clsx('text-sm leading-relaxed', mutedText)}>
+                            {para}
+                          </p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <ol className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {landingData.steps.map((step, i) => (
@@ -485,9 +523,21 @@ export default function HomePage({
                   UPI, PayPal and crypto payments — all with the same free online QR code generator, on phone, tablet or
                   computer.
                 </p>
+                <div className="space-y-3 pt-1">
+                  <h3 className="text-sm font-bold">Popular free QR code generators</h3>
+                  {generatorLinks}
+                </div>
               </div>
             )}
 
+            {landingData && (
+              <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-4', cardClass)}>
+                <h2 className="text-lg font-bold tracking-tight">More free QR code generators</h2>
+                {generatorLinks}
+              </div>
+            )}
+
+            {!landingData && (<>
             {/* Simple 3-Step Workflow */}
             <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-5', cardClass)}>
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -600,6 +650,7 @@ export default function HomePage({
                 ))}
               </div>
             </div>
+            </>)}
           </section>
         </div>
 

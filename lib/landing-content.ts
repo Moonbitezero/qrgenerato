@@ -11,6 +11,8 @@ export interface LandingContent {
   /** Section heading (h2) shown below the studio */
   title: string;
   intro: string[];
+  /** Extra in-depth sections (h3 + paragraphs) shown after the intro: the bulk of each page's unique copy */
+  sections?: { heading: string; paragraphs: string[] }[];
   steps: { title: string; text: string }[];
   uses: string[];
   tips: string[];
@@ -152,6 +154,28 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       'A PDF QR code opens your menu, brochure, catalogue, price list or manual on any phone with one scan. People see a clean page with a PDF viewer and a download button, with no app or sign-in needed.',
       'Upload your PDF here (up to 15 MB) and get the QR code straight away, free. You can replace the PDF later and the printed code keeps working, which is ideal for menus and price lists that change. You can also paste a link to a PDF you already host.',
     ],
+    sections: [
+      {
+        heading: 'What people see when they scan your PDF QR code',
+        paragraphs: [
+          'Scanning opens a clean page with your PDF’s name, a viewer that shows the pages right in the phone browser and a download button. It works on iPhone, Android, tablets and computers, with no app to install and no account to sign in to. Customers can zoom into a menu, flick through a brochure or save a manual for later.',
+          'Because the PDF is hosted for you, you do not need Google Drive sharing settings or your own website. Uploading directly also avoids the common problem of a Drive link that asks people to request access.',
+        ],
+      },
+      {
+        heading: 'Restaurant menu QR codes that you can update',
+        paragraphs: [
+          'Menus change with the seasons, prices and the daily specials. Print the QR code once on table cards, stickers or the window, and whenever the menu changes, upload the new PDF with “Replace file”. Every printed code shows the new menu straight away.',
+          'The same works for price lists, timetables, event programmes and product catalogues: anything printed that might need a correction later.',
+        ],
+      },
+      {
+        heading: 'Printing tips for PDF QR codes',
+        paragraphs: [
+          'Print the code at least 2.5 × 2.5 cm (1 inch) for table cards and larger for posters seen from a distance. Keep dark dots on a light background, add a short call to action such as “Scan for menu”, and test the printed code with a couple of phones before a big print run. Download the SVG for professional printing: it stays sharp at any size.',
+        ],
+      },
+    ],
     steps: [
       { title: 'Upload your PDF', text: 'Choose PDF / Brochure and click “Upload a PDF instead of a link”, or paste a link to a PDF that’s already online.' },
       { title: 'Style the code', text: 'Pick a menu or café frame, add your logo and colours, or choose the Restaurant Menu card.' },
@@ -169,6 +193,8 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       { q: 'How long is my PDF kept?', a: 'As long as people scan it. Files nobody scans for 6 months are deleted automatically, and you can delete yours anytime.' },
       { q: 'Can I see how many people opened it?', a: 'Yes. Each uploaded file shows its scan count and a 7-day chart on the My QR Codes page.' },
       { q: 'Can I use a link instead of uploading?', a: 'Yes. Paste a public link to a PDF on Google Drive, Dropbox or your own website, and the QR code opens that link.' },
+      { q: 'Does a PDF QR code work without the internet?', a: 'No. The phone needs mobile data or Wi-Fi to open the PDF, because the file is downloaded when the code is scanned.' },
+      { q: 'Can I make a QR code for a restaurant menu?', a: 'Yes. Upload your menu as a PDF, pick a menu frame or the Restaurant Menu card, and print it on table cards or stickers. Use “Replace file” whenever the menu changes.' },
     ],
   },
 
@@ -343,6 +369,29 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       'A dynamic QR code holds a short link (like q.qrgenerato.com/Ab3xY7k) instead of your final address. When someone scans it, the short link sends them on to wherever you choose, so you can change the destination at any time, even after the code is printed on menus, flyers or packaging.',
       'Most QR sites charge a monthly fee for dynamic codes and switch them off when you stop paying. QR Generato makes them free with no sign-up. You also see how many people scanned each code, from which countries and on which devices.',
     ],
+    sections: [
+      {
+        heading: 'Free dynamic QR code vs. paid QR code generators',
+        paragraphs: [
+          'Many QR code websites let you create a “free” dynamic code, then stop it working after a 7- or 14-day trial unless you start a subscription. Every menu, flyer and sign you printed with that code suddenly opens an error page or an advert. Here there is no trial and no plan to upgrade to: dynamic QR codes are free, and they keep working as long as people scan them.',
+          'You also do not need to create an account. Your codes are listed on the My QR Codes page in the browser that made them, and each one has a private edit link, so you can manage a code from your phone, tablet or another computer.',
+        ],
+      },
+      {
+        heading: 'What you can change after printing',
+        paragraphs: [
+          'The printed pattern never changes, but everything behind it can. Point the code at a new website, a new menu, a seasonal offer or a different landing page; rename it so you can tell your codes apart; pause it when a campaign ends and switch it back on later; or delete it for good. Every change takes effect on the next scan.',
+          'For PDF, audio and image QR codes you can also replace the uploaded file itself. That makes a dynamic code the safest choice for anything printed in large numbers, where reprinting would be expensive.',
+        ],
+      },
+      {
+        heading: 'Scan tracking without tracking people',
+        paragraphs: [
+          'Each dynamic code shows its total scans, a chart of the last 7 days, the top countries and whether people used an iPhone, Android phone or computer. That is enough to see which poster, table card or shop window works best.',
+          'No names, IP addresses or cookies are stored for scanners. The person scanning is sent straight to your link, without an advert or a waiting page in between.',
+        ],
+      },
+    ],
     steps: [
       { title: 'Paste your link', text: 'Choose URL / Web, paste the address you want people to reach, and make sure the Dynamic QR switch is on.' },
       { title: 'Create and style', text: 'Click “Create dynamic link”, then style the code with colours, a logo or a frame like any other QR.' },
@@ -370,6 +419,8 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       { q: 'How do I delete a dynamic QR code?', a: 'Open My QR Codes from the menu and click Delete on the code. It stops working straight away, and anyone who scans it sees “not found”.' },
       { q: 'What happens if I clear my browser data?', a: 'The QR code keeps working, but you can no longer edit it unless you saved its edit link. Keep the edit link somewhere safe.' },
       { q: 'Static or dynamic: which should I use?', a: 'Use dynamic when the destination might change or you want scan counts. Use static for Wi-Fi, contact cards and payment codes, which work offline and never depend on a server.' },
+      { q: 'Do dynamic QR codes stop working after a trial?', a: 'Not here. There is no trial or subscription, so your dynamic QR code keeps working. You can delete yours whenever you like.' },
+      { q: 'Does the person scanning see an advert first?', a: 'No. Scanning goes straight to your destination with a fast redirect, without adverts or a waiting page.' },
     ],
   },
 
@@ -443,6 +494,27 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       'An audio QR code plays a song, voice message, podcast clip or audio guide when someone scans it. It opens a simple page with a play button that works on iPhone and Android, with no app needed.',
       'Upload an MP3 or M4A file (iPhone voice memos work too) of up to 15 MB, free. Replace the audio later without changing the printed code, and see how many people listened.',
     ],
+    sections: [
+      {
+        heading: 'What happens when someone scans an audio QR code',
+        paragraphs: [
+          'The phone opens a simple page with the title of your recording, a play button and a download button. The audio plays in the phone’s own browser on iPhone and Android, so there is no app to install and no account to create. It is the easiest way to add sound to something printed.',
+          'Upload the file itself instead of relying on a streaming link, and it plays without a Spotify or YouTube account and without adverts in front of your message.',
+        ],
+      },
+      {
+        heading: 'Ideas for audio and voice message QR codes',
+        paragraphs: [
+          'Record a voice message for a birthday or wedding card, add a song to a gift, or put a personal greeting on a photo print. Musicians use audio QR codes on posters, CD covers and merchandise; museums, galleries and tour guides use them for audio guides on signs; teachers put pronunciation clips on worksheets; and shops add spoken instructions to product packaging.',
+        ],
+      },
+      {
+        heading: 'Recording tips for clear playback',
+        paragraphs: [
+          'Record in a quiet room with the phone close to your mouth, and trim silence at the start and end. A 1–3 minute voice message saved as MP3 or M4A is usually well under 5 MB, which starts quickly on mobile data. If you change your mind later, record a new version and use “Replace file”: the printed code plays the new audio.',
+        ],
+      },
+    ],
     steps: [
       { title: 'Upload your audio', text: 'Choose Audio / MP3 and click “Upload an audio file instead of a link”. You can also paste a Spotify, SoundCloud or YouTube link.' },
       { title: 'Style the code', text: 'Add colours, a frame like “Scan to listen”, or a greeting card design.' },
@@ -459,6 +531,8 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       { q: 'Does it work on iPhone and Android?', a: 'Yes. Scanning opens a page with a standard audio player that works in every phone browser, plus a download button.' },
       { q: 'Can I change the audio later?', a: 'Yes. Use “Replace file” on the My QR Codes page; the printed QR keeps working with the new audio.' },
       { q: 'Is it free?', a: 'Yes, with no sign-up. Files nobody plays for 6 months are deleted automatically.' },
+      { q: 'Can I turn a voice message into a QR code?', a: 'Yes. Record it with your phone’s voice recorder (iPhone voice memos are M4A), upload it as an audio file, and print the QR code on a card or gift.' },
+      { q: 'Can I use a Spotify or YouTube link instead?', a: 'Yes. Paste the link into the Audio / MP3 type and the QR code opens it. Uploading a file works without any app or account for the listener.' },
     ],
   },
 
@@ -467,6 +541,27 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     intro: [
       'An image QR code shows a photo when someone scans it: a product picture, flyer, poster, certificate, menu photo or a memory to share. It opens a clean page with the image and a download button.',
       'Upload a JPG, PNG or WebP of up to 8 MB, free and without an account. Swap the picture later without reprinting, and see how many people viewed it.',
+    ],
+    sections: [
+      {
+        heading: 'What people see when they scan an image QR code',
+        paragraphs: [
+          'Scanning opens a clean page with your picture shown full width, its title and a download button. It works in any phone browser on iPhone and Android, with no app and no sign-in. People can zoom in on details, save the image or share it.',
+          'Uploading the photo directly means you do not need a website, an image host or a social media account, and the person scanning does not have to log in to see it.',
+        ],
+      },
+      {
+        heading: 'Ways to use a photo QR code',
+        paragraphs: [
+          'Shops put image QR codes on shelf labels to show a product in use or a size chart. Event organisers link a printed flyer to the full-size poster. Photographers and families add a QR code to a gift, frame or card that opens a favourite photo. Estate agents and car sellers link a printed sign to a picture of the floor plan or the vehicle. You can also use it to share a certificate, a timetable photo or a map.',
+        ],
+      },
+      {
+        heading: 'Getting the best image quality',
+        paragraphs: [
+          'Use JPG for photos and PNG for screenshots, logos and graphics with text. Images around 1500–2500 pixels wide look sharp on every phone while staying small enough to open quickly. If you need to update the picture later, for example a new price or a corrected poster, use “Replace file” and the printed QR shows the new image.',
+        ],
+      },
     ],
     steps: [
       { title: 'Upload your image', text: 'Choose Image / Photo and click “Upload an image instead of a link”, or paste a link to an image that’s already online.' },
@@ -484,6 +579,8 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       { q: 'Can I replace the photo after printing?', a: 'Yes. Use “Replace file” on the My QR Codes page; the same QR shows the new image straight away.' },
       { q: 'Can people download the image?', a: 'Yes. The scan page shows the image with a download button.' },
       { q: 'Is my image public?', a: 'Anyone with the QR code or link can open it, so don’t upload private documents. It isn’t listed or shown in search engines.' },
+      { q: 'Can I make a QR code for a photo for free?', a: 'Yes. Upload a JPG, PNG or WebP photo of up to 8 MB. Creating and scanning the code is free, with no account and no watermark.' },
+      { q: 'Can one QR code show several photos?', a: 'Put the photos into a single PDF and use the PDF QR code, or upload them to an album and use a link QR code.' },
     ],
   },
 };
