@@ -8,12 +8,13 @@ import Link from 'next/link';
 import clsx from 'clsx';
 import { FolderOpen, HelpCircle, Info, Mail, Menu, QrCode, Scale, ShieldCheck, X } from 'lucide-react';
 
-export type SiteTab = 'studio' | 'about' | 'privacy' | 'terms' | 'contact' | 'faq';
-export type SiteSection = SiteTab | 'my-codes';
+export type SiteTab = 'studio' | 'my-codes' | 'about' | 'privacy' | 'terms' | 'contact' | 'faq';
+export type SiteSection = SiteTab;
 
 /** Real page address for each in-page section. */
 export const TAB_PATHS: Record<SiteTab, string> = {
   studio: '/',
+  'my-codes': '/my-codes',
   about: '/about',
   privacy: '/privacy-policy',
   terms: '/terms-and-conditions',
@@ -53,8 +54,6 @@ export const GENERATOR_LINKS: [href: string, label: string][] = [
   ['/crypto', 'Crypto Wallet QR Code'],
 ];
 
-const isTab = (id: SiteSection): id is SiteTab => id !== 'my-codes';
-
 /** Left-click without modifier keys: safe to handle in-page instead of navigating. */
 const plainClick = (e: React.MouseEvent) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
@@ -69,7 +68,7 @@ export function SiteHeader({ active, onTab }: ShellProps) {
 
   const handle = (id: SiteSection) => (e: React.MouseEvent) => {
     setOpen(false);
-    if (onTab && isTab(id) && plainClick(e)) {
+    if (onTab && plainClick(e)) {
       e.preventDefault();
       onTab(id);
     }
@@ -115,7 +114,7 @@ export function SiteHeader({ active, onTab }: ShellProps) {
         <div className="lg:hidden flex items-center gap-2 shrink-0">
           <Link
             href="/my-codes"
-            onClick={() => setOpen(false)}
+            onClick={handle('my-codes')}
             aria-current={active === 'my-codes' ? 'page' : undefined}
             className={clsx(
               'inline-flex items-center gap-1.5 h-11 px-3 rounded-xl border text-sm font-semibold transition-colors',
@@ -217,9 +216,7 @@ export function SiteFooter({ onTab }: Pick<ShellProps, 'onTab'>) {
             <h3 className="text-xs font-bold uppercase tracking-wider text-pink-600 dark:text-pink-400">Company &amp; Support</h3>
             <ul className="space-y-1 lg:pointer-fine:space-y-2.5 text-xs">
               <li>
-                <Link href="/my-codes" className={row}>
-                  <QrCode className="w-3.5 h-3.5 text-fuchsia-500" /> My QR Codes
-                </Link>
+                {link('my-codes', <><QrCode className="w-3.5 h-3.5 text-fuchsia-500" /> My QR Codes</>, row)}
               </li>
               <li>{link('faq', <><HelpCircle className="w-3.5 h-3.5 text-amber-500" /> Frequently Asked Questions</>, row)}</li>
               <li>{link('about', <><Info className="w-3.5 h-3.5 text-indigo-500" /> About Us</>, row)}</li>

@@ -113,6 +113,12 @@ html.dark {
   contain-intrinsic-size: auto 150px;
 }
 
+/* QR studio while another section (About, My QR Codes, FAQ…) is open: takes no space and isn't painted,
+   but unlike display:none the browser keeps its finished layout, so switching back is quick. */
+.studio-parked {
+  content-visibility: hidden;
+}
+
 /* Custom name panel can be dragged on the preview */
 [data-panel-draggable] [data-card-panel] {
   cursor: grab;

@@ -27,6 +27,10 @@ import {
   Globe,
 } from 'lucide-react';
 
+// My QR Codes lists: only downloaded when that section is opened
+const DynamicQrManager = dynamic(() => import('@/components/dynamic-qr-manager'));
+const FilesManager = dynamic(() => import('@/components/files-manager'));
+
 // Lazy-load the heavy QRStudio engine so initial page paint and tab switches are instant on old phones
 const QRStudio = dynamic(() => import('@/components/qr-studio'), {
   loading: () => (
@@ -39,11 +43,13 @@ const QRStudio = dynamic(() => import('@/components/qr-studio'), {
   ),
 });
 
-export type ActiveSiteTab = 'studio' | 'about' | 'privacy' | 'terms' | 'contact' | 'faq';
+export type ActiveSiteTab = 'studio' | 'my-codes' | 'about' | 'privacy' | 'terms' | 'contact' | 'faq';
 
 const VALID_TABS: ActiveSiteTab[] = ['studio', 'about', 'privacy', 'terms', 'contact', 'faq'];
+// ('my-codes' is reachable by path only: its hash carries edit links like #code=…&key=…)
 
 const PATH_TABS: Record<string, ActiveSiteTab> = {
+  '/my-codes': 'my-codes',
   '/faq': 'faq',
   '/about': 'about',
   '/about-us': 'about',
@@ -296,7 +302,19 @@ export default function HomePage({
 
     window.addEventListener('qr-theme-change', themeHandler);
     window.addEventListener('popstate', popStateHandler);
+
+    // Fetch the My QR Codes code in the background once the page is idle, so opening it is instant
+    const warm = () => {
+      void import('@/components/dynamic-qr-manager');
+      void import('@/components/files-manager');
+    };
+    const idle = 'requestIdleCallback' in window
+      ? window.requestIdleCallback(warm, { timeout: 2000 }) as number
+      : setTimeout(warm, 1500);
+
     return () => {
+      if ('cancelIdleCallback' in window) window.cancelIdleCallback(idle as number);
+      else clearTimeout(idle as unknown as number);
       window.removeEventListener('qr-theme-change', themeHandler);
       window.removeEventListener('popstate', popStateHandler);
     };
@@ -368,7 +386,7 @@ export default function HomePage({
 
       {/* MAIN BODY */}
       <main className="flex-1">
-        <div className={activeTab === 'studio' ? 'block' : 'hidden'}>
+        <div className={activeTab === 'studio' ? 'block' : 'studio-parked'} aria-hidden={activeTab !== 'studio' || undefined}>
           {activeTab === 'studio' && (
             <div className="max-sm:sr-only max-w-7xl mx-auto px-4 pt-4 sm:pt-6 pb-0">
               {/* Visually hidden on phones (kept in the DOM for SEO / screen readers), shown from sm up. */}
@@ -654,8 +672,51 @@ export default function HomePage({
           </section>
         </div>
 
+        {activeTab === 'my-codes' && (
+          <div className="py-8 sm:py-10">
+            <div className="max-w-7xl mx-auto px-4 pb-4 space-y-3">
+              <h1 className={clsx('text-3xl sm:text-4xl font-extrabold', isDark ? 'text-white' : 'text-slate-900')}>My QR Codes</h1>
+              <p className={clsx('text-sm max-w-2xl', mutedText)}>
+                Your dynamic QR codes and uploaded files. Change where a code goes, replace a file, pause it, see scans, or delete it.
+                They’re saved in <strong className={isDark ? 'text-zinc-200' : 'text-slate-800'}>this browser</strong>. To manage a code on
+                another phone or computer, open its <strong className={isDark ? 'text-zinc-200' : 'text-slate-800'}>edit link</strong> there
+                (“Copy edit link” on each code).
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => switchTab('studio')}
+                  className="inline-flex items-center min-h-10 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 px-4 py-2.5 text-xs font-bold text-white cursor-pointer"
+                >
+                  Create a new QR code
+                </button>
+                <Link
+                  href="/dynamic-qr"
+                  className={clsx(
+                    'inline-flex items-center min-h-10 rounded-xl px-4 py-2.5 text-xs font-bold',
+                    isDark ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100' : 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-800'
+                  )}
+                >
+                  New dynamic QR
+                </Link>
+              </div>
+            </div>
+            {/* Own boundary: the heading above shows instantly even if the lists are still downloading */}
+            <React.Suspense fallback={<div className="max-w-7xl mx-auto px-4 py-6"><div className="h-40 rounded-2xl border border-zinc-800/60 bg-zinc-900/30 animate-pulse" /></div>}>
+              <DynamicQrManager alwaysShow />
+              <FilesManager alwaysShow />
+            </React.Suspense>
+            <div className="max-w-7xl mx-auto px-4 pt-2">
+              <p className={clsx('text-xs max-w-2xl', isDark ? 'text-zinc-500' : 'text-slate-500')}>
+                Deleting a code is permanent: anyone who scans it afterwards sees “not found”. Normal (non-dynamic) QR codes aren’t listed
+                here because they aren’t stored anywhere; they keep working forever.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* OTHER TABS VIEW (INCLUDING FAQ TAB - ZERO FLASH) */}
-        {activeTab !== 'studio' && (
+        {activeTab !== 'studio' && activeTab !== 'my-codes' && (
           <div className="max-w-7xl mx-auto px-4 pt-6 pb-16">
             <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-6', cardClass)}>
               <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4 border-slate-200/80 dark:border-zinc-800/80">
