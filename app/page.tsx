@@ -514,7 +514,7 @@ export default function HomePage({
                 <button
                   type="button"
                   onClick={() => switchTab('faq')}
-                  className="text-xs font-semibold text-indigo-500 hover:text-indigo-400 cursor-pointer"
+                  className="py-2 -my-2 text-xs font-semibold text-indigo-500 hover:text-indigo-400 cursor-pointer"
                 >
                   View All FAQs →
                 </button>

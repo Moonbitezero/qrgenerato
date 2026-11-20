@@ -84,7 +84,7 @@ export default function DynamicQrPanel({ isDark, destination, onEncodeUrl, defau
           aria-labelledby="dynamic-qr-label"
           onClick={toggle}
           className={clsx(
-            'mt-0.5 relative h-5 w-9 shrink-0 rounded-full transition-colors',
+            'mt-0.5 relative h-5 w-9 shrink-0 rounded-full transition-colors before:absolute before:-inset-3 before:content-[""]',
             enabled ? 'bg-fuchsia-500' : isDark ? 'bg-zinc-700' : 'bg-slate-300'
           )}
         >

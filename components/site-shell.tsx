@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { HelpCircle, Info, Mail, Menu, QrCode, Scale, ShieldCheck, X } from 'lucide-react';
+import { FolderOpen, HelpCircle, Info, Mail, Menu, QrCode, Scale, ShieldCheck, X } from 'lucide-react';
 
 export type SiteTab = 'studio' | 'about' | 'privacy' | 'terms' | 'contact' | 'faq';
 export type SiteSection = SiteTab | 'my-codes';
@@ -79,14 +79,14 @@ export function SiteHeader({ active, onTab }: ShellProps) {
     <header className="sticky top-0 z-50 bg-[#121217] lg:bg-[#121217]/95 lg:backdrop-blur-md border-b border-zinc-800/80 text-zinc-100 pt-[env(safe-area-inset-top)]">
       {/* Fixed 60px row (+1px border) = --header-h in globals.css, which sticky panels below rely on */}
       <div className="max-w-7xl mx-auto px-4 h-[60px] flex items-center justify-between gap-4">
-        <Link href="/" onClick={handle('studio')} className="flex items-center gap-3.5 group text-left min-w-0" aria-label="QR Generato home">
+        <Link href="/" onClick={handle('studio')} className="flex items-center gap-2.5 sm:gap-3.5 group text-left min-w-0" aria-label="QR Generato home">
           <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-zinc-900 border border-purple-500/50 shadow-md shadow-purple-500/20 flex items-center justify-center text-purple-400 group-hover:border-purple-400 transition-colors shrink-0">
             <QrCode className="w-6 h-6" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-base tracking-tight text-white truncate">QR Generato</span>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">PRO</span>
+              <span className="hidden min-[400px]:inline text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">PRO</span>
             </div>
             <p className="hidden sm:block lg:hidden xl:block text-xs text-zinc-400 truncate">Free Online QR Code Generator With Logo &amp; Global Payments</p>
           </div>
@@ -100,7 +100,7 @@ export function SiteHeader({ active, onTab }: ShellProps) {
               onClick={handle(item.id)}
               aria-current={active === item.id ? 'page' : undefined}
               className={clsx(
-                'px-3 xl:px-4 py-2 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap',
+                'px-3 xl:px-4 py-2 pointer-coarse:py-3 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap',
                 active === item.id
                   ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-md shadow-purple-500/25'
                   : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60'
@@ -111,16 +111,33 @@ export function SiteHeader({ active, onTab }: ShellProps) {
           ))}
         </nav>
 
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="lg:hidden p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200"
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          aria-expanded={open}
-          aria-controls="site-mobile-menu"
-        >
-          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        {/* Phones/tablets: My QR Codes one tap away (not hidden in the menu) + the menu button */}
+        <div className="lg:hidden flex items-center gap-2 shrink-0">
+          <Link
+            href="/my-codes"
+            onClick={() => setOpen(false)}
+            aria-current={active === 'my-codes' ? 'page' : undefined}
+            className={clsx(
+              'inline-flex items-center gap-1.5 h-11 px-3 rounded-xl border text-sm font-semibold transition-colors',
+              active === 'my-codes' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-200'
+            )}
+          >
+            <FolderOpen className="w-5 h-5" />
+            <span className="hidden min-[400px]:inline">My QR Codes</span>
+            <span className="hidden min-[375px]:inline min-[400px]:hidden">My Codes</span>
+            <span className="sr-only min-[375px]:hidden">My QR Codes</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            className="h-11 w-11 inline-flex items-center justify-center rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
+            aria-controls="site-mobile-menu"
+          >
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -164,8 +181,8 @@ export function SiteFooter({ onTab }: Pick<ShellProps, 'onTab'>) {
       {label}
     </Link>
   );
-  const row = 'inline-flex items-center gap-2 hover:text-indigo-600 dark:hover:text-white transition-colors';
-  const small = 'hover:text-slate-900 dark:hover:text-zinc-300';
+  const row = 'inline-flex items-center gap-2 py-1.5 lg:pointer-fine:py-0 hover:text-indigo-600 dark:hover:text-white transition-colors';
+  const small = 'py-2 lg:pointer-fine:py-0 hover:text-slate-900 dark:hover:text-zinc-300';
 
   return (
     <footer className="cv-auto bg-white dark:bg-[#0a0a0f] md:bg-white/95 md:dark:bg-[#0a0a0f]/95 md:backdrop-blur-md border-t border-slate-200/90 dark:border-zinc-800/80 text-slate-600 dark:text-zinc-400">
@@ -185,10 +202,10 @@ export function SiteFooter({ onTab }: Pick<ShellProps, 'onTab'>) {
 
           <nav className="space-y-3 lg:col-span-1" aria-label="QR code generators">
             <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">QR Code Generators</h3>
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+            <ul className="grid grid-cols-2 gap-x-4 lg:pointer-fine:gap-y-2 text-xs">
               {GENERATOR_LINKS.map(([href, label]) => (
                 <li key={href}>
-                  <Link href={href} className="hover:text-indigo-600 dark:hover:text-white transition-colors">
+                  <Link href={href} className="block py-2 lg:pointer-fine:py-0 hover:text-indigo-600 dark:hover:text-white transition-colors">
                     {label}
                   </Link>
                 </li>
@@ -198,7 +215,7 @@ export function SiteFooter({ onTab }: Pick<ShellProps, 'onTab'>) {
 
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-pink-600 dark:text-pink-400">Company &amp; Support</h3>
-            <ul className="space-y-2.5 text-xs">
+            <ul className="space-y-1 lg:pointer-fine:space-y-2.5 text-xs">
               <li>
                 <Link href="/my-codes" className={row}>
                   <QrCode className="w-3.5 h-3.5 text-fuchsia-500" /> My QR Codes
@@ -212,7 +229,7 @@ export function SiteFooter({ onTab }: Pick<ShellProps, 'onTab'>) {
 
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Legal &amp; Privacy</h3>
-            <ul className="space-y-2.5 text-xs">
+            <ul className="space-y-1 lg:pointer-fine:space-y-2.5 text-xs">
               <li>{link('privacy', <><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Privacy Policy</>, row)}</li>
               <li>{link('terms', <><Scale className="w-3.5 h-3.5 text-sky-500" /> Terms &amp; Conditions</>, row)}</li>
             </ul>

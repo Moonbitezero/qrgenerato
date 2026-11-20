@@ -85,6 +85,10 @@ html.dark {
   textarea {
     font-size: 16px;
   }
+  /* Native sliders: thin track stays the same, but the finger-sized hit area is 32px tall */
+  input[type='range'] {
+    min-height: 32px;
+  }
 }
 
 /* Animated effect / card-motion thumbnails: each is an SVG with hundreds of individually animated

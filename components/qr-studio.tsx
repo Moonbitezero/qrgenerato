@@ -3901,7 +3901,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                 type="button"
                 onClick={() => setStudioMode(m.id as StudioMode)}
                 className={clsx(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer',
+                  'flex items-center gap-1.5 px-3 py-1.5 min-h-10 lg:pointer-fine:min-h-0 rounded-lg text-xs font-semibold transition-colors cursor-pointer',
                   active
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : isDark
@@ -3940,8 +3940,9 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
             type="button"
             onClick={handleResetDesign}
             title="Reset Design"
+            aria-label="Reset design"
             className={clsx(
-              'flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer',
+              'flex items-center gap-1 px-2.5 py-1.5 min-h-10 min-w-10 justify-center lg:pointer-fine:min-h-0 lg:pointer-fine:min-w-0 rounded-xl border text-xs font-semibold transition-colors cursor-pointer',
               inactivePillClass
             )}
           >
@@ -3953,7 +3954,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
             type="button"
             onClick={toggleTheme}
             className={clsx(
-              'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer',
+              'flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 min-h-10 min-w-10 lg:pointer-fine:min-h-0 lg:pointer-fine:min-w-0 rounded-xl border text-xs font-semibold transition-colors cursor-pointer',
               isDark
                 ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
                 : 'bg-slate-900 border-slate-900 text-white hover:bg-slate-800 shadow-sm'
@@ -3982,7 +3983,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
               key={p.id}
               type="button"
               onClick={() => applyQuickPreset(p.id as 'classic' | 'upi' | 'cafe' | 'cyber')}
-              className={clsx('shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-semibold cursor-pointer whitespace-nowrap', inactivePillClass)}
+              className={clsx('shrink-0 px-3 py-1 min-h-9 rounded-lg border text-xs font-semibold cursor-pointer whitespace-nowrap', inactivePillClass)}
             >
               {p.label}
             </button>
@@ -4060,7 +4061,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                               type="button"
                               onClick={() => setMobileZoomed(true)}
                               className={clsx(
-                                'px-2 py-0.5 rounded-md text-[10px] font-bold border cursor-pointer shrink-0',
+                                'px-2.5 py-1 min-h-8 rounded-lg text-[11px] font-bold border cursor-pointer shrink-0',
                                 inactivePillClass
                               )}
                             >
@@ -4077,7 +4078,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                             disabled={exporting === 'png'}
                             aria-busy={exporting === 'png'}
                             className={clsx(
-                              'col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
+                              'col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 min-h-10 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
                               isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
                             )}
                           >
@@ -4087,7 +4088,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                             type="button"
                             onClick={handleDownloadSvg}
                             className={clsx(
-                              'col-span-1 py-2 px-2 rounded-xl text-xs font-bold border text-center cursor-pointer',
+                              'col-span-1 py-2 px-2 min-h-10 rounded-xl text-xs font-bold border text-center cursor-pointer',
                               inactivePillClass
                             )}
                           >
@@ -4097,7 +4098,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                             type="button"
                             onClick={handleCopyImage}
                             className={clsx(
-                              'col-span-1 py-2 px-2 rounded-xl text-xs font-bold border text-center cursor-pointer',
+                              'col-span-1 py-2 px-2 min-h-10 rounded-xl text-xs font-bold border text-center cursor-pointer',
                               inactivePillClass
                             )}
                           >
@@ -4203,7 +4204,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                         disabled={exporting === 'png'}
                         aria-busy={exporting === 'png'}
                         className={clsx(
-                          'col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
+                          'col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 min-h-10 rounded-xl text-xs font-bold cursor-pointer shadow-sm',
                           isDark ? 'bg-white text-zinc-950' : 'bg-indigo-600 text-white'
                         )}
                       >
@@ -4255,7 +4256,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                         if (first) setQrType(first.id);
                       }}
                       className={clsx(
-                        'py-2 px-1 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer text-center truncate',
+                        'py-2 px-1 sm:px-3 min-h-10 lg:pointer-fine:min-h-0 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer text-center truncate',
                         active
                           ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25'
                           : isDark
@@ -5882,7 +5883,7 @@ export default function QRStudio({ initialMode = 'create', autoDynamic = false }
                   <button
                     type="button"
                     onClick={() => setDesignTab('templates')}
-                    className="text-[11px] font-semibold text-indigo-400 hover:underline cursor-pointer"
+                    className="py-2 -my-2 text-[11px] font-semibold text-indigo-400 hover:underline cursor-pointer"
                   >
                     See All 32 Styles →
                   </button>
