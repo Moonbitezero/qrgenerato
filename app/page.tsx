@@ -129,6 +129,22 @@ const FAQS = [
     a: 'Yes. Creating, styling and downloading QR codes is completely free — no sign-up, no watermark and no hidden fees, including PNG, SVG, GIF and MP4 downloads.',
   },
   {
+    q: 'Can I use this free QR generator without signing up?',
+    a: 'Yes. There is no account, no email and no login. Open the QR generator, type your link or details and download your QR code straight away. Dynamic QR codes are saved in your browser, so even those work without signing up.',
+  },
+  {
+    q: 'How do I make a QR code with a logo for free?',
+    a: 'Enter your link or details, open the Logos tab and pick a preset logo or upload your own image (PNG, JPG or SVG). The generator raises error correction automatically so the code still scans with the logo in the middle. Then download it as PNG or SVG — free, with no watermark.',
+  },
+  {
+    q: 'Does Google have a free QR code generator?',
+    a: 'Google Chrome can make a basic black-and-white QR code for the page you are viewing from its share menu, but you cannot add a logo or colours, or make Wi-Fi, payment, contact or file QR codes. QR Generato does all of that for free, and every code scans with Google Lens, the Google app and any phone camera.',
+  },
+  {
+    q: 'What makes a good free QR generator?',
+    a: 'Look for four things: no sign-up, no watermark, codes that never expire, and high-resolution downloads (PNG for screens, SVG for print). Many “free” generators make dynamic codes that stop working after a trial. On QR Generato, normal codes never expire, dynamic codes are free with no subscription, and every download is free for commercial use.',
+  },
+  {
     q: 'What is the difference between a static and a dynamic QR code?',
     a: 'A static QR code stores your data inside the pattern itself, so it never expires and needs no server. A dynamic QR code holds a short link that redirects to your destination, so you can change where it goes after printing and count scans. QR Generato offers both for free: turn on Dynamic QR under URL / Web, then manage your codes at /dynamic-qr.',
   },
@@ -427,6 +443,51 @@ export default function HomePage({
           )}
 
           <section className="cv-auto max-w-7xl mx-auto px-4 pb-16 pt-2 space-y-6">
+            {!landingData && (
+              <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-5', cardClass)} aria-labelledby="free-qr-generator">
+                <div className="max-w-3xl space-y-2">
+                  <h2 id="free-qr-generator" className="text-xl sm:text-2xl font-bold tracking-tight">
+                    Free QR Generator Online — No Sign Up, With Logo
+                  </h2>
+                  <p className={clsx('text-sm leading-relaxed', mutedText)}>
+                    QR Generato is a free QR generator that works right in your browser. Type a link, text, Wi-Fi password,
+                    phone number or payment ID and your QR code appears instantly. Add a logo, change the colours, pick a
+                    frame and download it as a high-resolution PNG or SVG. There is no account to create, no watermark on
+                    your code and no trial that runs out.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className={clsx('p-5 rounded-xl border space-y-2', subCardClass)}>
+                    <h3 className="text-sm font-bold">Free QR generator with no sign up</h3>
+                    <p className={clsx('text-xs leading-relaxed', mutedText)}>
+                      Open the page and start. No email, no login and no credit card. Your QR codes are made on your own
+                      device, so your links and details stay private.
+                    </p>
+                  </div>
+                  <div className={clsx('p-5 rounded-xl border space-y-2', subCardClass)}>
+                    <h3 className="text-sm font-bold">Free QR generator with logo</h3>
+                    <p className={clsx('text-xs leading-relaxed', mutedText)}>
+                      Put your brand logo, a social icon or your own image in the middle of the code. Error correction is
+                      raised automatically so the QR code still scans reliably.
+                    </p>
+                  </div>
+                  <div className={clsx('p-5 rounded-xl border space-y-2', subCardClass)}>
+                    <h3 className="text-sm font-bold">QR codes that never expire</h3>
+                    <p className={clsx('text-xs leading-relaxed', mutedText)}>
+                      Normal QR codes keep working forever with unlimited scans. Free dynamic QR codes let you change the
+                      link after printing and count scans, with no subscription.
+                    </p>
+                  </div>
+                </div>
+                <p className={clsx('text-sm leading-relaxed max-w-4xl', mutedText)}>
+                  Every code works with the iPhone and Android camera, Google Lens and any QR scanner app. Make QR codes for
+                  websites, PDFs, MP3 and images, Wi-Fi, WhatsApp, vCard business cards, Google reviews, Instagram, YouTube,
+                  UPI, PayPal and crypto payments — all with the same free online QR code generator, on phone, tablet or
+                  computer.
+                </p>
+              </div>
+            )}
+
             {/* Simple 3-Step Workflow */}
             <div className={clsx('border rounded-2xl p-6 sm:p-8 space-y-5', cardClass)}>
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -521,7 +582,7 @@ export default function HomePage({
               </div>
 
               <div className={clsx('divide-y', isDark ? 'divide-zinc-800/80' : 'divide-slate-200')}>
-                {FAQS.slice(0, 4).map((item) => (
+                {FAQS.map((item) => (
                   <details key={item.q} className="group py-3.5">
                     <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-semibold hover:text-indigo-500 transition-colors">
                       <span>{item.q}</span>
