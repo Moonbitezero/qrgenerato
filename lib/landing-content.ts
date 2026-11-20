@@ -204,6 +204,29 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       'Create a QR code for your Bitcoin, Ethereum, Solana or USDT wallet address so people can pay you without copying long addresses.',
       'Everything is generated in your browser — your wallet address never touches our servers.',
     ],
+    sections: [
+      {
+        heading: 'How a crypto QR code works',
+        paragraphs: [
+          'A crypto QR code stores your public receiving address, so the person paying you scans it with their wallet app instead of copying a long string of letters and numbers by hand. One wrong character in a copied address can send money to the wrong place; scanning removes that risk.',
+          'You can also add a fixed amount. Many wallets read it from the code and fill in the payment for the sender, which is useful for invoices, shop counters and event tickets.',
+        ],
+      },
+      {
+        heading: 'Bitcoin, Ethereum, Solana and USDT',
+        paragraphs: [
+          'Choose the coin that matches your wallet address. Bitcoin codes use the standard bitcoin: payment format that almost every wallet understands. For Ethereum and Solana addresses, use the matching coin so the sender’s wallet opens the right network.',
+          'With USDT, always tell the sender which network your address is on (for example Ethereum or Tron). Tokens sent on the wrong network may not arrive and can be hard or impossible to recover.',
+        ],
+      },
+      {
+        heading: 'Keeping your wallet safe',
+        paragraphs: [
+          'A receiving address is designed to be shared, but your private key and seed phrase must never be. Never put them in a QR code. Before printing a code or posting it online, scan it with your own wallet to confirm it shows exactly your address.',
+          'Your address is turned into a QR code in your browser and is not sent to our server.',
+        ],
+      },
+    ],
     steps: [
       { title: 'Choose the coin', text: 'Select Bitcoin, Ethereum, Solana or Tether (USDT).' },
       { title: 'Paste your address', text: 'Paste your receiving address and, optionally, a fixed amount.' },
@@ -217,6 +240,8 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
     faqs: [
       { q: 'Which wallets can scan this code?', a: 'Most mobile wallets (Trust Wallet, MetaMask, Coinbase Wallet, Phantom and others) can read address QR codes.' },
       { q: 'Is it safe?', a: 'A receiving address is public by design. The code is created locally in your browser and nothing is uploaded.' },
+      { q: 'Can I add an amount to a Bitcoin QR code?', a: 'Yes. Enter the amount when you create the code. Most Bitcoin wallets read it and fill in the payment for the sender, who can still check it before sending.' },
+      { q: 'Can I put a logo on my crypto QR code?', a: 'Yes. Add a coin logo or your own logo in the Logos tab, choose colours and a frame, and download it as PNG or SVG for free.' },
     ],
   },
 
@@ -430,6 +455,29 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       'This free online QR code scanner reads codes with your phone, tablet or laptop camera, or from a picture you already have, such as a screenshot or a photo of a poster.',
       'Scanning happens entirely in your browser. The image is never uploaded, so it is safe for Wi-Fi passwords, payment codes and private links. You see exactly what the code contains before you open anything.',
     ],
+    sections: [
+      {
+        heading: 'Scan a QR code from a screenshot or image',
+        paragraphs: [
+          'Phone cameras can only scan codes in front of them, which is a problem when the QR code is on your own screen: in a screenshot, a WhatsApp message, an email, a PDF ticket or a social media post. Upload the picture here and the scanner finds the code inside it and shows what it contains. It works with PNG, JPG, WebP and other common image formats.',
+          'On a computer you can do the same with a screenshot of a web page or a document, without picking up your phone.',
+        ],
+      },
+      {
+        heading: 'Check a QR code before you open it',
+        paragraphs: [
+          'Fake QR codes stuck over real ones on parking meters, restaurant tables and posters are a common scam. They send people to look-alike payment or login pages. This scanner shows the full decoded link or text first and opens nothing automatically, so you can see where a code really leads and decide whether to trust it.',
+          'Be careful with codes that ask you to log in, pay or install an app, especially when the address does not match the business you expect.',
+        ],
+      },
+      {
+        heading: 'Scan with a laptop, PC, iPhone or Android',
+        paragraphs: [
+          'The scanner runs in any modern browser: Chrome, Safari, Edge and Firefox on Windows, Mac, iPhone, iPad and Android. Allow camera access once and hold the code in front of your webcam or phone camera. There is no app to install and no account to create, and the camera picture is processed on your device only.',
+          'Found a code you want to reuse? Copy its content and make your own QR code with a logo, colours and a frame in the generator above.',
+        ],
+      },
+    ],
     steps: [
       { title: 'Choose camera or image', text: 'Allow camera access to scan live, or upload a screenshot or photo that contains a QR code.' },
       { title: 'Point at the code', text: 'Hold the code steady inside the frame. It is read automatically in a moment.' },
@@ -453,6 +501,8 @@ export const LANDING_CONTENT: Record<LandingKey, LandingContent> = {
       { q: 'Is my camera image uploaded?', a: 'No. Decoding happens on your device in the browser. Nothing from the camera or your images is sent to a server.' },
       { q: 'Is it free?', a: 'Yes. There is no app to install, no sign-up and no limit on scans.' },
       { q: 'Why won’t my QR code scan?', a: 'Common causes are low light, glare, blur, or a code that is too small or has too little contrast. Try more light, hold steadier, or upload a sharper image.' },
+      { q: 'How do I scan a QR code on my laptop?', a: 'Open this page, allow camera access and hold the QR code in front of your webcam. If the code is on your screen, take a screenshot and upload it instead.' },
+      { q: 'How can I tell if a QR code is safe?', a: 'Scan it here first: the decoded address is shown without opening it. Check that the website name matches the business, and avoid codes that ask for passwords or payment on an unfamiliar site.' },
     ],
   },
 
